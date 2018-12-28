@@ -1,0 +1,5 @@
+(executables
+ (names main)
+ (public_names download-from-watch-later)
+ (libraries core async sqlite3)
+ (preprocess (pps ppx_jane)))
