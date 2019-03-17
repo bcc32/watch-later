@@ -1,0 +1,7 @@
+(library
+ (name watch_later)
+ (libraries
+  core
+  async
+  sqlite3)
+ (preprocess (pps ppx_jane)))

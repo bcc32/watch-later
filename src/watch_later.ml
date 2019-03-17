@@ -76,5 +76,3 @@ let command =
      and dbpath = anon ("DBPATH" %: Filename.arg_type) in
      fun () -> main dbpath)
 ;;
-
-let () = Command.run command
