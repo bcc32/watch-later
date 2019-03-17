@@ -34,8 +34,7 @@ let main dbpath =
     let working_dir = "download" ^/ channel_id ^ "-" ^ channel_title in
     let f () =
       let%bind () = Unix.mkdir ~p:() working_dir in
-      Log.Global.sexp
-        ~level:`Info
+      Log.Global.info_s
         [%message
           "downloading video"
             (video_title : string)
@@ -46,8 +45,7 @@ let main dbpath =
         Process.run () ~prog:"youtube-dl" ~args:[ "--"; video_id ] ~working_dir
       with
       | Ok _ ->
-        Log.Global.sexp
-          ~level:`Info
+        Log.Global.info_s
           [%message
             "done downloading"
               (video_title : string)
@@ -55,8 +53,7 @@ let main dbpath =
               (video_id : string)
               (working_dir : string)]
       | Error e ->
-        Log.Global.sexp
-          ~level:`Error
+        Log.Global.error_s
           [%message
             "error downloading"
               (e : Error.t)
