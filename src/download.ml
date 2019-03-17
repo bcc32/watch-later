@@ -4,7 +4,6 @@ open! Import
 
 let main dbpath =
   let deferreds = ref [] in
-  let throttle = Throttle.create ~continue_on_error:true ~max_concurrent_jobs in
   let download { Video.channel_id; channel_title; video_id; video_title } =
     let working_dir = "download" ^/ channel_id ^ "-" ^ channel_title in
     let f () =
