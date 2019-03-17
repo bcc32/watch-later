@@ -1,0 +1,24 @@
+opam-version: "2.0"
+maintainer: "Aaron L. Zeng <me@bcc32.com>"
+authors: [ "Aaron L. Zeng <me@bcc32.com>" ]
+tags: []
+license: "MIT"
+homepage: "https://github.com/bcc32/watch-later"
+dev-repo: "git+https://github.com/bcc32/watch-later"
+bug-reports: "https://github.com/bcc32/watch-later/issues"
+doc: "https://github.com/bcc32/watch-later"
+build: [
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "build" "@doc"] {with-doc}
+]
+run-test: [
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+]
+depends: [
+  "ocaml" {>= "4.02"}
+  "dune" {build}
+]
+synopsis: ""
+description: """
+"""
