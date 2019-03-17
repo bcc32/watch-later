@@ -76,7 +76,7 @@ let command =
     ~summary:"Download youtube videos from database"
     (let open Command.Let_syntax in
      let%map_open () = return ()
-     and dbpath = anon ("DBPATH" %: file) in
+     and dbpath = anon ("DBPATH" %: Filename.arg_type) in
      fun () -> main dbpath)
 ;;
 
