@@ -3,5 +3,6 @@
  (libraries
   core
   async
+  async_interactive
   sqlite3)
  (preprocess (pps ppx_jane)))

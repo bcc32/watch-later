@@ -4,37 +4,19 @@ open! Import
 
 let main dbpath =
   let deferreds = ref [] in
-  let download { Video.channel_id; channel_title; video_id; video_title } =
-    let working_dir = "download" ^/ channel_id ^ "-" ^ channel_title in
+  let download (video : Video.t) =
+    let working_dir = "download" ^/ video.channel_id ^ "-" ^ video.channel_title in
     let f () =
-      let%bind () = Unix.mkdir ~p:() working_dir in
-      Log.Global.info_s
-        [%message
-          "downloading video"
-            (video_title : string)
-            (channel_title : string)
-            (video_id : string)
-            (working_dir : string)];
-      match%map
-        Process.run () ~prog:"youtube-dl" ~args:[ "--"; video_id ] ~working_dir
-      with
-      | Ok _ ->
-        Log.Global.info_s
-          [%message
-            "done downloading"
-              (video_title : string)
-              (channel_title : string)
-              (video_id : string)
-              (working_dir : string)]
-      | Error e ->
-        Log.Global.error_s
-          [%message
-            "error downloading"
-              (e : Error.t)
-              (video_title : string)
-              (channel_title : string)
-              (video_id : string)
-              (working_dir : string)]
+      Async_interactive.Job.run !"downloading %{sexp:Video.t}" video ~f:(fun () ->
+        let%bind () = Unix.mkdir ~p:() working_dir in
+        match%map
+          Process.run () ~prog:"youtube-dl" ~args:[ "--"; video.video_id ] ~working_dir
+        with
+        | Ok _ -> ()
+        | Error e ->
+          Log.Global.error_s
+            [%message
+              "error downloading" (e : Error.t) (video : Video.t) (working_dir : string)])
     in
     deferreds := Throttle.enqueue throttle f :: !deferreds
   in

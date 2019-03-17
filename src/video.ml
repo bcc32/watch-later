@@ -8,3 +8,4 @@ type t =
   ; video_id : string
   ; video_title : string
   }
+[@@deriving sexp_of]
