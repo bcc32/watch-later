@@ -1,8 +1,5 @@
 (library
  (name watch_later)
- (libraries
-  core
-  async
-  async_interactive
-  sqlite3)
- (preprocess (pps ppx_jane)))
+ (libraries core async async_interactive sqlite3)
+ (preprocess
+  (pps ppx_jane)))
