@@ -14,9 +14,7 @@ let main dbpath =
         with
         | Ok _ -> ()
         | Error e ->
-          (* TODO: Use error_s after upgrading async. *)
-          Log.Global.sexp
-            ~level:`Error
+          Log.Global.error_s
             [%message
               "error downloading" (e : Error.t) (video : Video.t) (working_dir : string)])
     in
@@ -27,12 +25,10 @@ let main dbpath =
   Deferred.all_unit !deferreds
 ;;
 
-(* TODO: Use path argument on map_open after upgrading ppx_jane. *)
 let command =
   Command.async
     ~summary:"Download youtube videos from database"
-    (let open Command.Let_syntax in
-     let%map_open () = return ()
-     and dbpath = anon ("DBPATH" %: file) in
+    (let%map_open.Command.Let_syntax () = return ()
+     and dbpath = anon ("DBPATH" %: Filename.arg_type) in
      fun () -> main dbpath)
 ;;

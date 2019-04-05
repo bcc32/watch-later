@@ -21,6 +21,6 @@ WHERE NOT watched;
           f { Video.channel_id; channel_title; video_id; video_title }
         | _ -> raise_s [%message "wrong number of fields" (row : string array)])
   with
-  | Sqlite3.Rc.OK -> ()
+  | OK -> ()
   | rc -> print_s [%message "non-OK rc" (Sqlite3.Rc.to_string rc : string)]
 ;;
