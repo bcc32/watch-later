@@ -18,7 +18,7 @@ WHERE NOT watched;
       ~cb:(fun row ->
         match row with
         | [| channel_id; channel_title; video_id; video_title |] ->
-          f { Video.channel_id; channel_title; video_id; video_title }
+          f { Video_info.channel_id; channel_title; video_id; video_title }
         | _ -> raise_s [%message "wrong number of fields" (row : string array)])
   with
   | OK -> ()
