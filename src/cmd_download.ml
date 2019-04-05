@@ -1,12 +1,19 @@
 open! Core
 open! Async
 open! Import
+open Deferred.Or_error.Let_syntax
 
 let main dbpath ~download_dir =
   let deferreds = ref [] in
-  let db = Db.open_file dbpath in
-  Db.iter_non_watched_videos db ~f:(fun video ->
-    deferreds := Download.download video ~base_dir:download_dir :: !deferreds);
+  let%bind db =
+    Or_error.try_with (fun () -> Db.open_file_exn dbpath) |> Deferred.return
+  in
+  let%bind () =
+    Or_error.try_with (fun () ->
+      Db.iter_non_watched_videos_exn db ~f:(fun video ->
+        deferreds := Download.download video ~base_dir:download_dir :: !deferreds))
+    |> Deferred.return
+  in
   Deferred.Or_error.all_unit !deferreds
 ;;
 

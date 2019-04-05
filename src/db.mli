@@ -4,8 +4,15 @@ open! Import
 
 type t
 
-(* TODO: Add function to close, or have something like [with_db_file]. *)
+val open_file_exn : ?should_setup_schema:bool -> string -> t
+val close : t -> unit Deferred.t
 
-val open_file : string -> t
-val iter_non_watched_videos : t -> f:(Video_info.t -> unit) -> unit
-val video_stats : t -> Stats.t
+val with_file_exn
+  :  ?should_setup_schema:bool
+  -> string
+  -> f:(t -> unit Deferred.t)
+  -> unit Deferred.t
+
+val iter_non_watched_videos_exn : t -> f:(Video_info.t -> unit) -> unit
+val video_stats_exn : t -> Stats.t
+val add_video_overwrite_exn : t -> Video_info.t -> unit
