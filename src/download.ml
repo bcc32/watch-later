@@ -9,15 +9,13 @@ let download (video : Video_info.t) ~base_dir =
   Throttle.enqueue throttle (fun () ->
     Async_interactive.Job.run !"downloading %{sexp:Video_info.t}" video ~f:(fun () ->
       let%bind () = Unix.mkdir ~p:() working_dir in
-      match%map
+      let%map result =
         Process.run () ~prog:"youtube-dl" ~args:[ "--"; video.video_id ] ~working_dir
-      with
-      | Ok _ -> ()
-      | Error e ->
-        Log.Global.error_s
-          [%message
-            "error downloading"
-              (e : Error.t)
-              (video : Video_info.t)
-              (working_dir : string)]))
+      in
+      let result = Or_error.ignore_m result in
+      Or_error.tag_arg
+        result
+        "error downloading"
+        (video, working_dir)
+        [%sexp_of: Video_info.t * string]))
 ;;
