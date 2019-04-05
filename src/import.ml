@@ -7,4 +7,5 @@ let max_concurrent_jobs =
   | Error _ -> 4
 ;;
 
+include Expect_test_helpers
 include Int.Replace_polymorphic_compare

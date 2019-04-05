@@ -2,6 +2,8 @@ open! Core
 open! Async
 open! Import
 
+(* TODO: Add video duration, thumbnail link? *)
+
 type t =
   { channel_id : string
   ; channel_title : string

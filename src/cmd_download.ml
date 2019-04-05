@@ -14,7 +14,7 @@ let command =
   Command.async_or_error
     ~summary:"Download youtube videos from database"
     (let%map_open.Command.Let_syntax () = return ()
-     and dbpath = anon ("DBPATH" %: Filename.arg_type)
+     and dbpath = Params.dbpath
      and download_dir =
        flag
          "download-dir"

@@ -1,5 +1,5 @@
 (library
  (name watch_later)
- (libraries core async async_interactive sqlite3)
+ (libraries async async_interactive core expect_test_helpers sqlite3)
  (preprocess
   (pps ppx_jane)))
