@@ -3,11 +3,10 @@ open! Async
 open! Import
 
 let main dbpath ~download_dir =
-  let%bind () = Unix.chdir download_dir in
   let deferreds = ref [] in
   let db = Db.open_file dbpath in
   Db.iter_non_watched_videos db ~f:(fun video ->
-    deferreds := Download.download video :: !deferreds);
+    deferreds := Download.download video ~base_dir:download_dir :: !deferreds);
   Deferred.all_unit !deferreds
 ;;
 

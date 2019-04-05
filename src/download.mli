@@ -2,4 +2,4 @@ open! Core
 open! Async
 open! Import
 
-val download : Video_info.t -> unit Deferred.t
+val download : Video_info.t -> base_dir:string -> unit Deferred.t
