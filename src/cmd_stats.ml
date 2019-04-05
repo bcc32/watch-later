@@ -1,13 +1,12 @@
 open! Core
 open! Async
 open! Import
-open Deferred.Or_error.Let_syntax
 
 let main dbpath =
   let db = Db.open_file dbpath in
   let stats = Db.video_stats db in
   print_s [%sexp (stats : Stats.t)];
-  return ()
+  return (Ok ())
 ;;
 
 (* TODO: Stats by channel *)
