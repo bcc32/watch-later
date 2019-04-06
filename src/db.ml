@@ -247,6 +247,7 @@ type t =
   ; select_count_total_videos : ([ `Select ], Arity.t0) Stmt.t Lazy.t
   ; select_count_watched_videos : ([ `Select ], Arity.t0) Stmt.t Lazy.t
   ; add_video_overwrite : ([ `Non_select ], Arity.t4) Stmt.t Lazy.t
+  ; add_video_no_overwrite : ([ `Non_select ], Arity.t4) Stmt.t Lazy.t
   ; mark_watched : ([ `Non_select ], Arity.t1) Stmt.t Lazy.t
   }
 
@@ -291,17 +292,21 @@ WHERE watched;
 |}
 ;;
 
-let add_video_overwrite db =
-  Stmt.prepare_exn
-    db
-    Non_select
-    Arity4
-    {|
-INSERT OR REPLACE INTO videos
+let add_video db ~conflict_resolution =
+  let sql =
+    sprintf
+      {|
+INSERT OR %s INTO videos
 (video_id, video_title, channel_id, channel_title, watched)
 VALUES (?, ?, ?, ?, 0);
 |}
+      conflict_resolution
+  in
+  Stmt.prepare_exn db Non_select Arity4 sql
 ;;
+
+let add_video_overwrite db = add_video db ~conflict_resolution:"REPLACE"
+let add_video_no_overwrite db = add_video db ~conflict_resolution:"IGNORE"
 
 let mark_watched db =
   Stmt.prepare_exn
@@ -327,6 +332,7 @@ let create ?(should_setup_schema = true) db =
     ; select_count_total_videos = lazy (select_count_total_videos db)
     ; select_count_watched_videos = lazy (select_count_watched_videos db)
     ; add_video_overwrite = lazy (add_video_overwrite db)
+    ; add_video_no_overwrite = lazy (add_video_no_overwrite db)
     ; mark_watched = lazy (mark_watched db)
     }
   in
@@ -402,9 +408,11 @@ let video_stats_exn t =
   }
 ;;
 
-let add_video_overwrite_exn t (video_info : Video_info.t) =
+let add_video_exn t (video_info : Video_info.t) ~overwrite =
   (* TODO: [run_bind_by_name] *)
-  let stmt = force t.add_video_overwrite in
+  let stmt =
+    force (if overwrite then t.add_video_overwrite else t.add_video_no_overwrite)
+  in
   Stmt.run_exn
     stmt
     (TEXT video_info.video_id)
