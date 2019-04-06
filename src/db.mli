@@ -17,3 +17,4 @@ val iter_non_watched_videos_exn : t -> f:(Video_info.t -> unit) -> unit
 val video_stats_exn : t -> Stats.t
 val add_video_exn : t -> Video_info.t -> overwrite:bool -> unit
 val mark_watched : t -> Video_spec.t -> unit
+val get_random_unwatched_video_exn : t -> Video_info.t

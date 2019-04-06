@@ -249,6 +249,7 @@ type t =
   ; add_video_overwrite : ([ `Non_select ], Arity.t4) Stmt.t Lazy.t
   ; add_video_no_overwrite : ([ `Non_select ], Arity.t4) Stmt.t Lazy.t
   ; mark_watched : ([ `Non_select ], Arity.t1) Stmt.t Lazy.t
+  ; get_random_unwatched_video : ([ `Select ], Arity.t0) Stmt.t Lazy.t
   }
 
 let setup_schema db =
@@ -319,6 +320,19 @@ WHERE video_id = ?;
 |}
 ;;
 
+let get_random_unwatched_video db =
+  Stmt.prepare_exn
+    db
+    Select
+    Arity0
+    {|
+SELECT video_id, video_title, channel_id, channel_title FROM videos
+WHERE NOT watched
+ORDER BY RANDOM()
+LIMIT 1;
+|}
+;;
+
 let do_setup_schema t =
   let stmt = force t.setup_schema in
   Stmt.run_exn stmt
@@ -334,6 +348,7 @@ let create ?(should_setup_schema = true) db =
     ; add_video_overwrite = lazy (add_video_overwrite db)
     ; add_video_no_overwrite = lazy (add_video_no_overwrite db)
     ; mark_watched = lazy (mark_watched db)
+    ; get_random_unwatched_video = lazy (get_random_unwatched_video db)
     }
   in
   if should_setup_schema then do_setup_schema t;
@@ -370,17 +385,18 @@ let int64_exn (data : Sqlite3.Data.t) =
   | data -> failwithf !"expected INT, got: %{Sqlite3.Data}" data ()
 ;;
 
+let video_info_reader =
+  let open Reader.Let_syntax in
+  let%map_open channel_id = by_name "channel_id" >>| string_exn
+  and channel_title = by_name "channel_title" >>| string_exn
+  and video_id = by_name "video_id" >>| string_exn
+  and video_title = by_name "video_title" >>| string_exn in
+  { Video_info.channel_id; channel_title; video_id; video_title }
+;;
+
 let iter_non_watched_videos_exn t ~f =
   let stmt = force t.select_non_watched_videos in
-  let reader =
-    let open Reader.Let_syntax in
-    let%map_open channel_id = by_name "channel_id" >>| string_exn
-    and channel_title = by_name "channel_title" >>| string_exn
-    and video_id = by_name "video_id" >>| string_exn
-    and video_title = by_name "video_title" >>| string_exn in
-    { Video_info.channel_id; channel_title; video_id; video_title }
-  in
-  Stmt.select_exn stmt reader ~f
+  Stmt.select_exn stmt video_info_reader ~f
 ;;
 
 let video_stats_exn t =
@@ -425,6 +441,16 @@ let mark_watched t video_spec =
   let video_id = Video_spec.video_id video_spec in
   let stmt = force t.mark_watched in
   Stmt.run_exn stmt (TEXT video_id)
+;;
+
+let get_random_unwatched_video_exn t =
+  let stmt = force t.get_random_unwatched_video in
+  let result = Set_once.create () in
+  Stmt.select_exn stmt video_info_reader ~f:(fun video_info ->
+    Set_once.set_exn result [%here] video_info);
+  match Set_once.get result with
+  | None -> failwith "no unwatched videos"
+  | Some video_info -> video_info
 ;;
 
 (* FIXME: Remove *)

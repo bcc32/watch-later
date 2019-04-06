@@ -6,6 +6,8 @@ type t =
   | Video_id of string
   | Video_url of Video_url.t
 
+let of_video_id id = Video_id id
+
 let of_string string =
   try Video_url (string |> Video_url.of_string) with
   | _ -> Video_id string
