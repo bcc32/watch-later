@@ -6,11 +6,11 @@ open Deferred.Or_error.Let_syntax
 let main dbpath ~download_dir =
   let deferreds = ref [] in
   let%bind db =
-    Or_error.try_with (fun () -> Db.open_file_exn dbpath) |> Deferred.return
+    Or_error.try_with (fun () -> Video_db.open_file_exn dbpath) |> Deferred.return
   in
   let%bind () =
     Or_error.try_with (fun () ->
-      Db.iter_non_watched_videos_exn db ~f:(fun video ->
+      Video_db.iter_non_watched_videos_exn db ~f:(fun video ->
         deferreds := Download.download video ~base_dir:download_dir :: !deferreds))
     |> Deferred.return
   in

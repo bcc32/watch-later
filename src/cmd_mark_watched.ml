@@ -5,10 +5,10 @@ open Deferred.Or_error.Let_syntax
 
 let main ~dbpath ~video_specs =
   let%bind db =
-    Or_error.try_with (fun () -> Db.open_file_exn dbpath) |> Deferred.return
+    Or_error.try_with (fun () -> Video_db.open_file_exn dbpath) |> Deferred.return
   in
   Deferred.Or_error.List.iter video_specs ~f:(fun spec ->
-    Db.mark_watched db spec;
+    Video_db.mark_watched db spec;
     return ())
 ;;
 
