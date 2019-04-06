@@ -10,5 +10,6 @@ let command =
     ; "download", Cmd_download.command
     ; "mark-watched", Cmd_mark_watched.command
     ; "stats", Cmd_stats.command
+    ; "watch", Cmd_watch.command
     ]
 ;;

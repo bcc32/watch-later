@@ -287,7 +287,7 @@ SELECT COUNT(*) FROM videos;
 let select_count_watched_videos db =
   Stmt.prepare_exn db Select Arity0 {|
 SELECT COUNT(*) FROM videos
-WHERE NOT watched;
+WHERE watched;
 |}
 ;;
 
@@ -309,7 +309,8 @@ let mark_watched db =
     Non_select
     Arity1
     {|
-UPDATE videos SET watched = 1 WHERE video_id = ?;
+UPDATE videos SET watched = 1
+WHERE video_id = ?;
 |}
 ;;
 
