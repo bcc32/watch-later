@@ -247,6 +247,7 @@ type t =
   ; select_count_total_videos : ([ `Select ], Arity.t0) Stmt.t Lazy.t
   ; select_count_watched_videos : ([ `Select ], Arity.t0) Stmt.t Lazy.t
   ; add_video_overwrite : ([ `Non_select ], Arity.t4) Stmt.t Lazy.t
+  ; mark_watched : ([ `Non_select ], Arity.t1) Stmt.t Lazy.t
   }
 
 let setup_schema db =
@@ -296,9 +297,19 @@ let add_video_overwrite db =
     Non_select
     Arity4
     {|
-INSERT OR $on_conflict INTO videos
+INSERT OR REPLACE INTO videos
 (video_id, video_title, channel_id, channel_title, watched)
 VALUES (?, ?, ?, ?, 0);
+|}
+;;
+
+let mark_watched db =
+  Stmt.prepare_exn
+    db
+    Non_select
+    Arity1
+    {|
+UPDATE videos SET watched = 1 WHERE video_id = ?;
 |}
 ;;
 
@@ -315,6 +326,7 @@ let create ?(should_setup_schema = true) db =
     ; select_count_total_videos = lazy (select_count_total_videos db)
     ; select_count_watched_videos = lazy (select_count_watched_videos db)
     ; add_video_overwrite = lazy (add_video_overwrite db)
+    ; mark_watched = lazy (mark_watched db)
     }
   in
   if should_setup_schema then do_setup_schema t;
@@ -323,7 +335,7 @@ let create ?(should_setup_schema = true) db =
 
 (* FIXME: This should be done asynchronously, in a thread. *)
 let open_file_exn ?should_setup_schema dbpath =
-  create ?should_setup_schema (Sqlite3.db_open ~mode:`READONLY dbpath)
+  create ?should_setup_schema (Sqlite3.db_open dbpath)
 ;;
 
 let rec close t =
@@ -400,5 +412,11 @@ let add_video_overwrite_exn t (video_info : Video_info.t) =
     (TEXT video_info.channel_title)
 ;;
 
+let mark_watched t video_spec =
+  let video_id = Video_spec.video_id video_spec in
+  let stmt = force t.mark_watched in
+  Stmt.run_exn stmt (TEXT video_id)
+;;
+
 (* FIXME: Remove *)
-let _ = Reader.by_name, Arity.Arity1, Arity.Arity2, Arity.Arity3, Arity.Arity4
+let _ = Reader.by_name, Arity.Arity2, Arity.Arity3

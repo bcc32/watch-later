@@ -16,3 +16,4 @@ val with_file_exn
 val iter_non_watched_videos_exn : t -> f:(Video_info.t -> unit) -> unit
 val video_stats_exn : t -> Stats.t
 val add_video_overwrite_exn : t -> Video_info.t -> unit
+val mark_watched : t -> Video_spec.t -> unit
