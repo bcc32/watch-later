@@ -3,7 +3,7 @@ open! Async
 open! Import
 
 type t =
-  { db : Sqlite3.db
+  { db : Db.t
   ; setup_schema : ([ `Non_select ], Db.Arity.t0) Db.Stmt.t Lazy.t
   ; select_non_watched_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
   ; select_count_total_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
@@ -15,7 +15,7 @@ type t =
   }
 
 let setup_schema db =
-  Db.Stmt.prepare_exn
+  Db.prepare_exn
     db
     Non_select
     Arity0
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS videos(
 ;;
 
 let select_non_watched_videos db =
-  Db.Stmt.prepare_exn
+  Db.prepare_exn
     db
     Select
     Arity0
@@ -43,13 +43,13 @@ WHERE NOT watched;
 ;;
 
 let select_count_total_videos db =
-  Db.Stmt.prepare_exn db Select Arity0 {|
+  Db.prepare_exn db Select Arity0 {|
 SELECT COUNT(*) FROM videos;
 |}
 ;;
 
 let select_count_watched_videos db =
-  Db.Stmt.prepare_exn db Select Arity0 {|
+  Db.prepare_exn db Select Arity0 {|
 SELECT COUNT(*) FROM videos
 WHERE watched;
 |}
@@ -65,14 +65,14 @@ VALUES (?, ?, ?, ?, 0);
 |}
       conflict_resolution
   in
-  Db.Stmt.prepare_exn db Non_select Arity4 sql
+  Db.prepare_exn db Non_select Arity4 sql
 ;;
 
 let add_video_overwrite db = add_video db ~conflict_resolution:"REPLACE"
 let add_video_no_overwrite db = add_video db ~conflict_resolution:"IGNORE"
 
 let mark_watched db =
-  Db.Stmt.prepare_exn
+  Db.prepare_exn
     db
     Non_select
     Arity1
@@ -83,7 +83,7 @@ WHERE video_id = ?;
 ;;
 
 let get_random_unwatched_video db =
-  Db.Stmt.prepare_exn
+  Db.prepare_exn
     db
     Select
     Arity0
@@ -113,27 +113,23 @@ let create ?(should_setup_schema = true) db =
     ; get_random_unwatched_video = lazy (get_random_unwatched_video db)
     }
   in
-  if should_setup_schema then do_setup_schema t;
+  let%map () = if should_setup_schema then do_setup_schema t else return () in
   t
 ;;
 
-(* FIXME: This should be done asynchronously, in a thread. *)
+(* TODO: Don't raise, return [Or_error.t]s. *)
 let open_file_exn ?should_setup_schema dbpath =
-  create ?should_setup_schema (Sqlite3.db_open dbpath)
-;;
-
-let rec close t =
-  if Sqlite3.db_close t.db
-  then return ()
-  else (
-    let%bind () = Clock_ns.after (Time_ns.Span.of_sec 0.05) in
-    close t)
+  let%bind db = Db.open_file dbpath in
+  create ?should_setup_schema db
 ;;
 
 let with_file_exn ?should_setup_schema dbpath ~f =
-  let t = open_file_exn ?should_setup_schema dbpath in
-  Monitor.protect (fun () -> f t) ~finally:(fun () -> close t)
+  Db.with_file dbpath ~f:(fun db ->
+    let%bind t = create ?should_setup_schema db in
+    f t)
 ;;
+
+let close t = Db.close t.db
 
 let string_exn (data : Sqlite3.Data.t) =
   match data with
@@ -158,7 +154,7 @@ let video_info_reader =
 
 let iter_non_watched_videos_exn t ~f =
   let stmt = force t.select_non_watched_videos in
-  Db.Stmt.select_exn stmt video_info_reader ~f
+  Db.Stmt.select_exn' stmt video_info_reader ~f
 ;;
 
 let video_stats_exn t =
@@ -166,24 +162,29 @@ let video_stats_exn t =
     let open Db.Reader.Let_syntax in
     Db.Reader.by_index 0 >>| int64_exn >>| Int64.to_int_exn
   in
-  let total_videos =
+  let%bind total_videos =
     let result = Set_once.create () in
     let stmt = force t.select_count_total_videos in
-    Db.Stmt.select_exn stmt int_reader ~f:(fun count ->
-      Set_once.set_exn result [%here] count);
+    let%map () =
+      Db.Stmt.select_exn stmt int_reader ~f:(fun count ->
+        Set_once.set_exn result [%here] count)
+    in
     Set_once.get_exn result [%here]
   in
-  let watched_videos =
+  let%bind watched_videos =
     let result = Set_once.create () in
     let stmt = force t.select_count_watched_videos in
-    Db.Stmt.select_exn stmt int_reader ~f:(fun count ->
-      Set_once.set_exn result [%here] count);
+    let%map () =
+      Db.Stmt.select_exn stmt int_reader ~f:(fun count ->
+        Set_once.set_exn result [%here] count)
+    in
     Set_once.get_exn result [%here]
   in
-  { Stats.total_videos
-  ; watched_videos
-  ; unwatched_videos = total_videos - watched_videos
-  }
+  return
+    { Stats.total_videos
+    ; watched_videos
+    ; unwatched_videos = total_videos - watched_videos
+    }
 ;;
 
 let add_video_exn t (video_info : Video_info.t) ~overwrite =
@@ -208,8 +209,10 @@ let mark_watched t video_spec =
 let get_random_unwatched_video_exn t =
   let stmt = force t.get_random_unwatched_video in
   let result = Set_once.create () in
-  Db.Stmt.select_exn stmt video_info_reader ~f:(fun video_info ->
-    Set_once.set_exn result [%here] video_info);
+  let%map () =
+    Db.Stmt.select_exn stmt video_info_reader ~f:(fun video_info ->
+      Set_once.set_exn result [%here] video_info)
+  in
   match Set_once.get result with
   | None -> failwith "no unwatched videos"
   | Some video_info -> video_info

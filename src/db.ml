@@ -63,7 +63,7 @@ end
 (* TODO: Arity_n *)
 (* TODO: Separate Sqlite3_with_gadts library. *)
 module Arity = struct
-  type t0 = unit
+  type t0 = unit Deferred.t
   type t1 = Sqlite3.Data.t -> t0
   type t2 = Sqlite3.Data.t -> t1
   type t3 = Sqlite3.Data.t -> t2
@@ -92,32 +92,21 @@ module Kind = struct
 end
 
 module Stmt = struct
-  type ('kind, 'input_callback) t =
-    | Select : Sqlite3.stmt * 'input_callback Arity.t -> ([ `Select ], 'input_callback) t
+  type ('kind, 'input_callback) stmt =
+    | Select :
+        Sqlite3.stmt * 'input_callback Arity.t
+        -> ([ `Select ], 'input_callback) stmt
     | Non_select :
         Sqlite3.stmt * 'input_callback Arity.t
-        -> ([ `Non_select ], 'input_callback) t
+        -> ([ `Non_select ], 'input_callback) stmt
 
-  let prepare_exn (type k i)
-        db
-        (kind : k Kind.t)
-        (input_arity : i Arity.t)
-        sql
-    : (k, i) t
-    =
-    let stmt = Sqlite3.prepare db sql in
-    let actual_input_arity = Sqlite3.bind_parameter_count stmt in
-    [%test_result: int]
-      ~message:"input arity mismatch"
-      actual_input_arity
-      ~expect:(Arity.to_int input_arity);
-    match kind with
-    | Select -> Select (stmt, input_arity)
-    | Non_select -> Non_select (stmt, input_arity)
-  ;;
+  type ('kind, 'input_callback) t =
+    { stmt : ('kind, 'input_callback) stmt
+    ; thread : In_thread.Helper_thread.t
+    }
 
-  let reset stmt =
-    match Sqlite3.reset stmt with
+  let reset stmt ~thread =
+    match%map In_thread.run ~thread (fun () -> Sqlite3.reset stmt) with
     | OK -> ()
     | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
   ;;
@@ -128,76 +117,173 @@ module Stmt = struct
     | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
   ;;
 
-  let select_exn (type i)
-        (Select (stmt, (input_arity : i Arity.t)))
+  let select_exn
+        (type i)
+        { stmt = Select (stmt, (input_arity : i Arity.t)); thread }
         reader
-        ~f : i =
-    reset stmt;
+        ~f
+    : i
+    =
     let rec loop () =
-      match Sqlite3.step stmt with
+      match%bind In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
       | ROW ->
         let x = Reader.stmt reader stmt in
         f x;
         loop ()
-      | DONE -> ()
+      | DONE -> return ()
       | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
     in
+    let go () =
+      let%bind () = reset stmt ~thread in
+      loop ()
+    in
     match input_arity with
-    | Arity0 -> loop ()
+    | Arity0 -> go ()
     | Arity1 ->
       fun a ->
         bind_exn stmt 1 a;
-        loop ()
+        go ()
     | Arity2 ->
       fun a b ->
         bind_exn stmt 1 a;
         bind_exn stmt 2 b;
-        loop ()
+        go ()
     | Arity3 ->
       fun a b c ->
         bind_exn stmt 1 a;
         bind_exn stmt 2 b;
         bind_exn stmt 3 c;
-        loop ()
+        go ()
     | Arity4 ->
       fun a b c d ->
         bind_exn stmt 1 a;
         bind_exn stmt 2 b;
         bind_exn stmt 3 c;
         bind_exn stmt 4 d;
-        loop ()
+        go ()
   ;;
 
-  let run_exn (type a) (Non_select (stmt, (arity : a Arity.t))) : a =
-    reset stmt;
-    let exec () =
-      match Sqlite3.step stmt with
+  let select_exn'
+        (type i)
+        { stmt = Select (stmt, (input_arity : i Arity.t)); thread }
+        reader
+        ~f
+    : i
+    =
+    let rec loop () =
+      match%bind In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
+      | ROW ->
+        let x = Reader.stmt reader stmt in
+        let%bind () = f x in
+        loop ()
+      | DONE -> return ()
+      | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
+    in
+    let go () =
+      let%bind () = reset stmt ~thread in
+      loop ()
+    in
+    match input_arity with
+    | Arity0 -> go ()
+    | Arity1 ->
+      fun a ->
+        bind_exn stmt 1 a;
+        go ()
+    | Arity2 ->
+      fun a b ->
+        bind_exn stmt 1 a;
+        bind_exn stmt 2 b;
+        go ()
+    | Arity3 ->
+      fun a b c ->
+        bind_exn stmt 1 a;
+        bind_exn stmt 2 b;
+        bind_exn stmt 3 c;
+        go ()
+    | Arity4 ->
+      fun a b c d ->
+        bind_exn stmt 1 a;
+        bind_exn stmt 2 b;
+        bind_exn stmt 3 c;
+        bind_exn stmt 4 d;
+        go ()
+  ;;
+
+  let run_exn (type a) { stmt = Non_select (stmt, (arity : a Arity.t)); thread } : a =
+    let go () =
+      let%bind () = reset stmt ~thread in
+      match%map In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
       | DONE -> ()
       | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
     in
     match arity with
-    | Arity0 -> exec ()
+    | Arity0 -> go ()
     | Arity1 ->
       fun a ->
         bind_exn stmt 1 a;
-        exec ()
+        go ()
     | Arity2 ->
       fun a b ->
         bind_exn stmt 1 a;
         bind_exn stmt 2 b;
-        exec ()
+        go ()
     | Arity3 ->
       fun a b c ->
         bind_exn stmt 1 a;
         bind_exn stmt 2 b;
         bind_exn stmt 3 c;
-        exec ()
+        go ()
     | Arity4 ->
       fun a b c d ->
         bind_exn stmt 1 a;
         bind_exn stmt 2 b;
         bind_exn stmt 3 c;
         bind_exn stmt 4 d;
-        exec ()
+        go ()
   ;;
 end
+
+type t =
+  { db : Sqlite3.db
+  ; thread : In_thread.Helper_thread.t
+  }
+
+let open_file file =
+  let%bind thread = In_thread.Helper_thread.create () ~name:"Watch_later.Db" in
+  let%bind db = In_thread.run ~thread (fun () -> Sqlite3.db_open file) in
+  return { db; thread }
+;;
+
+let rec close t =
+  if Sqlite3.db_close t.db
+  then return ()
+  else (
+    let%bind () = Clock_ns.after (Time_ns.Span.of_sec 0.05) in
+    close t)
+;;
+
+let with_file dbpath ~f =
+  let%bind t = open_file dbpath in
+  Monitor.protect (fun () -> f t) ~finally:(fun () -> close t)
+;;
+
+let prepare_exn (type k i)
+      t
+      (kind : k Kind.t)
+      (input_arity : i Arity.t)
+      sql
+  : (k, i) Stmt.t
+  =
+  let stmt = Sqlite3.prepare t.db sql in
+  let actual_input_arity = Sqlite3.bind_parameter_count stmt in
+  [%test_result: int]
+    ~message:"input arity mismatch"
+    actual_input_arity
+    ~expect:(Arity.to_int input_arity);
+  let stmt : (k, i) Stmt.stmt =
+    match kind with
+    | Select -> Select (stmt, input_arity)
+    | Non_select -> Non_select (stmt, input_arity)
+  in
+  { stmt; thread = t.thread }
+;;

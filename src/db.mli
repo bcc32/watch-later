@@ -26,7 +26,7 @@ module Reader : sig
 end
 
 module Arity : sig
-  type t0 = unit
+  type t0 = unit Deferred.t
   type t1 = Sqlite3.Data.t -> t0
   type t2 = Sqlite3.Data.t -> t1
   type t3 = Sqlite3.Data.t -> t2
@@ -49,18 +49,30 @@ end
 module Stmt : sig
   type ('kind, 'input_callback) t
 
-  val prepare_exn
-    :  Sqlite3.db
-    -> 'kind Kind.t
-    -> 'input_callback Arity.t
-    -> string
-    -> ('kind, 'input_callback) t
-
   val select_exn
     :  ([ `Select ], 'input_callback) t
     -> 'a Reader.t
     -> f:('a -> unit)
     -> 'input_callback
 
+  val select_exn'
+    :  ([ `Select ], 'input_callback) t
+    -> 'a Reader.t
+    -> f:('a -> unit Deferred.t)
+    -> 'input_callback
+
   val run_exn : ([ `Non_select ], 'input_callback) t -> 'input_callback
 end
+
+type t
+
+val open_file : string -> t Deferred.t
+val close : t -> unit Deferred.t
+val with_file : string -> f:(t -> unit Deferred.t) -> unit Deferred.t
+
+val prepare_exn
+  :  t
+  -> 'kind Kind.t
+  -> 'input_callback Arity.t
+  -> string
+  -> ('kind, 'input_callback) Stmt.t

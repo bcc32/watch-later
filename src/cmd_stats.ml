@@ -4,12 +4,8 @@ open! Import
 open Deferred.Or_error.Let_syntax
 
 let main dbpath =
-  let%bind db =
-    Or_error.try_with (fun () -> Video_db.open_file_exn dbpath) |> Deferred.return
-  in
-  let%bind stats =
-    Or_error.try_with (fun () -> Video_db.video_stats_exn db) |> Deferred.return
-  in
+  let%bind db = Monitor.try_with_or_error (fun () -> Video_db.open_file_exn dbpath) in
+  let%bind stats = Monitor.try_with_or_error (fun () -> Video_db.video_stats_exn db) in
   print_s [%sexp (stats : Stats.t)];
   return ()
 ;;
