@@ -18,7 +18,7 @@ let main ~dbpath ~mark_watched ~video_spec =
         Video_spec.of_video_id video_info.video_id
     in
     let%bind () = Deferred.return (browse_video video_spec) in
-    if mark_watched then Video_db.mark_watched db video_spec else return ())
+    if mark_watched then Video_db.mark_watched db video_spec `Watched else return ())
 ;;
 
 let command =

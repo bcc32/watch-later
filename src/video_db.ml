@@ -11,7 +11,7 @@ type t =
   ; select_count_watched_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
   ; add_video_overwrite : ([ `Non_select ], Db.Arity.t4) Db.Stmt.t Lazy.t
   ; add_video_no_overwrite : ([ `Non_select ], Db.Arity.t4) Db.Stmt.t Lazy.t
-  ; mark_watched : ([ `Non_select ], Db.Arity.t1) Db.Stmt.t Lazy.t
+  ; mark_watched : ([ `Non_select ], Db.Arity.t2) Db.Stmt.t Lazy.t
   ; get_random_unwatched_video : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
   }
 
@@ -76,9 +76,9 @@ let mark_watched db =
   Db.prepare_exn
     db
     Non_select
-    Arity1
+    Arity2
     {|
-UPDATE videos SET watched = 1
+UPDATE videos SET watched = ?
 WHERE video_id = ?;
 |}
 ;;
@@ -204,10 +204,15 @@ let add_video t (video_info : Video_info.t) ~overwrite =
     (TEXT video_info.channel_title)
 ;;
 
-let mark_watched t video_spec =
+let mark_watched t video_spec state =
+  let watched =
+    match state with
+    | `Watched -> 1L
+    | `Unwatched -> 0L
+  in
   let video_id = Video_spec.video_id video_spec in
   let stmt = force t.mark_watched in
-  Db.Stmt.run stmt (TEXT video_id)
+  Db.Stmt.run stmt (INT watched) (TEXT video_id)
 ;;
 
 let get_random_unwatched_video t =

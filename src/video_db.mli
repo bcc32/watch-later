@@ -20,5 +20,11 @@ val iter_non_watched_videos
 
 val video_stats : t -> Stats.t Deferred.Or_error.t
 val add_video : t -> Video_info.t -> overwrite:bool -> unit Deferred.Or_error.t
-val mark_watched : t -> Video_spec.t -> unit Deferred.Or_error.t
+
+val mark_watched
+  :  t
+  -> Video_spec.t
+  -> [ `Watched | `Unwatched ]
+  -> unit Deferred.Or_error.t
+
 val get_random_unwatched_video : t -> Video_info.t Deferred.Or_error.t
