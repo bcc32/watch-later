@@ -16,18 +16,18 @@ run-test: [
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 depends: [
-  "ocaml" {>= "4.07"}
-  "sqlite3" {>= "4.1.3" & < "5.0.0"}
-  "core" {>= "v0.12.0" & < "v0.13.0"}
-  "async" {>= "v0.12.0" & < "v0.13.0"}
+  "dune"              {build}
+  "async"             {>= "v0.12.0" & < "v0.13.0"}
   "async_interactive" {>= "v0.12.0" & < "v0.13.0"}
-  "async_ssl" {>= "v0.12.0" & < "v0.13.0"}
-  "ppx_jane" {>= "v0.12.0" & < "v0.13.0"}
-  "cohttp-async" {>= "2.0.0" & < "3.0.0"}
-  "yojson" {>= "1.7.0" & < "2.0.0"}
-  "uri" {>= "2.2.0" & < "3.0.0"}
-  "webbrowser" {>= "0.6.1" & < "0.7.0"}
-  "dune" {build}
+  "async_ssl"         {>= "v0.12.0" & < "v0.13.0"}
+  "cohttp-async"      {>= "2.0.0"   & < "3.0.0"}
+  "core"              {>= "v0.12.0" & < "v0.13.0"}
+  "ocaml"             {>= "4.07"}
+  "ppx_jane"          {>= "v0.12.0" & < "v0.13.0"}
+  "sqlite3"           {>= "4.1.3"   & < "5.0.0"}
+  "uri"               {>= "2.2.0"   & < "3.0.0"}
+  "webbrowser"        {>= "0.6.1"   & < "0.7.0"}
+  "yojson"            {>= "1.7.0"   & < "2.0.0"}
 ]
 synopsis: "Utility for managing a queue of YouTube content"
 description: """
