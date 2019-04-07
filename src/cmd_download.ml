@@ -5,11 +5,11 @@ open Deferred.Or_error.Let_syntax
 
 let main dbpath ~download_dir =
   let deferreds = ref [] in
-  let%bind db = Video_db.open_file dbpath in
   let%bind () =
-    Video_db.iter_non_watched_videos db ~f:(fun video ->
-      deferreds := Download.download video ~base_dir:download_dir :: !deferreds;
-      Deferred.return ())
+    Video_db.with_file dbpath ~f:(fun db ->
+      Video_db.iter_non_watched_videos db ~f:(fun video ->
+        deferreds := Download.download video ~base_dir:download_dir :: !deferreds;
+        Deferred.return ()))
   in
   Deferred.Or_error.all_unit !deferreds
 ;;

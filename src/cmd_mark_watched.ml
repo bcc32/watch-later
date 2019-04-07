@@ -1,12 +1,11 @@
 open! Core
 open! Async
 open! Import
-open Deferred.Or_error.Let_syntax
 
 let main ~dbpath ~undo ~video_specs =
-  let%bind db = Video_db.open_file dbpath in
-  Deferred.Or_error.List.iter video_specs ~f:(fun spec ->
-    Video_db.mark_watched db spec (if undo then `Unwatched else `Watched))
+  Video_db.with_file dbpath ~f:(fun db ->
+    Deferred.Or_error.List.iter video_specs ~f:(fun spec ->
+      Video_db.mark_watched db spec (if undo then `Unwatched else `Watched)))
 ;;
 
 let command =

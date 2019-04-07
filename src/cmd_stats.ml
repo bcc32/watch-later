@@ -4,10 +4,10 @@ open! Import
 open Deferred.Or_error.Let_syntax
 
 let main dbpath =
-  let%bind db = Video_db.open_file dbpath in
-  let%bind stats = Video_db.video_stats db in
-  print_s [%sexp (stats : Stats.t)];
-  return ()
+  Video_db.with_file dbpath ~f:(fun db ->
+    let%bind stats = Video_db.video_stats db in
+    print_s [%sexp (stats : Stats.t)];
+    return ())
 ;;
 
 (* TODO: Stats by channel *)
