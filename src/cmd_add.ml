@@ -4,12 +4,11 @@ open! Import
 open Deferred.Or_error.Let_syntax
 
 let main ~credentials ~dbpath ~overwrite ~video_specs =
-  let%bind db = Monitor.try_with_or_error (fun () -> Video_db.open_file_exn dbpath) in
+  let%bind db = Video_db.open_file dbpath in
   let api = Youtube_api.create credentials in
   Deferred.Or_error.List.iter video_specs ~f:(fun spec ->
     let%bind video_info = Youtube_api.get_video_info api spec in
-    Monitor.try_with_or_error (fun () ->
-      Video_db.add_video_exn db video_info ~overwrite))
+    Video_db.add_video db video_info ~overwrite)
 ;;
 
 let command =

@@ -6,7 +6,7 @@ module Reader : sig
   type 'a t
 
   (* TODO: Cache name->index mapping for a statement. *)
-  val stmt : 'a t -> Sqlite3.stmt -> 'a
+  val stmt : 'a t -> Sqlite3.stmt -> 'a Or_error.t
   val by_index : int -> Sqlite3.Data.t t
   val by_name : string -> Sqlite3.Data.t t
 
@@ -26,7 +26,7 @@ module Reader : sig
 end
 
 module Arity : sig
-  type t0 = unit Deferred.t
+  type t0 = unit Deferred.Or_error.t
   type t1 = Sqlite3.Data.t -> t0
   type t2 = Sqlite3.Data.t -> t1
   type t3 = Sqlite3.Data.t -> t2
@@ -49,26 +49,20 @@ end
 module Stmt : sig
   type ('kind, 'input_callback) t
 
-  val select_exn
-    :  ([ `Select ], 'input_callback) t
-    -> 'a Reader.t
-    -> f:('a -> unit)
-    -> 'input_callback
-
-  val select_exn'
+  val select
     :  ([ `Select ], 'input_callback) t
     -> 'a Reader.t
     -> f:('a -> unit Deferred.t)
     -> 'input_callback
 
-  val run_exn : ([ `Non_select ], 'input_callback) t -> 'input_callback
+  val run : ([ `Non_select ], 'input_callback) t -> 'input_callback
 end
 
 type t
 
-val open_file : string -> t Deferred.t
-val close : t -> unit Deferred.t
-val with_file : string -> f:(t -> unit Deferred.t) -> unit Deferred.t
+val open_file : string -> t Deferred.Or_error.t
+val close : t -> unit Deferred.Or_error.t
+val with_file : string -> f:(t -> 'a Deferred.Or_error.t) -> 'a Deferred.Or_error.t
 
 val prepare_exn
   :  t

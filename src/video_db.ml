@@ -1,6 +1,7 @@
 open! Core
 open! Async
 open! Import
+open Deferred.Or_error.Let_syntax
 
 type t =
   { db : Db.t
@@ -97,7 +98,7 @@ LIMIT 1;
 
 let do_setup_schema t =
   let stmt = force t.setup_schema in
-  Db.Stmt.run_exn stmt
+  Db.Stmt.run stmt
 ;;
 
 let create ?(should_setup_schema = true) db =
@@ -117,13 +118,12 @@ let create ?(should_setup_schema = true) db =
   t
 ;;
 
-(* TODO: Don't raise, return [Or_error.t]s. *)
-let open_file_exn ?should_setup_schema dbpath =
+let open_file ?should_setup_schema dbpath =
   let%bind db = Db.open_file dbpath in
   create ?should_setup_schema db
 ;;
 
-let with_file_exn ?should_setup_schema dbpath ~f =
+let with_file ?should_setup_schema dbpath ~f =
   Db.with_file dbpath ~f:(fun db ->
     let%bind t = create ?should_setup_schema db in
     f t)
@@ -152,12 +152,12 @@ let video_info_reader =
   { Video_info.channel_id; channel_title; video_id; video_title }
 ;;
 
-let iter_non_watched_videos_exn t ~f =
+let iter_non_watched_videos t ~f =
   let stmt = force t.select_non_watched_videos in
-  Db.Stmt.select_exn' stmt video_info_reader ~f
+  Db.Stmt.select stmt video_info_reader ~f
 ;;
 
-let video_stats_exn t =
+let video_stats t =
   let int_reader =
     let open Db.Reader.Let_syntax in
     Db.Reader.by_index 0 >>| int64_exn >>| Int64.to_int_exn
@@ -166,8 +166,10 @@ let video_stats_exn t =
     let result = Set_once.create () in
     let stmt = force t.select_count_total_videos in
     let%map () =
-      Db.Stmt.select_exn stmt int_reader ~f:(fun count ->
-        Set_once.set_exn result [%here] count)
+      Monitor.try_with_join_or_error (fun () ->
+        Db.Stmt.select stmt int_reader ~f:(fun count ->
+          Set_once.set_exn result [%here] count;
+          Deferred.return ()))
     in
     Set_once.get_exn result [%here]
   in
@@ -175,8 +177,10 @@ let video_stats_exn t =
     let result = Set_once.create () in
     let stmt = force t.select_count_watched_videos in
     let%map () =
-      Db.Stmt.select_exn stmt int_reader ~f:(fun count ->
-        Set_once.set_exn result [%here] count)
+      Monitor.try_with_join_or_error (fun () ->
+        Db.Stmt.select stmt int_reader ~f:(fun count ->
+          Set_once.set_exn result [%here] count;
+          Deferred.return ()))
     in
     Set_once.get_exn result [%here]
   in
@@ -187,12 +191,12 @@ let video_stats_exn t =
     }
 ;;
 
-let add_video_exn t (video_info : Video_info.t) ~overwrite =
+let add_video t (video_info : Video_info.t) ~overwrite =
   (* TODO: [run_bind_by_name] *)
   let stmt =
     force (if overwrite then t.add_video_overwrite else t.add_video_no_overwrite)
   in
-  Db.Stmt.run_exn
+  Db.Stmt.run
     stmt
     (TEXT video_info.video_id)
     (TEXT video_info.video_title)
@@ -203,15 +207,17 @@ let add_video_exn t (video_info : Video_info.t) ~overwrite =
 let mark_watched t video_spec =
   let video_id = Video_spec.video_id video_spec in
   let stmt = force t.mark_watched in
-  Db.Stmt.run_exn stmt (TEXT video_id)
+  Db.Stmt.run stmt (TEXT video_id)
 ;;
 
-let get_random_unwatched_video_exn t =
+let get_random_unwatched_video t =
   let stmt = force t.get_random_unwatched_video in
   let result = Set_once.create () in
   let%map () =
-    Db.Stmt.select_exn stmt video_info_reader ~f:(fun video_info ->
-      Set_once.set_exn result [%here] video_info)
+    Monitor.try_with_join_or_error (fun () ->
+      Db.Stmt.select stmt video_info_reader ~f:(fun video_info ->
+        Set_once.set_exn result [%here] video_info;
+        Deferred.return ()))
   in
   match Set_once.get result with
   | None -> failwith "no unwatched videos"

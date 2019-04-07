@@ -4,9 +4,8 @@ open! Import
 open Deferred.Or_error.Let_syntax
 
 let main ~dbpath ~video_specs =
-  let%bind db = Monitor.try_with_or_error (fun () -> Video_db.open_file_exn dbpath) in
-  Deferred.Or_error.List.iter video_specs ~f:(fun spec ->
-    Monitor.try_with_or_error (fun () -> Video_db.mark_watched db spec))
+  let%bind db = Video_db.open_file dbpath in
+  Deferred.Or_error.List.iter video_specs ~f:(fun spec -> Video_db.mark_watched db spec)
 ;;
 
 let command =

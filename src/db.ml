@@ -9,10 +9,7 @@ module Reader = struct
     let return x _ _ = x
     let map = `Custom (fun t ~f data by_headers -> f (t data by_headers))
 
-    let apply tf
-          tx
-          data
-          by_headers =
+    let apply tf tx data by_headers =
       let f = tf data by_headers in
       let x = tx data by_headers in
       f x
@@ -26,13 +23,8 @@ module Reader = struct
 
   include For_let_syntax
 
-  let by_index index
-        data
-        _by_headers = data.(index)
-
-  let by_name name
-        _data
-        by_headers = Map.find_exn by_headers name
+  let by_index index data _by_headers = data.(index)
+  let by_name name _data by_headers = Map.find_exn by_headers name
 
   module Open_on_rhs_intf = struct
     module type S = sig
@@ -55,7 +47,7 @@ module Reader = struct
       |> Array.to_list
       |> String.Map.of_alist_exn
     in
-    t data by_headers
+    Or_error.try_with (fun () -> t data by_headers)
   ;;
 end
 
@@ -63,7 +55,7 @@ end
 (* TODO: Arity_n *)
 (* TODO: Separate Sqlite3_with_gadts library. *)
 module Arity = struct
-  type t0 = unit Deferred.t
+  type t0 = unit Deferred.Or_error.t
   type t1 = Sqlite3.Data.t -> t0
   type t2 = Sqlite3.Data.t -> t1
   type t3 = Sqlite3.Data.t -> t2
@@ -105,141 +97,92 @@ module Stmt = struct
     ; thread : In_thread.Helper_thread.t
     }
 
-  let reset stmt ~thread =
-    match%map In_thread.run ~thread (fun () -> Sqlite3.reset stmt) with
+  let reset stmt =
+    match Sqlite3.reset stmt with
     | OK -> ()
     | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
   ;;
 
-  let bind_exn stmt index data =
+  let bind stmt index data =
     match Sqlite3.bind stmt index data with
     | OK -> ()
     | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
   ;;
 
-  let select_exn
-        (type i)
-        { stmt = Select (stmt, (input_arity : i Arity.t)); thread }
+  let select (type i)
+        { stmt = Select (stmt, (arity : i Arity.t)); thread }
         reader
-        ~f
-    : i
+        ~f : i
     =
+    reset stmt;
     let rec loop () =
       match%bind In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
       | ROW ->
-        let x = Reader.stmt reader stmt in
-        f x;
-        loop ()
-      | DONE -> return ()
-      | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
-    in
-    let go () =
-      let%bind () = reset stmt ~thread in
-      loop ()
-    in
-    match input_arity with
-    | Arity0 -> go ()
-    | Arity1 ->
-      fun a ->
-        bind_exn stmt 1 a;
-        go ()
-    | Arity2 ->
-      fun a b ->
-        bind_exn stmt 1 a;
-        bind_exn stmt 2 b;
-        go ()
-    | Arity3 ->
-      fun a b c ->
-        bind_exn stmt 1 a;
-        bind_exn stmt 2 b;
-        bind_exn stmt 3 c;
-        go ()
-    | Arity4 ->
-      fun a b c d ->
-        bind_exn stmt 1 a;
-        bind_exn stmt 2 b;
-        bind_exn stmt 3 c;
-        bind_exn stmt 4 d;
-        go ()
-  ;;
-
-  let select_exn'
-        (type i)
-        { stmt = Select (stmt, (input_arity : i Arity.t)); thread }
-        reader
-        ~f
-    : i
-    =
-    let rec loop () =
-      match%bind In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
-      | ROW ->
-        let x = Reader.stmt reader stmt in
-        let%bind () = f x in
-        loop ()
-      | DONE -> return ()
-      | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
-    in
-    let go () =
-      let%bind () = reset stmt ~thread in
-      loop ()
-    in
-    match input_arity with
-    | Arity0 -> go ()
-    | Arity1 ->
-      fun a ->
-        bind_exn stmt 1 a;
-        go ()
-    | Arity2 ->
-      fun a b ->
-        bind_exn stmt 1 a;
-        bind_exn stmt 2 b;
-        go ()
-    | Arity3 ->
-      fun a b c ->
-        bind_exn stmt 1 a;
-        bind_exn stmt 2 b;
-        bind_exn stmt 3 c;
-        go ()
-    | Arity4 ->
-      fun a b c d ->
-        bind_exn stmt 1 a;
-        bind_exn stmt 2 b;
-        bind_exn stmt 3 c;
-        bind_exn stmt 4 d;
-        go ()
-  ;;
-
-  let run_exn (type a) { stmt = Non_select (stmt, (arity : a Arity.t)); thread } : a =
-    let go () =
-      let%bind () = reset stmt ~thread in
-      match%map In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
-      | DONE -> ()
-      | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
+        (match Reader.stmt reader stmt with
+         | Error _ as err -> return err
+         | Ok x ->
+           let%bind () = f x in
+           loop ())
+      | DONE -> return (Ok ())
+      | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
     in
     match arity with
-    | Arity0 -> go ()
+    | Arity0 -> loop ()
     | Arity1 ->
       fun a ->
-        bind_exn stmt 1 a;
-        go ()
+        bind stmt 1 a;
+        loop ()
     | Arity2 ->
       fun a b ->
-        bind_exn stmt 1 a;
-        bind_exn stmt 2 b;
-        go ()
+        bind stmt 1 a;
+        bind stmt 2 b;
+        loop ()
     | Arity3 ->
       fun a b c ->
-        bind_exn stmt 1 a;
-        bind_exn stmt 2 b;
-        bind_exn stmt 3 c;
-        go ()
+        bind stmt 1 a;
+        bind stmt 2 b;
+        bind stmt 3 c;
+        loop ()
     | Arity4 ->
       fun a b c d ->
-        bind_exn stmt 1 a;
-        bind_exn stmt 2 b;
-        bind_exn stmt 3 c;
-        bind_exn stmt 4 d;
-        go ()
+        bind stmt 1 a;
+        bind stmt 2 b;
+        bind stmt 3 c;
+        bind stmt 4 d;
+        loop ()
+  ;;
+
+  let run (type a) { stmt = Non_select (stmt, (arity : a Arity.t)); thread } : a =
+    reset stmt;
+    let run () =
+      match%map In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
+      | DONE -> Ok ()
+      | rc -> Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
+    in
+    match arity with
+    | Arity0 -> run ()
+    | Arity1 ->
+      fun a ->
+        bind stmt 1 a;
+        run ()
+    | Arity2 ->
+      fun a b ->
+        bind stmt 1 a;
+        bind stmt 2 b;
+        run ()
+    | Arity3 ->
+      fun a b c ->
+        bind stmt 1 a;
+        bind stmt 2 b;
+        bind stmt 3 c;
+        run ()
+    | Arity4 ->
+      fun a b c d ->
+        bind stmt 1 a;
+        bind stmt 2 b;
+        bind stmt 3 c;
+        bind stmt 4 d;
+        run ()
   ;;
 end
 
@@ -250,21 +193,26 @@ type t =
 
 let open_file file =
   let%bind thread = In_thread.Helper_thread.create () ~name:"Watch_later.Db" in
-  let%bind db = In_thread.run ~thread (fun () -> Sqlite3.db_open file) in
-  return { db; thread }
+  Monitor.try_with_or_error ~name:"Watch_later.Db.open_file" (fun () ->
+    let%bind db = In_thread.run ~thread (fun () -> Sqlite3.db_open file) in
+    return { db; thread })
 ;;
 
-let rec close t =
-  if Sqlite3.db_close t.db
-  then return ()
+let rec close ({ db; thread } as t) =
+  if%bind In_thread.run ~thread (fun () -> Sqlite3.db_close db)
+  then return (Ok ())
   else (
     let%bind () = Clock_ns.after (Time_ns.Span.of_sec 0.05) in
     close t)
 ;;
 
 let with_file dbpath ~f =
-  let%bind t = open_file dbpath in
-  Monitor.protect (fun () -> f t) ~finally:(fun () -> close t)
+  match%bind open_file dbpath with
+  | Error _ as err -> return err
+  | Ok t ->
+    Monitor.protect
+      (fun () -> f t)
+      ~finally:(fun () -> Deferred.Monad_infix.(close t >>| ok_exn))
 ;;
 
 let prepare_exn (type k i)
