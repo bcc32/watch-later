@@ -99,14 +99,14 @@ module Stmt = struct
 
   let reset stmt =
     match Sqlite3.reset stmt with
-    | OK -> ()
-    | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
+    | OK -> Deferred.Or_error.return ()
+    | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
   ;;
 
   let bind stmt index data =
     match Sqlite3.bind stmt index data with
-    | OK -> ()
-    | rc -> failwithf !"unexpected return code: %{Sqlite3.Rc}" rc ()
+    | OK -> Deferred.Or_error.return ()
+    | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
   ;;
 
   let select (type i)
@@ -114,7 +114,6 @@ module Stmt = struct
         reader
         ~f : i
     =
-    reset stmt;
     let rec loop () =
       match%bind In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
       | ROW ->
@@ -126,62 +125,65 @@ module Stmt = struct
       | DONE -> return (Ok ())
       | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
     in
+    let loop () = reset stmt >>=? loop in
+    let open Eager_deferred.Or_error.Let_syntax in
     match arity with
     | Arity0 -> loop ()
     | Arity1 ->
       fun a ->
-        bind stmt 1 a;
+        let%bind () = bind stmt 1 a in
         loop ()
     | Arity2 ->
       fun a b ->
-        bind stmt 1 a;
-        bind stmt 2 b;
+        let%bind () = bind stmt 1 a in
+        let%bind () = bind stmt 2 b in
         loop ()
     | Arity3 ->
       fun a b c ->
-        bind stmt 1 a;
-        bind stmt 2 b;
-        bind stmt 3 c;
+        let%bind () = bind stmt 1 a in
+        let%bind () = bind stmt 2 b in
+        let%bind () = bind stmt 3 c in
         loop ()
     | Arity4 ->
       fun a b c d ->
-        bind stmt 1 a;
-        bind stmt 2 b;
-        bind stmt 3 c;
-        bind stmt 4 d;
+        let%bind () = bind stmt 1 a in
+        let%bind () = bind stmt 2 b in
+        let%bind () = bind stmt 3 c in
+        let%bind () = bind stmt 4 d in
         loop ()
   ;;
 
   let run (type a) { stmt = Non_select (stmt, (arity : a Arity.t)); thread } : a =
-    reset stmt;
     let run () =
+      let%bind.Deferred.Or_error.Let_syntax () = reset stmt in
       match%map In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
       | DONE -> Ok ()
       | rc -> Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
     in
+    let open Eager_deferred.Or_error.Let_syntax in
     match arity with
     | Arity0 -> run ()
     | Arity1 ->
       fun a ->
-        bind stmt 1 a;
+        let%bind () = bind stmt 1 a in
         run ()
     | Arity2 ->
       fun a b ->
-        bind stmt 1 a;
-        bind stmt 2 b;
+        let%bind () = bind stmt 1 a in
+        let%bind () = bind stmt 2 b in
         run ()
     | Arity3 ->
       fun a b c ->
-        bind stmt 1 a;
-        bind stmt 2 b;
-        bind stmt 3 c;
+        let%bind () = bind stmt 1 a in
+        let%bind () = bind stmt 2 b in
+        let%bind () = bind stmt 3 c in
         run ()
     | Arity4 ->
       fun a b c d ->
-        bind stmt 1 a;
-        bind stmt 2 b;
-        bind stmt 3 c;
-        bind stmt 4 d;
+        let%bind () = bind stmt 1 a in
+        let%bind () = bind stmt 2 b in
+        let%bind () = bind stmt 3 c in
+        let%bind () = bind stmt 4 d in
         run ()
   ;;
 end
@@ -189,21 +191,28 @@ end
 type t =
   { db : Sqlite3.db
   ; thread : In_thread.Helper_thread.t
+  ; mutable stmts : Sqlite3.stmt list
   }
 
 let open_file file =
   let%bind thread = In_thread.Helper_thread.create () ~name:"Watch_later.Db" in
   Monitor.try_with_or_error ~name:"Watch_later.Db.open_file" (fun () ->
     let%bind db = In_thread.run ~thread (fun () -> Sqlite3.db_open file) in
-    return { db; thread })
+    return { db; thread; stmts = [] })
 ;;
 
-let rec close ({ db; thread } as t) =
-  if%bind In_thread.run ~thread (fun () -> Sqlite3.db_close db)
+let close_prepared_statements t =
+  Deferred.Or_error.List.iter t.stmts ~f:(fun stmt ->
+    match%bind In_thread.run ~thread:t.thread (fun () -> Sqlite3.finalize stmt) with
+    | OK -> Deferred.Or_error.return ()
+    | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc)
+;;
+
+let close t =
+  let%bind.Deferred.Or_error.Let_syntax () = close_prepared_statements t in
+  if%bind In_thread.run ~thread:t.thread (fun () -> Sqlite3.db_close t.db)
   then return (Ok ())
-  else (
-    let%bind () = Clock_ns.after (Time_ns.Span.of_sec 0.05) in
-    close t)
+  else Deferred.Or_error.error_string "couldn't close db handle"
 ;;
 
 let with_file dbpath ~f =
@@ -228,6 +237,7 @@ let prepare_exn (type k i)
     ~message:"input arity mismatch"
     actual_input_arity
     ~expect:(Arity.to_int input_arity);
+  t.stmts <- stmt :: t.stmts;
   let stmt : (k, i) Stmt.stmt =
     match kind with
     | Select -> Select (stmt, input_arity)

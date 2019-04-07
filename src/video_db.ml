@@ -218,13 +218,13 @@ let mark_watched t video_spec state =
 let get_random_unwatched_video t =
   let stmt = force t.get_random_unwatched_video in
   let result = Set_once.create () in
-  let%map () =
+  let%bind () =
     Monitor.try_with_join_or_error (fun () ->
       Db.Stmt.select stmt video_info_reader ~f:(fun video_info ->
         Set_once.set_exn result [%here] video_info;
         Deferred.return ()))
   in
   match Set_once.get result with
-  | None -> failwith "no unwatched videos"
-  | Some video_info -> video_info
+  | None -> Deferred.Or_error.error_string "no unwatched videos"
+  | Some video_info -> return video_info
 ;;

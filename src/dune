@@ -1,6 +1,6 @@
 (library
  (name watch_later)
- (libraries async async_interactive cohttp-async core sqlite3 uri webbrowser
-   yojson)
+ (libraries async async_interactive async_kernel.eager_deferred cohttp-async
+   core sqlite3 uri webbrowser yojson)
  (preprocess
   (pps ppx_jane)))
