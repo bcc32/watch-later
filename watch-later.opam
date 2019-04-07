@@ -26,7 +26,7 @@ depends: [
   "cohttp-async" {>= "2.0.0" & < "3.0.0"}
   "yojson" {>= "1.7.0" & < "2.0.0"}
   "uri" {>= "2.2.0" & < "3.0.0"}
-  "webbrowser" {>= "v0.6.1" & < "v0.7.0"}
+  "webbrowser" {>= "0.6.1" & < "0.7.0"}
   "dune" {build}
 ]
 synopsis: "Utility for managing a queue of YouTube content"
