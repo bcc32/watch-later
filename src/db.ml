@@ -60,6 +60,7 @@ module Arity = struct
   type t2 = Sqlite3.Data.t -> t1
   type t3 = Sqlite3.Data.t -> t2
   type t4 = Sqlite3.Data.t -> t3
+  type tn = Sqlite3.Data.t array -> t0
 
   type 'f t =
     | Arity0 : t0 t
@@ -67,6 +68,7 @@ module Arity = struct
     | Arity2 : t2 t
     | Arity3 : t3 t
     | Arity4 : t4 t
+    | Arityn : int -> tn t
 
   let to_int (type a) : a t -> int = function
     | Arity0 -> 0
@@ -74,6 +76,7 @@ module Arity = struct
     | Arity2 -> 2
     | Arity3 -> 3
     | Arity4 -> 4
+    | Arityn n -> n
   ;;
 end
 
@@ -148,6 +151,17 @@ module Stmt = struct
         let%bind () = bind stmt 3 c in
         let%bind () = bind stmt 4 d in
         loop ()
+    | Arityn n ->
+      fun args ->
+        [%test_result: int]
+          ~message:"Wrong number of bind parameters"
+          ~expect:n
+          (Array.length args);
+        let args = Array.to_list args in
+        let%bind () =
+          Eager_deferred.Or_error.List.iteri args ~f:(fun i arg -> bind stmt (i + 1) arg)
+        in
+        loop ()
   ;;
 
   let run (type a) { stmt = Non_select (stmt, (arity : a Arity.t)); thread } : a =
@@ -181,6 +195,17 @@ module Stmt = struct
         let%bind () = bind stmt 2 b in
         let%bind () = bind stmt 3 c in
         let%bind () = bind stmt 4 d in
+        run ()
+    | Arityn n ->
+      fun args ->
+        [%test_result: int]
+          ~message:"Wrong number of bind parameters"
+          ~expect:n
+          (Array.length args);
+        let args = Array.to_list args in
+        let%bind () =
+          Eager_deferred.Or_error.List.iteri args ~f:(fun i arg -> bind stmt (i + 1) arg)
+        in
         run ()
   ;;
 end

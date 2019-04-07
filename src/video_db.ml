@@ -9,8 +9,8 @@ type t =
   ; select_non_watched_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
   ; select_count_total_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
   ; select_count_watched_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
-  ; add_video_overwrite : ([ `Non_select ], Db.Arity.t4) Db.Stmt.t Lazy.t
-  ; add_video_no_overwrite : ([ `Non_select ], Db.Arity.t4) Db.Stmt.t Lazy.t
+  ; add_video_overwrite : ([ `Non_select ], Db.Arity.tn) Db.Stmt.t Lazy.t
+  ; add_video_no_overwrite : ([ `Non_select ], Db.Arity.tn) Db.Stmt.t Lazy.t
   ; mark_watched : ([ `Non_select ], Db.Arity.t2) Db.Stmt.t Lazy.t
   ; get_random_unwatched_video : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
   }
@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS videos(
   video_title   TEXT,
   channel_id    TEXT,
   channel_title TEXT,
+  description   TEXT,
+  duration      TEXT,
   watched       INTEGER NOT NULL DEFAULT 0
 );
 |}
@@ -37,7 +39,7 @@ let select_non_watched_videos db =
     Select
     Arity0
     {|
-SELECT channel_id, channel_title, video_id, video_title
+SELECT channel_id, channel_title, description, duration, video_id, video_title
 FROM videos
 WHERE NOT watched;
 |}
@@ -61,12 +63,12 @@ let add_video db ~conflict_resolution =
     sprintf
       {|
 INSERT OR %s INTO videos
-(video_id, video_title, channel_id, channel_title, watched)
-VALUES (?, ?, ?, ?, 0);
+(video_id, video_title, channel_id, channel_title, description, duration)
+VALUES (?, ?, ?, ?, ?, ?);
 |}
       conflict_resolution
   in
-  Db.prepare_exn db Non_select Arity4 sql
+  Db.prepare_exn db Non_select (Arityn 6) sql
 ;;
 
 let add_video_overwrite db = add_video db ~conflict_resolution:"REPLACE"
@@ -147,9 +149,11 @@ let video_info_reader =
   let open Db.Reader.Let_syntax in
   let%map_open channel_id = by_name "channel_id" >>| string_exn
   and channel_title = by_name "channel_title" >>| string_exn
+  and description = by_name "description" >>| string_exn
+  and duration = by_name "duration" >>| string_exn
   and video_id = by_name "video_id" >>| string_exn
   and video_title = by_name "video_title" >>| string_exn in
-  { Video_info.channel_id; channel_title; video_id; video_title }
+  { Video_info.channel_id; channel_title; description; duration; video_id; video_title }
 ;;
 
 let iter_non_watched_videos t ~f =
@@ -198,10 +202,13 @@ let add_video t (video_info : Video_info.t) ~overwrite =
   in
   Db.Stmt.run
     stmt
-    (TEXT video_info.video_id)
-    (TEXT video_info.video_title)
-    (TEXT video_info.channel_id)
-    (TEXT video_info.channel_title)
+    [| TEXT video_info.video_id
+     ; TEXT video_info.video_title
+     ; TEXT video_info.channel_id
+     ; TEXT video_info.channel_title
+     ; TEXT video_info.description
+     ; TEXT video_info.duration
+    |]
 ;;
 
 let mark_watched t video_spec state =
