@@ -11,5 +11,7 @@ type t =
   ; duration : string
   ; video_id : string
   ; video_title : string
+  ; snippet : Yojson.Basic.t
+  ; content_details : Yojson.Basic.t
   }
 [@@deriving sexp_of]

@@ -22,13 +22,13 @@ let setup_schema db =
     Arity0
     {|
 CREATE TABLE IF NOT EXISTS videos(
-  video_id      TEXT PRIMARY KEY,
-  video_title   TEXT,
-  channel_id    TEXT,
-  channel_title TEXT,
-  description   TEXT,
-  duration      TEXT,
-  watched       INTEGER NOT NULL DEFAULT 0
+  video_id        TEXT PRIMARY KEY,
+  video_title     TEXT,
+  channel_id      TEXT,
+  channel_title   TEXT,
+  snippet         TEXT, /* JSON */
+  content_details TEXT, /* JSON */
+  watched         INTEGER NOT NULL DEFAULT 0
 );
 |}
 ;;
