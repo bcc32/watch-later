@@ -109,10 +109,7 @@ module Stmt = struct
     | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
   ;;
 
-  let select (type i)
-        { stmt = Select (stmt, (arity : i Arity.t)); thread }
-        reader
-        ~f : i
+  let select (type i) { stmt = Select (stmt, (arity : i Arity.t)); thread } reader ~f : i
     =
     let rec loop () =
       match%bind In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
@@ -224,11 +221,7 @@ let with_file dbpath ~f =
       ~finally:(fun () -> Deferred.Monad_infix.(close t >>| ok_exn))
 ;;
 
-let prepare_exn (type k i)
-      t
-      (kind : k Kind.t)
-      (input_arity : i Arity.t)
-      sql
+let prepare_exn (type k i) t (kind : k Kind.t) (input_arity : i Arity.t) sql
   : (k, i) Stmt.t
   =
   let stmt = Sqlite3.prepare t.db sql in
