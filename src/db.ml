@@ -122,27 +122,32 @@ module Stmt = struct
       | DONE -> return (Ok ())
       | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
     in
-    let loop () = reset stmt >>=? loop in
     let open Eager_deferred.Or_error.Let_syntax in
     match arity with
-    | Arity0 -> loop ()
+    | Arity0 ->
+      let%bind () = reset stmt in
+      loop ()
     | Arity1 ->
       fun a ->
+        let%bind () = reset stmt in
         let%bind () = bind stmt 1 a in
         loop ()
     | Arity2 ->
       fun a b ->
+        let%bind () = reset stmt in
         let%bind () = bind stmt 1 a in
         let%bind () = bind stmt 2 b in
         loop ()
     | Arity3 ->
       fun a b c ->
+        let%bind () = reset stmt in
         let%bind () = bind stmt 1 a in
         let%bind () = bind stmt 2 b in
         let%bind () = bind stmt 3 c in
         loop ()
     | Arity4 ->
       fun a b c d ->
+        let%bind () = reset stmt in
         let%bind () = bind stmt 1 a in
         let%bind () = bind stmt 2 b in
         let%bind () = bind stmt 3 c in
@@ -152,31 +157,36 @@ module Stmt = struct
 
   let run (type a) { stmt = Non_select (stmt, (arity : a Arity.t)); thread } : a =
     let run () =
-      let%bind.Deferred.Or_error.Let_syntax () = reset stmt in
       match%map In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
       | DONE -> Ok ()
       | rc -> Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
     in
     let open Eager_deferred.Or_error.Let_syntax in
     match arity with
-    | Arity0 -> run ()
+    | Arity0 ->
+      let%bind () = reset stmt in
+      run ()
     | Arity1 ->
       fun a ->
+        let%bind () = reset stmt in
         let%bind () = bind stmt 1 a in
         run ()
     | Arity2 ->
       fun a b ->
+        let%bind () = reset stmt in
         let%bind () = bind stmt 1 a in
         let%bind () = bind stmt 2 b in
         run ()
     | Arity3 ->
       fun a b c ->
+        let%bind () = reset stmt in
         let%bind () = bind stmt 1 a in
         let%bind () = bind stmt 2 b in
         let%bind () = bind stmt 3 c in
         run ()
     | Arity4 ->
       fun a b c d ->
+        let%bind () = reset stmt in
         let%bind () = bind stmt 1 a in
         let%bind () = bind stmt 2 b in
         let%bind () = bind stmt 3 c in
