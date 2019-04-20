@@ -2,5 +2,20 @@ open! Core
 open! Async
 open! Import
 
-(* TODO: Make this a flag, and default to environment variable or a fixed path. *)
-let dbpath = Command.Param.anon Command.Anons.("DBPATH" %: Filename.arg_type)
+let dbpath =
+  let%map_open.Command.Let_syntax () = return ()
+  and path =
+    flag
+      "dbpath"
+      (optional Filename.arg_type)
+      ~doc:
+        "FILE path to database file (default is $WATCH_LATER_DBPATH or \
+         $HOME/watch-later.db)"
+  in
+  match path with
+  | Some path -> path
+  | None ->
+    (match Sys.getenv "WATCH_LATER_DBPATH" with
+     | Some path -> path
+     | None -> Sys.getenv_exn "HOME" ^/ "watch-later.db")
+;;
