@@ -1,1 +1,2 @@
 * TODO Integration tests
+* TODO Plain text format
