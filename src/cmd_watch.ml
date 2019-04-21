@@ -4,8 +4,15 @@ open! Import
 open Deferred.Or_error.Let_syntax
 
 let browse_video video_spec =
+  let browser =
+    match Bos.OS.Env.(parse "BROWSER" (some cmd)) ~absent:None with
+    | Ok cmd -> cmd
+    | Error (`Msg s) ->
+      raise_s [%message "Error parsing BROWSER environment variable" ~_:(s : string)]
+  in
   let uri = "https://youtu.be/" ^ Video_spec.video_id video_spec in
-  Webbrowser.reload uri |> Result.map_error ~f:(fun (`Msg s) -> Error.of_string s)
+  Webbrowser.reload ?browser uri
+  |> Result.map_error ~f:(fun (`Msg s) -> Error.of_string s)
 ;;
 
 let main ~dbpath ~mark_watched ~video_spec =
