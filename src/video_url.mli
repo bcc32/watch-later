@@ -2,7 +2,7 @@ open! Core
 open! Async
 open! Import
 
-type t
+type t [@@deriving sexp_of]
 
 val of_string : string -> t
 val video_id : t -> string

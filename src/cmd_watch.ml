@@ -15,17 +15,20 @@ let browse_video video_spec =
   |> Result.map_error ~f:(fun (`Msg s) -> Error.of_string s)
 ;;
 
-let main ~dbpath ~mark_watched ~video_spec =
+let main ~dbpath ~mark_watched ~video_specs =
   Video_db.with_file dbpath ~f:(fun db ->
-    let%bind video_spec =
-      match video_spec with
-      | Some spec -> return spec
-      | None ->
+    let%bind video_specs =
+      match video_specs with
+      | _ :: _ as specs -> return specs
+      | [] ->
         let%map video_info = Video_db.get_random_unwatched_video db in
-        Video_spec.of_video_id video_info.video_id
+        [ Video_spec.of_video_id video_info.video_id ]
     in
-    let%bind () = Deferred.return (browse_video video_spec) in
-    if mark_watched then Video_db.mark_watched db video_spec `Watched else return ())
+    Deferred.Or_error.List.iter video_specs ~f:(fun video_spec ->
+      let%bind () = Deferred.return (browse_video video_spec) in
+      if mark_watched
+      then Video_db.mark_watched db video_spec `Watched
+      else return ()))
 ;;
 
 let command =
@@ -38,6 +41,6 @@ let command =
          "mark-watched"
          (optional_with_default true bool)
          ~doc:"(true|false) mark video as watched (default true)"
-     and video_spec = anon (maybe ("VIDEO" %: Video_spec.arg_type)) in
-     fun () -> main ~dbpath ~mark_watched ~video_spec)
+     and video_specs = Params.videos in
+     fun () -> main ~dbpath ~mark_watched ~video_specs)
 ;;

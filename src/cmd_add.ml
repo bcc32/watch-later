@@ -23,8 +23,6 @@ let command =
          no_arg
          ~doc:" overwrite existing entries (default skip)"
          ~aliases:[ "f" ]
-     and video_specs =
-       anon (non_empty_sequence_as_list ("VIDEO" %: Video_spec.arg_type))
-     in
+     and video_specs = Params.videos in
      fun () -> main ~credentials ~dbpath ~overwrite ~video_specs)
 ;;

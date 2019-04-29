@@ -19,3 +19,30 @@ let dbpath =
      | Some path -> path
      | None -> Sys.getenv_exn "HOME" ^/ "watch-later.db")
 ;;
+
+let video =
+  let%map_open.Command.Let_syntax () = return ()
+  and anon = anon (maybe ("VIDEO" %: Video_spec.arg_type))
+  and escaped =
+    flag "--" escape ~doc:"VIDEO escape a video whose ID may start with [-]"
+  in
+  match
+    Option.to_list anon
+    @ List.map (Option.value escaped ~default:[]) ~f:Video_spec.of_string
+  with
+  | [] -> raise_s [%message "expected exactly one video"]
+  | [ spec ] -> spec
+  | _ :: _ as specs ->
+    raise_s [%message "expected exactly one video" (specs : Video_spec.t list)]
+;;
+
+let videos =
+  let%map_open.Command.Let_syntax () = return ()
+  and anons = anon (sequence ("VIDEO" %: Video_spec.arg_type))
+  and escaped =
+    flag "--" escape ~doc:"VIDEO escape videos whose IDs may start with [-]"
+  in
+  match anons @ List.map (Option.value escaped ~default:[]) ~f:Video_spec.of_string with
+  | [] -> raise_s [%message "expected at least one video"]
+  | _ :: _ as specs -> specs
+;;

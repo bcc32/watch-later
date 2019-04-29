@@ -15,6 +15,6 @@ let command =
     ~summary:"Debug YouTube API calls"
     (let%map_open.Command.Let_syntax () = return ()
      and credentials = Youtube_api.Credentials.param
-     and video_spec = anon ("URL" %: Video_spec.arg_type) in
+     and video_spec = Params.video in
      fun () -> main ~credentials ~video_spec)
 ;;

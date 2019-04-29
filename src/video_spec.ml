@@ -5,6 +5,7 @@ open! Import
 type t =
   | Video_id of string
   | Video_url of Video_url.t
+[@@deriving sexp_of]
 
 let of_video_id id = Video_id id
 

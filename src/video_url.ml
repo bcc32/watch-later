@@ -3,7 +3,7 @@ open! Async
 open! Import
 
 (* Video ID *)
-type t = string
+type t = string [@@deriving sexp_of]
 
 let of_string string =
   let uri = Uri.of_string string in
