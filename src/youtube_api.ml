@@ -11,10 +11,26 @@ module Credentials = struct
   let param =
     let open Command.Param in
     choose_one
-      [ flag "access-token" (optional string) ~doc:"TOKEN YouTube API access token"
-        |> map ~f:(Option.map ~f:(fun token -> `Access_token token))
-      ; flag "api-key" (optional string) ~doc:"KEY YouTube API key"
-        |> map ~f:(Option.map ~f:(fun key -> `Api_key key))
+      [ flag
+          "access-token"
+          (optional string)
+          ~doc:"TOKEN YouTube API access token (default is $YT_API_TOKEN)"
+        |> map ~f:(function
+          | Some token -> Some (`Access_token token)
+          | None ->
+            (match Sys.getenv "YT_API_TOKEN" with
+             | Some token -> Some (`Access_token token)
+             | None -> None))
+      ; flag
+          "api-key"
+          (optional string)
+          ~doc:"KEY YouTube API key (default is $YT_API_KEY)"
+        |> map ~f:(function
+          | Some key -> Some (`Api_key key)
+          | None ->
+            (match Sys.getenv "YT_API_KEY" with
+             | Some key -> Some (`Api_key key)
+             | None -> None))
       ]
       ~if_nothing_chosen:`Raise
   ;;
