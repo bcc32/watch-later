@@ -42,7 +42,11 @@ let videos =
   and escaped =
     flag "--" escape ~doc:"VIDEO escape videos whose IDs may start with [-]"
   in
-  match anons @ List.map (Option.value escaped ~default:[]) ~f:Video_spec.of_string with
+  anons @ List.map (Option.value escaped ~default:[]) ~f:Video_spec.of_string
+;;
+
+let nonempty_videos =
+  match%map.Command.Let_syntax videos with
   | [] -> raise_s [%message "expected at least one video"]
   | _ :: _ as specs -> specs
 ;;

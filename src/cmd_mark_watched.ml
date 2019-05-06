@@ -14,6 +14,6 @@ let command =
     (let%map_open.Command.Let_syntax () = return ()
      and dbpath = Params.dbpath
      and undo = flag "undo" no_arg ~doc:" mark as unwatched instead"
-     and video_specs = Params.videos in
+     and video_specs = Params.nonempty_videos in
      fun () -> main ~dbpath ~undo ~video_specs)
 ;;
