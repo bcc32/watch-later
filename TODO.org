@@ -1,2 +1,3 @@
 * TODO Integration tests
 * TODO Plain text format
+* TODO Parallel operations (e.g., add, download)
