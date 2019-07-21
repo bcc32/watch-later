@@ -3,15 +3,42 @@ open! Async
 open! Import
 open Deferred.Or_error.Let_syntax
 
-let main ~credentials ~video_spec ~json =
+module What_to_show = struct
+  type t =
+    | Video_info
+    | Json of { extra_parts : string list }
+
+  let param =
+    let open Command.Let_syntax in
+    let%map_open () = return ()
+    and json = flag "json" no_arg ~doc:" Display raw JSON API response"
+    and parts =
+      flag
+        "part"
+        (listed string)
+        ~doc:
+          "PART include PART in the JSON response (see \
+           https://developers.google.com/youtube/v3/docs/videos/list).  Can be passed \
+           multiple times."
+    in
+    match parts with
+    | [] -> if json then Json { extra_parts = [] } else Video_info
+    | _ :: _ when not json -> failwith "[-part] can only be used with [-json]"
+    | _ :: _ as extra_parts -> Json { extra_parts }
+  ;;
+end
+
+let main ~credentials ~video_spec ~what_to_show =
   let api = Youtube_api.create credentials in
-  if json
-  then (
-    let%map json = Youtube_api.get_video_json api video_spec in
-    print_string (Yojson.Basic.pretty_to_string json))
-  else (
+  match (what_to_show : What_to_show.t) with
+  | Video_info ->
     let%map video_info = Youtube_api.get_video_info api video_spec in
-    print_s [%sexp (video_info : Video_info.t)])
+    print_s [%sexp (video_info : Video_info.t)]
+  | Json { extra_parts } ->
+    let%map json =
+      Youtube_api.get_video_json api video_spec ~parts:("snippet" :: extra_parts)
+    in
+    print_string (Yojson.Basic.pretty_to_string json)
 ;;
 
 let command =
@@ -20,6 +47,6 @@ let command =
     (let%map_open.Command.Let_syntax () = return ()
      and credentials = Youtube_api.Credentials.param
      and video_spec = Params.video
-     and json = flag "json" no_arg ~doc:" Display raw JSON API response" in
-     fun () -> main ~credentials ~video_spec ~json)
+     and what_to_show = What_to_show.param in
+     fun () -> main ~credentials ~video_spec ~what_to_show)
 ;;

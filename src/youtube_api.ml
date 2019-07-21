@@ -70,22 +70,19 @@ let call ?(accept_status = only_accept_ok) t ~method_ ~endpoint ~params =
              (body : string)]))
 ;;
 
-let get_video_json t video_spec =
+let get_video_json t video_spec ~parts =
   let open Deferred.Or_error.Let_syntax in
   let video_id = Video_spec.video_id video_spec in
+  let parts = String.concat parts ~sep:"," in
   let%bind json =
-    call
-      t
-      ~method_:`GET
-      ~endpoint:"videos"
-      ~params:[ "id", video_id; "part", "snippet,contentDetails" ]
+    call t ~method_:`GET ~endpoint:"videos" ~params:[ "id", video_id; "part", parts ]
   in
   return (Yojson.Basic.from_string json)
 ;;
 
 let get_video_info t video_spec =
   let open Deferred.Or_error.Let_syntax in
-  let%bind json = get_video_json t video_spec in
+  let%bind json = get_video_json t video_spec ~parts:[ "snippet" ] in
   Deferred.return
     (Or_error.try_with (fun () ->
        let open Yojson.Basic.Util in

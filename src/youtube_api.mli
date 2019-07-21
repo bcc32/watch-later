@@ -24,4 +24,11 @@ val call
   -> string Deferred.Or_error.t
 
 val get_video_info : t -> Video_spec.t -> Video_info.t Deferred.Or_error.t
-val get_video_json : t -> Video_spec.t -> Yojson.Basic.t Deferred.Or_error.t
+
+(** See https://developers.google.com/youtube/v3/docs/videos/list for the
+    documentation of [parts]. *)
+val get_video_json
+  :  t
+  -> Video_spec.t
+  -> parts:string list
+  -> Yojson.Basic.t Deferred.Or_error.t
