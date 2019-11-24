@@ -26,9 +26,7 @@ let main ~dbpath ~mark_watched ~video_specs =
     in
     Deferred.Or_error.List.iter video_specs ~f:(fun video_spec ->
       let%bind () = Deferred.return (browse_video video_spec) in
-      if mark_watched
-      then Video_db.mark_watched db video_spec `Watched
-      else return ()))
+      if mark_watched then Video_db.mark_watched db video_spec `Watched else return ()))
 ;;
 
 let command =

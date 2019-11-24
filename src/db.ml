@@ -109,8 +109,7 @@ module Stmt = struct
     | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
   ;;
 
-  let select (type i) { stmt = Select (stmt, (arity : i Arity.t)); thread } reader ~f : i
-    =
+  let select (type i) { stmt = Select (stmt, (arity : i Arity.t)); thread } reader ~f : i =
     let rec loop () =
       match%bind In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
       | ROW ->
