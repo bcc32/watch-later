@@ -1,3 +1,5 @@
 * TODO Integration tests
 * TODO Plain text format
 * TODO Parallel operations (e.g., add, download)
+* TODO Error handling for deleted videos
+* TODO Separate table for channel id -> channel name mapping
