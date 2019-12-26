@@ -35,9 +35,11 @@ let command =
     (let%map_open.Command.Let_syntax () = return ()
      and dbpath = Params.dbpath
      and mark_watched =
-       flag
+       flag_optional_with_default_doc
          "mark-watched"
-         (optional_with_default true bool)
+         bool
+         [%sexp_of: bool]
+         ~default:true
          ~doc:"(true|false) mark video as watched (default true)"
      and video_specs = Params.videos in
      fun () -> main ~dbpath ~mark_watched ~video_specs)
