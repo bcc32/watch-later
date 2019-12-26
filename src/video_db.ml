@@ -9,8 +9,8 @@ type t =
   ; select_non_watched_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
   ; select_count_total_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
   ; select_count_watched_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
-  ; add_video_overwrite : ([ `Non_select ], Db.Arity.t4) Db.Stmt.t Lazy.t
-  ; add_video_no_overwrite : ([ `Non_select ], Db.Arity.t4) Db.Stmt.t Lazy.t
+  ; add_video_overwrite : ([ `Non_select ], Db.Arity.t5) Db.Stmt.t Lazy.t
+  ; add_video_no_overwrite : ([ `Non_select ], Db.Arity.t5) Db.Stmt.t Lazy.t
   ; mark_watched : ([ `Non_select ], Db.Arity.t2) Db.Stmt.t Lazy.t
   ; get_random_unwatched_video : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
   }
@@ -62,11 +62,11 @@ let add_video db ~conflict_resolution =
       {|
 INSERT OR %s INTO videos
 (video_id, video_title, channel_id, channel_title, watched)
-VALUES (?, ?, ?, ?, 0);
+VALUES (?, ?, ?, ?, ?);
 |}
       conflict_resolution
   in
-  Db.prepare_exn db Non_select Arity4 sql
+  Db.prepare_exn db Non_select Arity5 sql
 ;;
 
 let add_video_overwrite db = add_video db ~conflict_resolution:"REPLACE"
@@ -191,7 +191,7 @@ let video_stats t =
     }
 ;;
 
-let add_video t (video_info : Video_info.t) ~overwrite =
+let add_video t (video_info : Video_info.t) ~mark_watched ~overwrite =
   (* TODO: [run_bind_by_name] *)
   let stmt =
     force (if overwrite then t.add_video_overwrite else t.add_video_no_overwrite)
@@ -202,6 +202,7 @@ let add_video t (video_info : Video_info.t) ~overwrite =
     (TEXT video_info.video_title)
     (TEXT video_info.channel_id)
     (TEXT video_info.channel_title)
+    (INT (Bool.to_int mark_watched |> Int64.of_int))
 ;;
 
 let mark_watched t video_spec state =

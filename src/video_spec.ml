@@ -13,6 +13,7 @@ let of_string string =
   try Video_url (string |> Video_url.of_string) with
   | _ -> Video_id string
 ;;
+
 (* TODO Validate format *)
 
 let arg_type = Command.Arg_type.create of_string

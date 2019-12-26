@@ -60,6 +60,7 @@ module Arity = struct
   type t2 = Sqlite3.Data.t -> t1
   type t3 = Sqlite3.Data.t -> t2
   type t4 = Sqlite3.Data.t -> t3
+  type t5 = Sqlite3.Data.t -> t4
 
   type 'f t =
     | Arity0 : t0 t
@@ -67,6 +68,7 @@ module Arity = struct
     | Arity2 : t2 t
     | Arity3 : t3 t
     | Arity4 : t4 t
+    | Arity5 : t5 t
 
   let to_int (type a) : a t -> int = function
     | Arity0 -> 0
@@ -74,6 +76,7 @@ module Arity = struct
     | Arity2 -> 2
     | Arity3 -> 3
     | Arity4 -> 4
+    | Arity5 -> 5
   ;;
 end
 
@@ -152,6 +155,15 @@ module Stmt = struct
         let%bind () = bind stmt 3 c in
         let%bind () = bind stmt 4 d in
         loop ()
+    | Arity5 ->
+      fun a b c d e ->
+        let%bind () = reset stmt in
+        let%bind () = bind stmt 1 a in
+        let%bind () = bind stmt 2 b in
+        let%bind () = bind stmt 3 c in
+        let%bind () = bind stmt 4 d in
+        let%bind () = bind stmt 5 e in
+        loop ()
   ;;
 
   let run (type a) { stmt = Non_select (stmt, (arity : a Arity.t)); thread } : a =
@@ -190,6 +202,15 @@ module Stmt = struct
         let%bind () = bind stmt 2 b in
         let%bind () = bind stmt 3 c in
         let%bind () = bind stmt 4 d in
+        run ()
+    | Arity5 ->
+      fun a b c d e ->
+        let%bind () = reset stmt in
+        let%bind () = bind stmt 1 a in
+        let%bind () = bind stmt 2 b in
+        let%bind () = bind stmt 3 c in
+        let%bind () = bind stmt 4 d in
+        let%bind () = bind stmt 5 e in
         run ()
   ;;
 end

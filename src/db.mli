@@ -31,6 +31,7 @@ module Arity : sig
   type t2 = Sqlite3.Data.t -> t1
   type t3 = Sqlite3.Data.t -> t2
   type t4 = Sqlite3.Data.t -> t3
+  type t5 = Sqlite3.Data.t -> t4
 
   type 'f t =
     | Arity0 : t0 t
@@ -38,6 +39,7 @@ module Arity : sig
     | Arity2 : t2 t
     | Arity3 : t3 t
     | Arity4 : t4 t
+    | Arity5 : t5 t
 end
 
 module Kind : sig
