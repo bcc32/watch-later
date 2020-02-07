@@ -32,7 +32,7 @@ module Credentials = struct
              | Some key -> Some (`Api_key key)
              | None -> None))
       ]
-      ~if_nothing_chosen:`Raise
+      ~if_nothing_chosen:Raise
   ;;
 end
 

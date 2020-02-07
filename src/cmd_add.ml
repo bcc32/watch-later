@@ -14,7 +14,7 @@ let main ~credentials ~dbpath ~mark_watched ~overwrite ~video_specs =
 let command =
   Command.async_or_error
     ~summary:"Add video(s) to queue"
-    (let%map_open.Command.Let_syntax () = return ()
+    (let%map_open.Command () = return ()
      and credentials = Youtube_api.Credentials.param
      and dbpath = Params.dbpath
      and mark_watched =

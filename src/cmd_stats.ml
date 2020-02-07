@@ -14,7 +14,7 @@ let main dbpath =
 let command =
   Command.async_or_error
     ~summary:"Show stats about the YouTube queue"
-    (let%map_open.Command.Let_syntax () = return ()
+    (let%map_open.Command () = return ()
      and dbpath = Params.dbpath in
      fun () -> main dbpath)
 ;;

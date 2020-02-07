@@ -1,3 +1,2 @@
-(lang dune 1.6)
+(lang dune 2.0)
 (name watch-later)
-(using fmt 1.1)

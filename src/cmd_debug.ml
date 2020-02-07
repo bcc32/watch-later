@@ -44,7 +44,7 @@ let main ~credentials ~video_spec ~what_to_show =
 let command =
   Command.async_or_error
     ~summary:"Debug YouTube API calls"
-    (let%map_open.Command.Let_syntax () = return ()
+    (let%map_open.Command () = return ()
      and credentials = Youtube_api.Credentials.param
      and video_spec = Params.video
      and what_to_show = What_to_show.param in

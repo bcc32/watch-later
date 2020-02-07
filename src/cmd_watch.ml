@@ -32,7 +32,7 @@ let main ~dbpath ~mark_watched ~video_specs =
 let command =
   Command.async_or_error
     ~summary:"Open a video in $BROWSER and mark it watched."
-    (let%map_open.Command.Let_syntax () = return ()
+    (let%map_open.Command () = return ()
      and dbpath = Params.dbpath
      and mark_watched =
        flag_optional_with_default_doc

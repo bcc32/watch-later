@@ -236,7 +236,7 @@ let close_prepared_statements t =
 ;;
 
 let close t =
-  let%bind.Deferred.Or_error.Let_syntax () = close_prepared_statements t in
+  let%bind.Deferred.Or_error () = close_prepared_statements t in
   if%bind In_thread.run ~thread:t.thread (fun () -> Sqlite3.db_close t.db)
   then return (Ok ())
   else Deferred.Or_error.error_string "couldn't close db handle"

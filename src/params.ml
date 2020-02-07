@@ -3,7 +3,7 @@ open! Async
 open! Import
 
 let dbpath =
-  let%map_open.Command.Let_syntax () = return ()
+  let%map_open.Command () = return ()
   and path =
     flag
       "dbpath"
@@ -21,7 +21,7 @@ let dbpath =
 ;;
 
 let video =
-  let%map_open.Command.Let_syntax () = return ()
+  let%map_open.Command () = return ()
   and anon = anon (maybe ("VIDEO" %: Video_spec.arg_type))
   and escaped =
     flag "--" escape ~doc:"VIDEO escape a video whose ID may start with [-]"
@@ -37,7 +37,7 @@ let video =
 ;;
 
 let videos =
-  let%map_open.Command.Let_syntax () = return ()
+  let%map_open.Command () = return ()
   and anons = anon (sequence ("VIDEO" %: Video_spec.arg_type))
   and escaped =
     flag "--" escape ~doc:"VIDEO escape videos whose IDs may start with [-]"
@@ -46,7 +46,7 @@ let videos =
 ;;
 
 let nonempty_videos =
-  match%map.Command.Let_syntax videos with
+  match%map.Command videos with
   | [] -> raise_s [%message "expected at least one video"]
   | _ :: _ as specs -> specs
 ;;
