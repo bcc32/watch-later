@@ -1,4 +1,5 @@
 (lang dune 2.0)
+(name watch-later)
 (generate_opam_files true)
 (license MIT)
 (authors "Aaron L. Zeng <me@bcc32.com>")
