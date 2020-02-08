@@ -3,6 +3,7 @@
 (generate_opam_files true)
 (license MIT)
 (authors "Aaron L. Zeng <me@bcc32.com>")
+(maintainers "Aaron L. Zeng <me@bcc32.com>")
 (source (github bcc32/watch-later))
 (homepage https://github.com/bcc32/watch-later)
 (documentation https://github.com/bcc32/watch-later)

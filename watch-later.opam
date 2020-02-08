@@ -2,6 +2,7 @@
 opam-version: "2.0"
 synopsis: "Utility for managing a queue of YouTube content"
 description: ""
+maintainer: ["Aaron L. Zeng <me@bcc32.com>"]
 authors: ["Aaron L. Zeng <me@bcc32.com>"]
 license: "MIT"
 homepage: "https://github.com/bcc32/watch-later"
