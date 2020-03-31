@@ -134,13 +134,13 @@ let close t = Db.close t.db
 let string_exn (data : Sqlite3.Data.t) =
   match data with
   | TEXT x | BLOB x -> x
-  | data -> failwithf !"expected TEXT or BLOB, got: %{Sqlite3.Data}" data ()
+  | data -> failwithf !"expected TEXT or BLOB, got: %{Sqlite3.Data#debug}" data ()
 ;;
 
 let int64_exn (data : Sqlite3.Data.t) =
   match data with
   | INT x -> x
-  | data -> failwithf !"expected INT, got: %{Sqlite3.Data}" data ()
+  | data -> failwithf !"expected INT, got: %{Sqlite3.Data#debug}" data ()
 ;;
 
 let video_info_reader =
