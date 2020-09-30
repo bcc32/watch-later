@@ -26,26 +26,26 @@ module Reader : sig
 end
 
 module Arity : sig
-  type t0 = unit Deferred.Or_error.t
-  type t1 = Sqlite3.Data.t -> t0
-  type t2 = Sqlite3.Data.t -> t1
-  type t3 = Sqlite3.Data.t -> t2
-  type t4 = Sqlite3.Data.t -> t3
-  type t5 = Sqlite3.Data.t -> t4
+  type 'a t0 = 'a Deferred.Or_error.t
+  type 'a t1 = Sqlite3.Data.t -> 'a t0
+  type 'a t2 = Sqlite3.Data.t -> 'a t1
+  type 'a t3 = Sqlite3.Data.t -> 'a t2
+  type 'a t4 = Sqlite3.Data.t -> 'a t3
+  type 'a t5 = Sqlite3.Data.t -> 'a t4
 
-  type 'f t =
-    | Arity0 : t0 t
-    | Arity1 : t1 t
-    | Arity2 : t2 t
-    | Arity3 : t3 t
-    | Arity4 : t4 t
-    | Arity5 : t5 t
+  type ('f, 'a) t =
+    | Arity0 : ('a t0, 'a) t
+    | Arity1 : ('a t1, 'a) t
+    | Arity2 : ('a t2, 'a) t
+    | Arity3 : ('a t3, 'a) t
+    | Arity4 : ('a t4, 'a) t
+    | Arity5 : ('a t5, 'a) t
 end
 
 module Kind : sig
-  type 'kind t =
-    | Select : [ `Select ] t (** Has output *)
-    | Non_select : [ `Non_select ] t (** Has no output *)
+  type ('kind, 'return) t =
+    | Select : ([ `Select ], unit) t (** Has output but makes no changes *)
+    | Non_select : ([ `Non_select ], int) t (** Has no output but may make changes *)
 end
 
 module Stmt : sig
@@ -68,7 +68,7 @@ val with_file : string -> f:(t -> 'a Deferred.Or_error.t) -> 'a Deferred.Or_erro
 
 val prepare_exn
   :  t
-  -> 'kind Kind.t
-  -> 'input_callback Arity.t
+  -> ('kind, 'return) Kind.t
+  -> ('input_callback, 'return) Arity.t
   -> string
   -> ('kind, 'input_callback) Stmt.t

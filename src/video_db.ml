@@ -5,14 +5,14 @@ open Deferred.Or_error.Let_syntax
 
 type t =
   { db : Db.t
-  ; setup_schema : ([ `Non_select ], Db.Arity.t0) Db.Stmt.t Lazy.t
-  ; select_non_watched_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
-  ; select_count_total_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
-  ; select_count_watched_videos : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
-  ; add_video_overwrite : ([ `Non_select ], Db.Arity.t5) Db.Stmt.t Lazy.t
-  ; add_video_no_overwrite : ([ `Non_select ], Db.Arity.t5) Db.Stmt.t Lazy.t
-  ; mark_watched : ([ `Non_select ], Db.Arity.t2) Db.Stmt.t Lazy.t
-  ; get_random_unwatched_video : ([ `Select ], Db.Arity.t0) Db.Stmt.t Lazy.t
+  ; setup_schema : ([ `Non_select ], int Db.Arity.t0) Db.Stmt.t Lazy.t
+  ; select_non_watched_videos : ([ `Select ], unit Db.Arity.t0) Db.Stmt.t Lazy.t
+  ; select_count_total_videos : ([ `Select ], unit Db.Arity.t0) Db.Stmt.t Lazy.t
+  ; select_count_watched_videos : ([ `Select ], unit Db.Arity.t0) Db.Stmt.t Lazy.t
+  ; add_video_overwrite : ([ `Non_select ], int Db.Arity.t5) Db.Stmt.t Lazy.t
+  ; add_video_no_overwrite : ([ `Non_select ], int Db.Arity.t5) Db.Stmt.t Lazy.t
+  ; mark_watched : ([ `Non_select ], int Db.Arity.t2) Db.Stmt.t Lazy.t
+  ; get_random_unwatched_video : ([ `Select ], unit Db.Arity.t0) Db.Stmt.t Lazy.t
   }
 
 let setup_schema db =
@@ -114,7 +114,11 @@ let create ?(should_setup_schema = true) db =
     ; get_random_unwatched_video = lazy (get_random_unwatched_video db)
     }
   in
-  let%map () = if should_setup_schema then do_setup_schema t else return () in
+  let%map () =
+    if should_setup_schema
+    then do_setup_schema t >>| (ignore : int -> unit)
+    else return ()
+  in
   t
 ;;
 
@@ -203,6 +207,7 @@ let add_video t (video_info : Video_info.t) ~mark_watched ~overwrite =
     (TEXT video_info.channel_id)
     (TEXT video_info.channel_title)
     (INT (Bool.to_int mark_watched |> Int64.of_int))
+  >>| (ignore : int -> unit)
 ;;
 
 let mark_watched t video_spec state =
@@ -213,7 +218,14 @@ let mark_watched t video_spec state =
   in
   let video_id = Video_spec.video_id video_spec in
   let stmt = force t.mark_watched in
-  Db.Stmt.run stmt (INT watched) (TEXT video_id)
+  match%bind Db.Stmt.run stmt (INT watched) (TEXT video_id) with
+  | 0 ->
+    Deferred.Or_error.error_s
+      [%message "No rows were changed" (video_id : string) (watched : int64)]
+  | 1 -> return ()
+  | changes ->
+    Deferred.Or_error.error_s
+      [%message "Unexpected change count" (video_id : string) (changes : int)]
 ;;
 
 let get_random_unwatched_video t =

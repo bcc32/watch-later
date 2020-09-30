@@ -55,22 +55,22 @@ end
 (* TODO: Arity_n *)
 (* TODO: Separate Sqlite3_with_gadts library. *)
 module Arity = struct
-  type t0 = unit Deferred.Or_error.t
-  type t1 = Sqlite3.Data.t -> t0
-  type t2 = Sqlite3.Data.t -> t1
-  type t3 = Sqlite3.Data.t -> t2
-  type t4 = Sqlite3.Data.t -> t3
-  type t5 = Sqlite3.Data.t -> t4
+  type 'a t0 = 'a Deferred.Or_error.t
+  type 'a t1 = Sqlite3.Data.t -> 'a t0
+  type 'a t2 = Sqlite3.Data.t -> 'a t1
+  type 'a t3 = Sqlite3.Data.t -> 'a t2
+  type 'a t4 = Sqlite3.Data.t -> 'a t3
+  type 'a t5 = Sqlite3.Data.t -> 'a t4
 
-  type 'f t =
-    | Arity0 : t0 t
-    | Arity1 : t1 t
-    | Arity2 : t2 t
-    | Arity3 : t3 t
-    | Arity4 : t4 t
-    | Arity5 : t5 t
+  type ('f, 'a) t =
+    | Arity0 : ('a t0, 'a) t
+    | Arity1 : ('a t1, 'a) t
+    | Arity2 : ('a t2, 'a) t
+    | Arity3 : ('a t3, 'a) t
+    | Arity4 : ('a t4, 'a) t
+    | Arity5 : ('a t5, 'a) t
 
-  let to_int (type a) : a t -> int = function
+  let to_int (type f a) : (f, a) t -> int = function
     | Arity0 -> 0
     | Arity1 -> 1
     | Arity2 -> 2
@@ -81,18 +81,18 @@ module Arity = struct
 end
 
 module Kind = struct
-  type 'kind t =
-    | Select : [ `Select ] t
-    | Non_select : [ `Non_select ] t
+  type ('kind, 'return) t =
+    | Select : ([ `Select ], unit) t
+    | Non_select : ([ `Non_select ], int) t
 end
 
 module Stmt = struct
   type ('kind, 'input_callback) stmt =
     | Select :
-        Sqlite3.stmt * 'input_callback Arity.t
+        Sqlite3.stmt * ('input_callback, unit) Arity.t
         -> ([ `Select ], 'input_callback) stmt
     | Non_select :
-        Sqlite3.stmt * 'input_callback Arity.t
+        Sqlite3.db * Sqlite3.stmt * ('input_callback, int) Arity.t
         -> ([ `Non_select ], 'input_callback) stmt
 
   type ('kind, 'input_callback) t =
@@ -112,7 +112,13 @@ module Stmt = struct
     | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
   ;;
 
-  let select (type i) { stmt = Select (stmt, (arity : i Arity.t)); thread } reader ~f : i =
+  let select
+        (type i a)
+        { stmt = Select (stmt, (arity : (i, unit) Arity.t)); thread }
+        reader
+        ~f
+    : i
+    =
     let rec loop () =
       match%bind In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
       | ROW ->
@@ -166,11 +172,17 @@ module Stmt = struct
         loop ()
   ;;
 
-  let run (type a) { stmt = Non_select (stmt, (arity : a Arity.t)); thread } : a =
+  let run (type i a) { stmt = Non_select (db, stmt, (arity : (i, int) Arity.t)); thread }
+    : i
+    =
     let run () =
-      match%map In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
-      | DONE -> Ok ()
-      | rc -> Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
+      match%map
+        In_thread.run ~thread (fun () ->
+          let rc = Sqlite3.step stmt in
+          rc, Sqlite3.changes db)
+      with
+      | DONE, changes -> Ok changes
+      | rc, _ -> Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
     in
     let open Eager_deferred.Or_error.Let_syntax in
     match arity with
@@ -251,7 +263,7 @@ let with_file dbpath ~f =
       ~finally:(fun () -> Deferred.Monad_infix.(close t >>| ok_exn))
 ;;
 
-let prepare_exn (type k i) t (kind : k Kind.t) (input_arity : i Arity.t) sql
+let prepare_exn (type k i r) t (kind : (k, r) Kind.t) (input_arity : (i, r) Arity.t) sql
   : (k, i) Stmt.t
   =
   let stmt = Sqlite3.prepare t.db sql in
@@ -264,7 +276,7 @@ let prepare_exn (type k i) t (kind : k Kind.t) (input_arity : i Arity.t) sql
   let stmt : (k, i) Stmt.stmt =
     match kind with
     | Select -> Select (stmt, input_arity)
-    | Non_select -> Non_select (stmt, input_arity)
+    | Non_select -> Non_select (t.db, stmt, input_arity)
   in
   { stmt; thread = t.thread }
 ;;
