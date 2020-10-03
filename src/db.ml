@@ -124,9 +124,9 @@ module Stmt = struct
         (match Reader.stmt reader stmt with
          | Error _ as err -> return err
          | Ok x ->
-           (* FIXME: Protect against [f] raising. *)
-           let%bind () = f x in
-           loop ())
+           (match%bind Monitor.try_with_or_error (fun () -> f x) with
+            | Ok () -> loop ()
+            | Error _ as err -> return err))
       | DONE -> k ()
       | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
     in
