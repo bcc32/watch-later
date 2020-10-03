@@ -61,14 +61,20 @@ module Arity = struct
   type 'a t3 = Sqlite3.Data.t -> 'a t2
   type 'a t4 = Sqlite3.Data.t -> 'a t3
   type 'a t5 = Sqlite3.Data.t -> 'a t4
+  type arity0 = [ `Arity0 ]
+  type arity1 = [ `Arity1 ]
+  type arity2 = [ `Arity2 ]
+  type arity3 = [ `Arity3 ]
+  type arity4 = [ `Arity4 ]
+  type arity5 = [ `Arity5 ]
 
   type ('phantom, 'f, 'a) t =
-    | Arity0 : ([ `Arity0 ], 'a t0, 'a) t
-    | Arity1 : ([ `Arity1 ], 'a t1, 'a) t
-    | Arity2 : ([ `Arity2 ], 'a t2, 'a) t
-    | Arity3 : ([ `Arity3 ], 'a t3, 'a) t
-    | Arity4 : ([ `Arity4 ], 'a t4, 'a) t
-    | Arity5 : ([ `Arity5 ], 'a t5, 'a) t
+    | Arity0 : (arity0, 'a t0, 'a) t
+    | Arity1 : (arity1, 'a t1, 'a) t
+    | Arity2 : (arity2, 'a t2, 'a) t
+    | Arity3 : (arity3, 'a t3, 'a) t
+    | Arity4 : (arity4, 'a t4, 'a) t
+    | Arity5 : (arity5, 'a t5, 'a) t
 
   let to_int (type p f a) : (p, f, a) t -> int = function
     | Arity0 -> 0
@@ -81,9 +87,12 @@ module Arity = struct
 end
 
 module Kind = struct
+  type select = [ `Select ]
+  type non_select = [ `Non_select ]
+
   type 'phantom t =
-    | Select : [ `Select ] t
-    | Non_select : [ `Non_select ] t
+    | Select : select t
+    | Non_select : non_select t
 end
 
 module Stmt = struct

@@ -2,17 +2,19 @@ open! Core
 open! Async
 open! Import
 open Deferred.Or_error.Let_syntax
+open Db.Arity
+open Db.Kind
 
 type t =
   { db : Db.t
-  ; setup_schema : ([ `Non_select ] * [ `Arity0 ]) Db.Stmt.t Lazy.t
-  ; select_non_watched_videos : ([ `Select ] * [ `Arity0 ]) Db.Stmt.t Lazy.t
-  ; select_count_total_videos : ([ `Select ] * [ `Arity0 ]) Db.Stmt.t Lazy.t
-  ; select_count_watched_videos : ([ `Select ] * [ `Arity0 ]) Db.Stmt.t Lazy.t
-  ; add_video_overwrite : ([ `Non_select ] * [ `Arity5 ]) Db.Stmt.t Lazy.t
-  ; add_video_no_overwrite : ([ `Non_select ] * [ `Arity5 ]) Db.Stmt.t Lazy.t
-  ; mark_watched : ([ `Non_select ] * [ `Arity2 ]) Db.Stmt.t Lazy.t
-  ; get_random_unwatched_video : ([ `Select ] * [ `Arity0 ]) Db.Stmt.t Lazy.t
+  ; setup_schema : (non_select * arity0) Db.Stmt.t Lazy.t
+  ; select_non_watched_videos : (select * arity0) Db.Stmt.t Lazy.t
+  ; select_count_total_videos : (select * arity0) Db.Stmt.t Lazy.t
+  ; select_count_watched_videos : (select * arity0) Db.Stmt.t Lazy.t
+  ; add_video_overwrite : (non_select * arity5) Db.Stmt.t Lazy.t
+  ; add_video_no_overwrite : (non_select * arity5) Db.Stmt.t Lazy.t
+  ; mark_watched : (non_select * arity2) Db.Stmt.t Lazy.t
+  ; get_random_unwatched_video : (select * arity0) Db.Stmt.t Lazy.t
   }
 
 let setup_schema db =

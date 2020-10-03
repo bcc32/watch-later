@@ -5,4 +5,3 @@
 * TODO Separate table for channel id -> channel name mapping
 * TODO Store JSON as blob for easy migrations and extensions
 * TODO Record timestamp when video is added/watched
-* TODO Define abstract type aliases for phantom types
