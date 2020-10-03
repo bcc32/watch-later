@@ -12,7 +12,8 @@ let browse_video video_spec =
   in
   let uri = "https://youtu.be/" ^ Video_spec.video_id video_spec in
   Webbrowser.reload ?browser uri
-  |> Result.map_error ~f:(fun (`Msg s) -> Error.of_string s)
+  |> Result.map_error ~f:(fun (`Msg s) ->
+    Error.create_s [%message "Error browsing video" s (video_spec : Video_spec.t)])
 ;;
 
 let main ~dbpath ~mark_watched ~video_specs =
