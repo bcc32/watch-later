@@ -125,6 +125,7 @@ module Stmt = struct
         (match Reader.stmt reader stmt with
          | Error _ as err -> return err
          | Ok x ->
+           (* FIXME: Protect against [f] raising. *)
            let%bind () = f x in
            loop ())
       | DONE -> return (Ok ())
