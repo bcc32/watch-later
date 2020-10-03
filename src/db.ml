@@ -62,15 +62,15 @@ module Arity = struct
   type 'a t4 = Sqlite3.Data.t -> 'a t3
   type 'a t5 = Sqlite3.Data.t -> 'a t4
 
-  type ('f, 'a) t =
-    | Arity0 : ('a t0, 'a) t
-    | Arity1 : ('a t1, 'a) t
-    | Arity2 : ('a t2, 'a) t
-    | Arity3 : ('a t3, 'a) t
-    | Arity4 : ('a t4, 'a) t
-    | Arity5 : ('a t5, 'a) t
+  type ('phantom, 'f, 'a) t =
+    | Arity0 : ([ `Arity0 ], 'a t0, 'a) t
+    | Arity1 : ([ `Arity1 ], 'a t1, 'a) t
+    | Arity2 : ([ `Arity2 ], 'a t2, 'a) t
+    | Arity3 : ([ `Arity3 ], 'a t3, 'a) t
+    | Arity4 : ([ `Arity4 ], 'a t4, 'a) t
+    | Arity5 : ([ `Arity5 ], 'a t5, 'a) t
 
-  let to_int (type f a) : (f, a) t -> int = function
+  let to_int (type p f a) : (p, f, a) t -> int = function
     | Arity0 -> 0
     | Arity1 -> 1
     | Arity2 -> 2
@@ -81,24 +81,21 @@ module Arity = struct
 end
 
 module Kind = struct
-  type ('kind, 'return) t =
-    | Select : ([ `Select ], unit) t
-    | Non_select : ([ `Non_select ], int) t
+  type 'phantom t =
+    | Select : [ `Select ] t
+    | Non_select : [ `Non_select ] t
 end
 
 module Stmt = struct
-  type ('kind, 'input_callback) stmt =
-    | Select :
-        Sqlite3.stmt * ('input_callback, unit) Arity.t
-        -> ([ `Select ], 'input_callback) stmt
-    | Non_select :
-        Sqlite3.db * Sqlite3.stmt * ('input_callback, int) Arity.t
-        -> ([ `Non_select ], 'input_callback) stmt
+  type 'desc stmt =
+    | Select : Sqlite3.stmt -> ([ `Select ] * 'arity) stmt
+    | Non_select : Sqlite3.db * Sqlite3.stmt -> ([ `Non_select ] * 'arity) stmt
 
-  type ('kind, 'input_callback) t =
-    { stmt : ('kind, 'input_callback) stmt
+  type 'desc t =
+    { stmt : 'desc stmt
     ; thread : In_thread.Helper_thread.t
     }
+    constraint 'desc = 'kind * 'arity
 
   let reset stmt =
     match Sqlite3.reset stmt with
@@ -113,11 +110,12 @@ module Stmt = struct
   ;;
 
   let select
-        (type i a)
-        { stmt = Select (stmt, (arity : (i, unit) Arity.t)); thread }
-        reader
-        ~f
-    : i
+        (type arity input_callback row)
+        (arity : (arity, input_callback, unit) Arity.t)
+        { stmt = Select stmt; thread }
+        (reader : row Reader.t)
+        ~(f : row -> unit Deferred.t)
+    : input_callback
     =
     let rec loop () =
       match%bind In_thread.run ~thread (fun () -> Sqlite3.step stmt) with
@@ -173,8 +171,11 @@ module Stmt = struct
         loop ()
   ;;
 
-  let run (type i a) { stmt = Non_select (db, stmt, (arity : (i, int) Arity.t)); thread }
-    : i
+  let run
+        (type arity input_callback)
+        (arity : (arity, input_callback, int) Arity.t)
+        { stmt = Non_select (db, stmt); thread }
+    : input_callback
     =
     let run () =
       match%map
@@ -264,8 +265,13 @@ let with_file dbpath ~f =
       ~finally:(fun () -> Deferred.Monad_infix.(close t >>| ok_exn))
 ;;
 
-let prepare_exn (type k i r) t (kind : (k, r) Kind.t) (input_arity : (i, r) Arity.t) sql
-  : (k, i) Stmt.t
+let prepare_exn
+      (type kind arity input_callback return)
+      t
+      (kind : kind Kind.t)
+      (input_arity : (arity, input_callback, return) Arity.t)
+      sql
+  : (kind * arity) Stmt.t
   =
   let stmt = Sqlite3.prepare t.db sql in
   let actual_input_arity = Sqlite3.bind_parameter_count stmt in
@@ -274,10 +280,10 @@ let prepare_exn (type k i r) t (kind : (k, r) Kind.t) (input_arity : (i, r) Arit
     actual_input_arity
     ~expect:(Arity.to_int input_arity);
   t.stmts <- stmt :: t.stmts;
-  let stmt : (k, i) Stmt.stmt =
+  let stmt : (kind * arity) Stmt.stmt =
     match kind with
-    | Select -> Select (stmt, input_arity)
-    | Non_select -> Non_select (t.db, stmt, input_arity)
+    | Select -> Select stmt
+    | Non_select -> Non_select (t.db, stmt)
   in
   { stmt; thread = t.thread }
 ;;

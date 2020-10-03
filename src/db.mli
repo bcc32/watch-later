@@ -33,31 +33,35 @@ module Arity : sig
   type 'a t4 = Sqlite3.Data.t -> 'a t3
   type 'a t5 = Sqlite3.Data.t -> 'a t4
 
-  type ('f, 'a) t =
-    | Arity0 : ('a t0, 'a) t
-    | Arity1 : ('a t1, 'a) t
-    | Arity2 : ('a t2, 'a) t
-    | Arity3 : ('a t3, 'a) t
-    | Arity4 : ('a t4, 'a) t
-    | Arity5 : ('a t5, 'a) t
+  type ('phantom, 'f, 'a) t =
+    | Arity0 : ([ `Arity0 ], 'a t0, 'a) t
+    | Arity1 : ([ `Arity1 ], 'a t1, 'a) t
+    | Arity2 : ([ `Arity2 ], 'a t2, 'a) t
+    | Arity3 : ([ `Arity3 ], 'a t3, 'a) t
+    | Arity4 : ([ `Arity4 ], 'a t4, 'a) t
+    | Arity5 : ([ `Arity5 ], 'a t5, 'a) t
 end
 
 module Kind : sig
-  type ('kind, 'return) t =
-    | Select : ([ `Select ], unit) t (** Has output but makes no changes *)
-    | Non_select : ([ `Non_select ], int) t (** Has no output but may make changes *)
+  type 'phantom t =
+    | Select : [ `Select ] t (** Has output but makes no changes *)
+    | Non_select : [ `Non_select ] t (** Has no output but may make changes *)
 end
 
 module Stmt : sig
-  type ('kind, 'input_callback) t
+  type 'desc t constraint 'desc = 'kind * 'arity
 
   val select
-    :  ([ `Select ], 'input_callback) t
+    :  ('arity, 'input_callback, unit) Arity.t
+    -> ([ `Select ] * 'arity) t
     -> 'a Reader.t
     -> f:('a -> unit Deferred.t)
     -> 'input_callback
 
-  val run : ([ `Non_select ], 'input_callback) t -> 'input_callback
+  val run
+    :  ('arity, 'input_callback, int) Arity.t
+    -> ([ `Non_select ] * 'arity) t
+    -> 'input_callback
 end
 
 type t
@@ -68,7 +72,7 @@ val with_file : string -> f:(t -> 'a Deferred.Or_error.t) -> 'a Deferred.Or_erro
 
 val prepare_exn
   :  t
-  -> ('kind, 'return) Kind.t
-  -> ('input_callback, 'return) Arity.t
+  -> 'kind Kind.t
+  -> ('arity, 'input_callback, 'return) Arity.t
   -> string
-  -> ('kind, 'input_callback) Stmt.t
+  -> ('kind * 'arity) Stmt.t

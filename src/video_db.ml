@@ -5,14 +5,14 @@ open Deferred.Or_error.Let_syntax
 
 type t =
   { db : Db.t
-  ; setup_schema : ([ `Non_select ], int Db.Arity.t0) Db.Stmt.t Lazy.t
-  ; select_non_watched_videos : ([ `Select ], unit Db.Arity.t0) Db.Stmt.t Lazy.t
-  ; select_count_total_videos : ([ `Select ], unit Db.Arity.t0) Db.Stmt.t Lazy.t
-  ; select_count_watched_videos : ([ `Select ], unit Db.Arity.t0) Db.Stmt.t Lazy.t
-  ; add_video_overwrite : ([ `Non_select ], int Db.Arity.t5) Db.Stmt.t Lazy.t
-  ; add_video_no_overwrite : ([ `Non_select ], int Db.Arity.t5) Db.Stmt.t Lazy.t
-  ; mark_watched : ([ `Non_select ], int Db.Arity.t2) Db.Stmt.t Lazy.t
-  ; get_random_unwatched_video : ([ `Select ], unit Db.Arity.t0) Db.Stmt.t Lazy.t
+  ; setup_schema : ([ `Non_select ] * [ `Arity0 ]) Db.Stmt.t Lazy.t
+  ; select_non_watched_videos : ([ `Select ] * [ `Arity0 ]) Db.Stmt.t Lazy.t
+  ; select_count_total_videos : ([ `Select ] * [ `Arity0 ]) Db.Stmt.t Lazy.t
+  ; select_count_watched_videos : ([ `Select ] * [ `Arity0 ]) Db.Stmt.t Lazy.t
+  ; add_video_overwrite : ([ `Non_select ] * [ `Arity5 ]) Db.Stmt.t Lazy.t
+  ; add_video_no_overwrite : ([ `Non_select ] * [ `Arity5 ]) Db.Stmt.t Lazy.t
+  ; mark_watched : ([ `Non_select ] * [ `Arity2 ]) Db.Stmt.t Lazy.t
+  ; get_random_unwatched_video : ([ `Select ] * [ `Arity0 ]) Db.Stmt.t Lazy.t
   }
 
 let setup_schema db =
@@ -98,7 +98,7 @@ LIMIT 1;
 
 let do_setup_schema t =
   let stmt = force t.setup_schema in
-  Db.Stmt.run stmt
+  Db.Stmt.run Arity0 stmt
 ;;
 
 let create ?(should_setup_schema = true) db =
@@ -158,7 +158,7 @@ let video_info_reader =
 
 let iter_non_watched_videos t ~f =
   let stmt = force t.select_non_watched_videos in
-  Db.Stmt.select stmt video_info_reader ~f
+  Db.Stmt.select Arity0 stmt video_info_reader ~f
 ;;
 
 let video_stats t =
@@ -171,7 +171,7 @@ let video_stats t =
     let stmt = force t.select_count_total_videos in
     let%map () =
       Monitor.try_with_join_or_error (fun () ->
-        Db.Stmt.select stmt int_reader ~f:(fun count ->
+        Db.Stmt.select Arity0 stmt int_reader ~f:(fun count ->
           Set_once.set_exn result [%here] count;
           Deferred.return ()))
     in
@@ -182,7 +182,7 @@ let video_stats t =
     let stmt = force t.select_count_watched_videos in
     let%map () =
       Monitor.try_with_join_or_error (fun () ->
-        Db.Stmt.select stmt int_reader ~f:(fun count ->
+        Db.Stmt.select Arity0 stmt int_reader ~f:(fun count ->
           Set_once.set_exn result [%here] count;
           Deferred.return ()))
     in
@@ -201,6 +201,7 @@ let add_video t (video_info : Video_info.t) ~mark_watched ~overwrite =
     force (if overwrite then t.add_video_overwrite else t.add_video_no_overwrite)
   in
   Db.Stmt.run
+    Arity5
     stmt
     (TEXT video_info.video_id)
     (TEXT video_info.video_title)
@@ -218,7 +219,7 @@ let mark_watched t video_spec state =
   in
   let video_id = Video_spec.video_id video_spec in
   let stmt = force t.mark_watched in
-  match%bind Db.Stmt.run stmt (INT watched) (TEXT video_id) with
+  match%bind Db.Stmt.run Arity2 stmt (INT watched) (TEXT video_id) with
   | 0 ->
     Deferred.Or_error.error_s
       [%message "No rows were changed" (video_id : string) (watched : int64)]
@@ -233,7 +234,7 @@ let get_random_unwatched_video t =
   let result = Set_once.create () in
   let%bind () =
     Monitor.try_with_join_or_error (fun () ->
-      Db.Stmt.select stmt video_info_reader ~f:(fun video_info ->
+      Db.Stmt.select Arity0 stmt video_info_reader ~f:(fun video_info ->
         Set_once.set_exn result [%here] video_info;
         Deferred.return ()))
   in
