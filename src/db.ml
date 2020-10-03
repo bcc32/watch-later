@@ -109,12 +109,13 @@ module Stmt = struct
     | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
   ;;
 
-  let select
-        (type arity input_callback row)
-        (arity : (arity, input_callback, unit) Arity.t)
+  let select_generic
+        (type arity input_callback row result)
+        (arity : (arity, input_callback, result) Arity.t)
         { stmt = Select stmt; thread }
         (reader : row Reader.t)
         ~(f : row -> unit Deferred.t)
+        (k : unit -> result Deferred.Or_error.t)
     : input_callback
     =
     let rec loop () =
@@ -126,7 +127,7 @@ module Stmt = struct
            (* FIXME: Protect against [f] raising. *)
            let%bind () = f x in
            loop ())
-      | DONE -> return (Ok ())
+      | DONE -> k ()
       | rc -> Deferred.Or_error.errorf !"unexpected return code: %{Sqlite3.Rc}" rc
     in
     let open Eager_deferred.Or_error.Let_syntax in
@@ -169,6 +170,28 @@ module Stmt = struct
         let%bind () = bind stmt 4 d in
         let%bind () = bind stmt 5 e in
         loop ()
+  ;;
+
+  let select arity t reader ~f =
+    select_generic arity t reader ~f (fun () -> return (Ok ()))
+  ;;
+
+  let select_one arity t reader =
+    let result = Set_once.create () in
+    let set_result here x =
+      Set_once.set_exn result here x;
+      return ()
+    in
+    select_generic
+      arity
+      t
+      reader
+      ~f:(set_result [%here])
+      (fun () ->
+         match Set_once.get_exn result [%here] with
+         | exception e ->
+           Deferred.Or_error.error_s [%message "select_one failed" ~_:(e : exn)]
+         | result -> return (Ok result))
   ;;
 
   let run

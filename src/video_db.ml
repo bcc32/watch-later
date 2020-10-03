@@ -167,26 +167,10 @@ let video_stats t =
     Db.Reader.by_index 0 >>| int64_exn >>| Int64.to_int_exn
   in
   let%bind total_videos =
-    let result = Set_once.create () in
-    let stmt = force t.select_count_total_videos in
-    let%map () =
-      Monitor.try_with_join_or_error (fun () ->
-        Db.Stmt.select Arity0 stmt int_reader ~f:(fun count ->
-          Set_once.set_exn result [%here] count;
-          Deferred.return ()))
-    in
-    Set_once.get_exn result [%here]
+    Db.Stmt.select_one Arity0 (force t.select_count_total_videos) int_reader
   in
   let%bind watched_videos =
-    let result = Set_once.create () in
-    let stmt = force t.select_count_watched_videos in
-    let%map () =
-      Monitor.try_with_join_or_error (fun () ->
-        Db.Stmt.select Arity0 stmt int_reader ~f:(fun count ->
-          Set_once.set_exn result [%here] count;
-          Deferred.return ()))
-    in
-    Set_once.get_exn result [%here]
+    Db.Stmt.select_one Arity0 (force t.select_count_watched_videos) int_reader
   in
   return
     { Stats.total_videos
@@ -230,15 +214,5 @@ let mark_watched t video_spec state =
 ;;
 
 let get_random_unwatched_video t =
-  let stmt = force t.get_random_unwatched_video in
-  let result = Set_once.create () in
-  let%bind () =
-    Monitor.try_with_join_or_error (fun () ->
-      Db.Stmt.select Arity0 stmt video_info_reader ~f:(fun video_info ->
-        Set_once.set_exn result [%here] video_info;
-        Deferred.return ()))
-  in
-  match Set_once.get result with
-  | None -> Deferred.Or_error.error_string "no unwatched videos"
-  | Some video_info -> return video_info
+  Db.Stmt.select_one Arity0 (force t.get_random_unwatched_video) video_info_reader
 ;;
