@@ -55,7 +55,7 @@ end
 (* TODO: Arity_n *)
 (* TODO: Separate Sqlite3_with_gadts library. *)
 module Arity = struct
-  type 'a t0 = 'a Deferred.Or_error.t
+  type 'a t0 = 'a Or_error.t Deferred.t
   type 'a t1 = Sqlite3.Data.t -> 'a t0
   type 'a t2 = Sqlite3.Data.t -> 'a t1
   type 'a t3 = Sqlite3.Data.t -> 'a t2
@@ -115,7 +115,7 @@ module Stmt = struct
         { stmt = Select stmt; thread }
         (reader : row Reader.t)
         ~(f : row -> unit Deferred.t)
-        (k : unit -> result Deferred.Or_error.t)
+        (k : unit -> result Or_error.t Deferred.t)
     : input_callback
     =
     let rec loop () =

@@ -26,7 +26,7 @@ module Reader : sig
 end
 
 module Arity : sig
-  type 'a t0 = 'a Deferred.Or_error.t
+  type 'a t0 = 'a Or_error.t Deferred.t
   type 'a t1 = Sqlite3.Data.t -> 'a t0
   type 'a t2 = Sqlite3.Data.t -> 'a t1
   type 'a t3 = Sqlite3.Data.t -> 'a t2
@@ -72,9 +72,9 @@ end
 
 type t
 
-val open_file : string -> t Deferred.Or_error.t
-val close : t -> unit Deferred.Or_error.t
-val with_file : string -> f:(t -> 'a Deferred.Or_error.t) -> 'a Deferred.Or_error.t
+val open_file : string -> t Or_error.t Deferred.t
+val close : t -> unit Or_error.t Deferred.t
+val with_file : string -> f:(t -> 'a Or_error.t Deferred.t) -> 'a Or_error.t Deferred.t
 
 val prepare_exn
   :  t

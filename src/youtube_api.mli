@@ -21,9 +21,9 @@ val call
   -> method_:Cohttp.Code.meth
   -> endpoint:string
   -> params:(string, string) List.Assoc.t
-  -> string Deferred.Or_error.t
+  -> string Or_error.t Deferred.t
 
-val get_video_info : t -> Video_spec.t -> Video_info.t Deferred.Or_error.t
+val get_video_info : t -> Video_spec.t -> Video_info.t Or_error.t Deferred.t
 
 (** See https://developers.google.com/youtube/v3/docs/videos/list for the
     documentation of [parts]. *)
@@ -31,4 +31,4 @@ val get_video_json
   :  t
   -> Video_spec.t
   -> parts:string list
-  -> Yojson.Basic.t Deferred.Or_error.t
+  -> Yojson.Basic.t Or_error.t Deferred.t
