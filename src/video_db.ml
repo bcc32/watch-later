@@ -11,8 +11,8 @@ type t =
   ; select_non_watched_videos : (select * arity0) Db.Stmt.t Lazy.t
   ; select_count_total_videos : (select * arity0) Db.Stmt.t Lazy.t
   ; select_count_watched_videos : (select * arity0) Db.Stmt.t Lazy.t
-  ; add_video_overwrite : (non_select * arity5) Db.Stmt.t Lazy.t
-  ; add_video_no_overwrite : (non_select * arity5) Db.Stmt.t Lazy.t
+  ; add_video_overwrite : (non_select * arity4) Db.Stmt.t Lazy.t
+  ; add_video_no_overwrite : (non_select * arity4) Db.Stmt.t Lazy.t
   ; mark_watched : (non_select * arity2) Db.Stmt.t Lazy.t
   ; get_random_unwatched_video : (select * arity0) Db.Stmt.t Lazy.t
   }
@@ -63,12 +63,12 @@ let add_video db ~conflict_resolution =
     sprintf
       {|
 INSERT OR %s INTO videos
-(video_id, video_title, channel_id, channel_title, watched)
-VALUES (?, ?, ?, ?, ?);
+(video_id, video_title, channel_id, channel_title)
+VALUES (?, ?, ?, ?);
 |}
       conflict_resolution
   in
-  Db.prepare_exn db Non_select Arity5 sql
+  Db.prepare_exn db Non_select Arity4 sql
 ;;
 
 let add_video_overwrite db = add_video db ~conflict_resolution:"REPLACE"
@@ -186,15 +186,32 @@ let add_video t (video_info : Video_info.t) ~mark_watched ~overwrite =
   let stmt =
     force (if overwrite then t.add_video_overwrite else t.add_video_no_overwrite)
   in
-  Db.Stmt.run
-    Arity5
-    stmt
-    (TEXT video_info.video_id)
-    (TEXT video_info.video_title)
-    (TEXT video_info.channel_id)
-    (TEXT video_info.channel_title)
-    (INT (Bool.to_int mark_watched |> Int64.of_int))
-  >>| (ignore : int -> unit)
+  let%bind () =
+    Db.Stmt.run
+      Arity4
+      stmt
+      (TEXT video_info.video_id)
+      (TEXT video_info.video_title)
+      (TEXT video_info.channel_id)
+      (TEXT video_info.channel_title)
+    >>| (ignore : int -> unit)
+  in
+  match mark_watched with
+  | None -> return ()
+  | Some state ->
+    let watched =
+      match state with
+      | `Watched -> 1L
+      | `Unwatched -> 0L
+    in
+    let%bind changes =
+      Db.Stmt.run Arity2 (force t.mark_watched) (INT watched) (TEXT video_info.video_id)
+    in
+    if changes <> 1
+    then
+      Deferred.Or_error.error_s
+        [%message "Failed to mark watched" ~video_id:(video_info.video_id : string)]
+    else return ()
 ;;
 
 let mark_watched t video_spec state =

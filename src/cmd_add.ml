@@ -20,12 +20,13 @@ let command =
      and credentials = Youtube_api.Credentials.param
      and dbpath = Params.dbpath
      and mark_watched =
-       flag_optional_with_default_doc
+       flag
          "mark-watched"
-         bool
-         [%sexp_of: bool]
-         ~default:false
-         ~doc:"(true|false) mark video as watched (default false)"
+         (optional bool)
+         ~doc:"(true|false) mark video as watched (default do nothing)"
+       >>| Option.map ~f:(function
+         | true -> `Watched
+         | false -> `Unwatched)
      and overwrite =
        flag
          "overwrite"
