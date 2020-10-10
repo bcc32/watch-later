@@ -319,3 +319,18 @@ let prepare_exn
   in
   { stmt; thread = t.thread }
 ;;
+
+let define_caseless_regexp_function t =
+  let cache_size_bound = 16 in
+  let cached_regexp_create =
+    Memo.general
+      ~hashable:String.hashable
+      ~cache_size_bound
+      (Re.Pcre.regexp ~flags:[ `CASELESS ])
+  in
+  Sqlite3.create_fun2 t.db "regexp" (fun needle haystack ->
+    let needle = Sqlite3.Data.to_string_exn needle in
+    let haystack = Sqlite3.Data.to_string_exn haystack in
+    let re = cached_regexp_create needle in
+    Sqlite3.Data.opt_bool (Some (Re.execp re haystack)))
+;;

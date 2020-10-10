@@ -91,3 +91,5 @@ val prepare_exn
   -> ('arity, 'input_callback, 'return) Arity.t
   -> string
   -> ('kind * 'arity) Stmt.t
+
+val define_caseless_regexp_function : t -> unit

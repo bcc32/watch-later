@@ -50,3 +50,12 @@ let nonempty_videos =
   | [] -> raise_s [%message "expected at least one video"]
   | _ :: _ as specs -> specs
 ;;
+
+let filter =
+  let%map_open.Command () = return ()
+  and video_id = flag "video-id" (optional string) ~doc:"ID video ID"
+  and video_title = flag "video-title" (optional string) ~doc:"TITLE video TITLE"
+  and channel_id = flag "channel-id" (optional string) ~doc:"ID channel ID"
+  and channel_title = flag "channel-title" (optional string) ~doc:"TITLE channel TITLE" in
+  ({ video_id; video_title; channel_id; channel_title } : Video_db.Filter.t)
+;;

@@ -14,7 +14,7 @@ type t =
   ; add_video_overwrite : (non_select * arity4) Db.Stmt.t Lazy.t
   ; add_video_no_overwrite : (non_select * arity4) Db.Stmt.t Lazy.t
   ; mark_watched : (non_select * arity2) Db.Stmt.t Lazy.t
-  ; get_random_unwatched_video : (select * arity0) Db.Stmt.t Lazy.t
+  ; get_random_unwatched_video : (select * arity4) Db.Stmt.t Lazy.t
   }
 
 let setup_schema db =
@@ -89,10 +89,14 @@ let get_random_unwatched_video db =
   Db.prepare_exn
     db
     Select
-    Arity0
+    Arity4
     {|
 SELECT video_id, video_title, channel_id, channel_title FROM videos
 WHERE NOT watched
+  AND (?1 IS NULL OR video_id = ?1)
+  AND (?2 IS NULL OR video_title REGEXP ?2)
+  AND (?3 IS NULL OR channel_id = ?3)
+  AND (?4 IS NULL OR channel_title REGEXP ?4)
 ORDER BY RANDOM()
 LIMIT 1;
 |}
@@ -116,6 +120,7 @@ let create ?(should_setup_schema = true) db =
     ; get_random_unwatched_video = lazy (get_random_unwatched_video db)
     }
   in
+  Db.define_caseless_regexp_function db;
   let%map () =
     if should_setup_schema
     then do_setup_schema t >>| (ignore : int -> unit)
@@ -232,6 +237,35 @@ let mark_watched t video_spec state =
       [%message "Unexpected change count" (video_id : string) (changes : int)]
 ;;
 
-let get_random_unwatched_video t =
-  Db.Stmt.select_one Arity0 (force t.get_random_unwatched_video) video_info_reader
+module Filter = struct
+  type t =
+    { video_id : string option
+    ; video_title : string option
+    ; channel_id : string option
+    ; channel_title : string option
+    }
+  [@@deriving fields]
+
+  let is_empty =
+    let is_none _ _ = Option.is_none in
+    Fields.Direct.for_all
+      ~video_id:is_none
+      ~video_title:is_none
+      ~channel_id:is_none
+      ~channel_title:is_none
+  ;;
+end
+
+let get_random_unwatched_video
+      t
+      ({ video_id; video_title; channel_id; channel_title } : Filter.t)
+  =
+  Db.Stmt.select_one
+    Arity4
+    (force t.get_random_unwatched_video)
+    video_info_reader
+    (Sqlite3.Data.opt_text video_id)
+    (Sqlite3.Data.opt_text video_title)
+    (Sqlite3.Data.opt_text channel_id)
+    (Sqlite3.Data.opt_text channel_title)
 ;;

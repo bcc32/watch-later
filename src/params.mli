@@ -12,3 +12,5 @@ val videos : Video_spec.t list Command.Param.t
 
 (** Non-empty list of video specifications. *)
 val nonempty_videos : Video_spec.t list Command.Param.t
+
+val filter : Video_db.Filter.t Command.Param.t
