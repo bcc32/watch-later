@@ -64,7 +64,7 @@ module Stmt : sig
     :  ('arity, 'input_callback, unit) Arity.t
     -> ([ `Select ] * 'arity) t
     -> 'a Reader.t
-    -> f:('a -> unit Deferred.t)
+    -> f:('a -> unit Or_error.t Deferred.t)
     -> 'input_callback
 
   val select_one

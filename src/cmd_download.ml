@@ -9,7 +9,7 @@ let main dbpath ~download_dir =
     Video_db.with_file dbpath ~f:(fun db ->
       Video_db.iter_non_watched_videos db ~f:(fun video ->
         deferreds := Download.download video ~base_dir:download_dir :: !deferreds;
-        Deferred.return ()))
+        return ()))
   in
   Deferred.Or_error.all_unit !deferreds
 ;;

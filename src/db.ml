@@ -123,7 +123,7 @@ module Stmt = struct
         (arity : (arity, input_callback, result) Arity.t)
         { stmt = Select stmt; thread }
         (reader : row Reader.t)
-        ~(f : row -> unit Deferred.t)
+        ~(f : row -> unit Or_error.t Deferred.t)
         (k : unit -> result Or_error.t Deferred.t)
     : input_callback
     =
@@ -133,7 +133,7 @@ module Stmt = struct
         (match Reader.stmt reader stmt with
          | Error _ as err -> return err
          | Ok x ->
-           (match%bind Monitor.try_with_or_error (fun () -> f x) with
+           (match%bind Monitor.try_with_join_or_error (fun () -> f x) with
             | Ok () -> loop ()
             | Error _ as err -> return err))
       | DONE -> k ()
@@ -187,20 +187,15 @@ module Stmt = struct
 
   let select_one arity t reader =
     let result = Set_once.create () in
-    let set_result here x =
-      Set_once.set_exn result here x;
-      return ()
-    in
     select_generic
       arity
       t
       reader
-      ~f:(set_result [%here])
+      ~f:(fun x -> Set_once.set result [%here] x |> Deferred.return)
       (fun () ->
-         match Set_once.get_exn result [%here] with
-         | exception e ->
-           Deferred.Or_error.error_s [%message "select_one failed" ~_:(e : exn)]
-         | result -> return (Ok result))
+         match Set_once.get result with
+         | Some x -> return (Ok x)
+         | None -> Deferred.Or_error.error_s [%message "select_one returned zero rows"])
   ;;
 
   let run
