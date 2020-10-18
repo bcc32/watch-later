@@ -6,11 +6,12 @@ open Deferred.Or_error.Let_syntax
 let main ~credentials ~dbpath ~mark_watched ~overwrite ~video_specs =
   Video_db.with_file dbpath ~f:(fun db ->
     let api = Youtube_api.create credentials in
-    Deferred.Or_error.List.iter video_specs ~f:(fun spec ->
+    Deferred.List.map video_specs ~f:(fun spec ->
       (* FIXME: No need to fetch video_info for videos that are already present,
          if overwrite=false. *)
       let%bind video_info = Youtube_api.get_video_info api spec in
-      Video_db.add_video db video_info ~mark_watched ~overwrite))
+      Video_db.add_video db video_info ~mark_watched ~overwrite)
+    |> Deferred.map ~f:Or_error.combine_errors_unit)
 ;;
 
 let command =
