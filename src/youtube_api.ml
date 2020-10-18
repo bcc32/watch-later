@@ -84,12 +84,15 @@ let get_video_info t video_spec =
   let open Deferred.Or_error.Let_syntax in
   let%bind json = get_video_json t video_spec ~parts:[ "snippet" ] in
   Deferred.return
-    (Or_error.try_with (fun () ->
+    (try
        let open Yojson.Basic.Util in
        let snippet = json |> member "items" |> index 0 |> member "snippet" in
        let channel_id = snippet |> member "channelId" |> to_string in
        let channel_title = snippet |> member "channelTitle" |> to_string in
        let video_id = Video_spec.video_id video_spec in
        let video_title = snippet |> member "title" |> to_string in
-       { Video_info.channel_id; channel_title; video_id; video_title }))
+       Ok { Video_info.channel_id; channel_title; video_id; video_title }
+     with
+     | Yojson.Basic.Util.Undefined _ ->
+       Or_error.error_s [%message "Failed to get video info" (video_spec : Video_spec.t)])
 ;;
