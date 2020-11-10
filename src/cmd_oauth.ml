@@ -58,6 +58,7 @@ let generate_code_verifier_and_challenge =
     verifier, challenge
 ;;
 
+(* TODO: Move this logic into oauth.ml *)
 (* Based on https://developers.google.com/youtube/v3/guides/auth/installed-apps *)
 let obtain_access_token ~client_id ~client_secret =
   let code_verifier, code_challenge = generate_code_verifier_and_challenge () in
@@ -104,15 +105,18 @@ let obtain_access_token ~client_id ~client_secret =
     let%bind json =
       Or_error.try_with (fun () -> Yojson.Basic.from_string body) |> Deferred.return
     in
-    let%bind access_token, refresh_token =
+    let%bind access_token, refresh_token, expiry =
       Or_error.try_with (fun () ->
         let open Yojson.Basic.Util in
         let access_token = json |> member "access_token" |> to_string in
         let refresh_token = json |> member "refresh_token" |> to_string in
-        access_token, refresh_token)
+        let expires_in = json |> member "expires_in" |> to_int in
+        ( access_token
+        , refresh_token
+        , Time_ns.add (Time_ns.now ()) (Time_ns.Span.of_int_sec expires_in) ))
       |> Deferred.return
     in
-    return ({ access_token; refresh_token } : Oauth.t))
+    return ({ client_id; client_secret; access_token; refresh_token; expiry } : Oauth.t))
   else
     raise_s
       [%message
@@ -120,16 +124,35 @@ let obtain_access_token ~client_id ~client_secret =
           ~status:(response.status : Cohttp.Code.status_code)]
 ;;
 
+module Obtain = struct
+  let command =
+    Command.async_or_error
+      ~summary:"Generate and save valid OAuth 2.0 credentials for YouTube Data API"
+      (let%map_open.Command () = return ()
+       and client_id = flag "client-id" (required string) ~doc:"STRING OAuth Client ID"
+       and client_secret =
+         flag "client-secret" (required string) ~doc:"STRING OAuth Client Secret"
+       in
+       fun () ->
+         let%bind creds = obtain_access_token ~client_id ~client_secret in
+         let%bind () = Oauth.save creds in
+         return ())
+  ;;
+end
+
+module Refresh = struct
+  let command =
+    Command.async_or_error
+      ~summary:"Obtain a fresh access token from the saved refresh token"
+      (let%map_open.Command () = return () in
+       fun () ->
+         let%bind creds = Oauth.load () in
+         Oauth.refresh_and_save_if_expired creds |> Deferred.Or_error.ignore_m)
+  ;;
+end
+
 let command =
-  Command.async_or_error
-    ~summary:"Generate and save valid OAuth 2.0 credentials for YouTube Data API"
-    (let%map_open.Command () = return ()
-     and client_id = flag "client-id" (required string) ~doc:"STRING OAuth Client ID"
-     and client_secret =
-       flag "client-secret" (required string) ~doc:"STRING OAuth Client Secret"
-     in
-     fun () ->
-       let%bind creds = obtain_access_token ~client_id ~client_secret in
-       let%bind () = Oauth.save creds in
-       return ())
+  Command.group
+    ~summary:"Manage OAuth 2.0 credentials for YouTube Data API"
+    [ "obtain", Obtain.command; "refresh", Refresh.command ]
 ;;
