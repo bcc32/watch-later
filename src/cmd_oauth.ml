@@ -37,31 +37,32 @@ let is_valid_code_verifier_char = function
   | _ -> false
 ;;
 
-let code_challenge =
+let generate_code_verifier_and_challenge =
+  let rng =
+    Cryptokit.Random.pseudo_rng (Cryptokit.Random.string Cryptokit.Random.secure_rng 20)
+  in
   let to_base64url = String.tr_multi ~target:"+/" ~replacement:"-_" |> unstage in
-  fun ~code_verifier ->
-    code_verifier
-    |> Cryptokit.hash_string (Cryptokit.Hash.sha256 ())
-    |> Cryptokit.transform_string (Cryptokit.Base64.encode_compact ())
-    |> to_base64url
-;;
-
-(* Based on https://developers.google.com/youtube/v3/guides/auth/installed-apps *)
-let obtain_access_token ~client_id ~client_secret =
-  let code_verifier =
+  fun () ->
     let buf = Bytes.create 128 in
-    let rng =
-      Cryptokit.Random.pseudo_rng (Cryptokit.Random.string Cryptokit.Random.secure_rng 20)
-    in
     fill_random_bytes
       rng
       buf
       ~pos:0
       ~len:128
       ~byte_is_acceptable:is_valid_code_verifier_char;
-    Bytes.unsafe_to_string ~no_mutation_while_string_reachable:buf
-  in
-  let code_challenge = code_challenge ~code_verifier in
+    let verifier = Bytes.unsafe_to_string ~no_mutation_while_string_reachable:buf in
+    let challenge =
+      verifier
+      |> Cryptokit.hash_string (Cryptokit.Hash.sha256 ())
+      |> Cryptokit.transform_string (Cryptokit.Base64.encode_compact ())
+      |> to_base64url
+    in
+    verifier, challenge
+;;
+
+(* Based on https://developers.google.com/youtube/v3/guides/auth/installed-apps *)
+let obtain_access_token ~client_id ~client_secret =
+  let code_verifier, code_challenge = generate_code_verifier_and_challenge () in
   let endpoint =
     Uri.make
       ~scheme:"https"
