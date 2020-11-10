@@ -1,8 +1,8 @@
 open! Core
 open! Async
 open! Import
+open Deferred.Or_error.Let_syntax
 
-(* FIXME: Use Deferred.Or_error monad. *)
 (* TODO: Store auth token in ~/.cache. *)
 
 let rec fill_random_bytes (rng : Cryptokit.Random.rng) bytes ~pos ~len ~byte_is_acceptable
@@ -79,27 +79,29 @@ let obtain_access_token ~client_id ~client_secret =
   in
   Browse.url endpoint |> ok_exn;
   let%bind authorization_code =
-    Async_interactive.ask_dispatch_gen "Authorization Code" ~f:(fun code ->
-      if String.is_empty code then Error "Empty code" else Ok code)
+    Monitor.try_with_or_error (fun () ->
+      Async_interactive.ask_dispatch_gen "Authorization Code" ~f:(fun code ->
+        if String.is_empty code then Error "Empty code" else Ok code))
   in
   let token_endpoint =
     Uri.make ~scheme:"https" ~host:"oauth2.googleapis.com" ~path:"/token" ()
   in
   let%bind response, body =
-    Cohttp_async.Client.post_form
-      token_endpoint
-      ~params:
-        [ "client_id", [ client_id ]
-        ; "client_secret", [ client_secret ]
-        ; "code", [ authorization_code ]
-        ; "code_verifier", [ code_verifier ]
-        ; "grant_type", [ "authorization_code" ]
-        ; "redirect_uri", [ "urn:ietf:wg:oauth:2.0:oob" ]
-        ]
+    Monitor.try_with_or_error (fun () ->
+      Cohttp_async.Client.post_form
+        token_endpoint
+        ~params:
+          [ "client_id", [ client_id ]
+          ; "client_secret", [ client_secret ]
+          ; "code", [ authorization_code ]
+          ; "code_verifier", [ code_verifier ]
+          ; "grant_type", [ "authorization_code" ]
+          ; "redirect_uri", [ "urn:ietf:wg:oauth:2.0:oob" ]
+          ])
   in
   if response.status |> Cohttp.Code.code_of_status |> Cohttp.Code.is_success
   then (
-    let%bind body = Cohttp_async.Body.to_string body in
+    let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
     print_endline body;
     return ())
   else
@@ -110,7 +112,7 @@ let obtain_access_token ~client_id ~client_secret =
 ;;
 
 let command =
-  Command.async
+  Command.async_or_error
     ~summary:"Generate valid OAuth 2.0 token for YouTube Data API"
     (let%map_open.Command () = return ()
      and client_id = flag "client-id" (required string) ~doc:"STRING OAuth Client ID"
