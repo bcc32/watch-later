@@ -3,7 +3,7 @@ with import <nixpkgs> { };
 let
   inherit (ocamlPackages)
     buildDunePackage async async_interactive async_ssl cohttp-async core
-    ocaml_sqlite3 uri webbrowser yojson;
+    cryptokit ocaml_sqlite3 uri webbrowser yojson;
 
 in buildDunePackage {
   pname = "watch-later";
@@ -16,6 +16,7 @@ in buildDunePackage {
     async_ssl
     cohttp-async
     core
+    cryptokit
     ocaml_sqlite3
     uri
     webbrowser
