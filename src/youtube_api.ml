@@ -70,6 +70,7 @@ let call ?(accept_status = only_accept_ok) t ~method_ ~endpoint ~params =
              (body : string)]))
 ;;
 
+(* FIXME: Can raise if JSON parsing fails. *)
 let get_video_json t video_spec ~parts =
   let open Deferred.Or_error.Let_syntax in
   let video_id = Video_spec.video_id video_spec in
@@ -95,4 +96,67 @@ let get_video_info t video_spec =
      with
      | Yojson.Basic.Util.Undefined _ ->
        Or_error.error_s [%message "Failed to get video info" (video_spec : Video_spec.t)])
+;;
+
+let get_playlist_item_ids t playlist_id =
+  let open Deferred.Or_error.Let_syntax in
+  let rec loop page_token rev_ids =
+    let%bind json =
+      call
+        t
+        ~method_:`GET
+        ~endpoint:"playlistItems"
+        ~params:
+          ([ "part", "id"
+           ; "playlistId", Playlist_id.to_string playlist_id
+           ; "maxResults", "50"
+           ]
+           @
+           match page_token with
+           | None -> []
+           | Some page_token -> [ "pageToken", page_token ])
+      >>| Yojson.Basic.from_string
+    in
+    let%bind page_ids, next_page_token =
+      try
+        let open Yojson.Basic.Util in
+        let page_ids =
+          json
+          |> member "items"
+          |> convert_each (fun item -> item |> member "id" |> to_string)
+        in
+        let next_page_token = json |> member "nextPageToken" |> to_string_option in
+        return (page_ids, next_page_token)
+      with
+      | e ->
+        Deferred.Or_error.error_s
+          [%message
+            "Failed to read playlist item IDs"
+              (playlist_id : Playlist_id.t)
+              (e : exn)
+              ~json:(Yojson.Basic.to_string json : string)]
+    in
+    let rev_ids = List.rev_append page_ids rev_ids in
+    match next_page_token with
+    | None -> return (List.rev rev_ids)
+    | Some page_token -> loop (Some page_token) rev_ids
+  in
+  loop None []
+;;
+
+(* FIXME: Polymorphic comparison *)
+let delete_playlist_item t playlist_item_id =
+  call
+    t
+    ~method_:`DELETE
+    ~endpoint:"playlistItems"
+    ~accept_status:(Poly.( = ) `No_content)
+    ~params:[ "id", playlist_item_id ]
+  |> Deferred.Or_error.ignore_m
+;;
+
+let clear_playlist t playlist_id =
+  let open Deferred.Or_error.Let_syntax in
+  let%bind playlist_item_ids = get_playlist_item_ids t playlist_id in
+  Deferred.Or_error.List.iter playlist_item_ids ~f:(delete_playlist_item t)
 ;;
