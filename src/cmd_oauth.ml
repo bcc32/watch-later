@@ -5,15 +5,36 @@ open! Import
 (* FIXME: Use Deferred.Or_error monad. *)
 (* TODO: Store auth token in ~/.cache. *)
 
-let valid_code_verifier_chars =
-  lazy
-    (Array.init 256 ~f:Char.of_int_exn
-     |> Array.filter ~f:(function
-       | 'A' .. 'Z' -> true
-       | 'a' .. 'z' -> true
-       | '0' .. '9' -> true
-       | '-' | '.' | '_' | '~' -> true
-       | _ -> false))
+let rec fill_random_bytes (rng : Cryptokit.Random.rng) bytes ~pos ~len ~byte_is_acceptable
+  =
+  if len <= 0
+  then ()
+  else (
+    rng#random_bytes bytes pos len;
+    let rec keep_acceptable_bytes ~src_pos ~dst_pos =
+      if src_pos >= Bytes.length bytes
+      then
+        fill_random_bytes
+          rng
+          bytes
+          ~pos:dst_pos
+          ~len:(len - (dst_pos - pos))
+          ~byte_is_acceptable
+      else if byte_is_acceptable (Bytes.get bytes src_pos)
+      then (
+        Bytes.set bytes dst_pos (Bytes.get bytes src_pos);
+        keep_acceptable_bytes ~src_pos:(src_pos + 1) ~dst_pos:(dst_pos + 1))
+      else keep_acceptable_bytes ~src_pos:(src_pos + 1) ~dst_pos
+    in
+    keep_acceptable_bytes ~src_pos:pos ~dst_pos:pos)
+;;
+
+let is_valid_code_verifier_char = function
+  | 'A' .. 'Z' -> true
+  | 'a' .. 'z' -> true
+  | '0' .. '9' -> true
+  | '-' | '.' | '_' | '~' -> true
+  | _ -> false
 ;;
 
 let code_challenge =
@@ -27,10 +48,18 @@ let code_challenge =
 
 (* Based on https://developers.google.com/youtube/v3/guides/auth/installed-apps *)
 let obtain_access_token ~client_id ~client_secret =
-  (* FIXME: Not cryptographically secure *)
   let code_verifier =
-    String.init 128 ~f:(fun _ ->
-      Array.random_element_exn (force valid_code_verifier_chars))
+    let buf = Bytes.create 128 in
+    let rng =
+      Cryptokit.Random.pseudo_rng (Cryptokit.Random.string Cryptokit.Random.secure_rng 20)
+    in
+    fill_random_bytes
+      rng
+      buf
+      ~pos:0
+      ~len:128
+      ~byte_is_acceptable:is_valid_code_verifier_char;
+    Bytes.unsafe_to_string ~no_mutation_while_string_reachable:buf
   in
   let code_challenge = code_challenge ~code_verifier in
   let endpoint =
