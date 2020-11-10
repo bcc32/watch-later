@@ -3,6 +3,7 @@ open! Async
 open! Import
 
 (* FIXME: Use Deferred.Or_error monad. *)
+(* TODO: Store auth token in ~/.cache. *)
 
 let valid_code_verifier_chars =
   lazy
