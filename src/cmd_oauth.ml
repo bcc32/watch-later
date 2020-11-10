@@ -2,6 +2,8 @@ open! Core
 open! Async
 open! Import
 
+(* FIXME: Use Deferred.Or_error monad. *)
+
 let valid_code_verifier_chars =
   lazy
     (Array.init 256 ~f:Char.of_int_exn
