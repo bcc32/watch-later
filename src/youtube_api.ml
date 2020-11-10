@@ -2,6 +2,8 @@ open! Core
 open! Async
 open! Import
 
+(* TODO: open Deferred.Or_error.Let_syntax *)
+
 module Credentials = struct
   type t =
     [ `Access_token of string
@@ -9,30 +11,15 @@ module Credentials = struct
     ]
 
   let param =
-    let open Command.Param in
-    choose_one
-      [ flag
-          "access-token"
-          (optional string)
-          ~doc:"TOKEN YouTube API access token (default is $YT_API_TOKEN)"
-        |> map ~f:(function
-          | Some token -> Some (`Access_token token)
-          | None ->
-            (match Sys.getenv "YT_API_TOKEN" with
-             | Some token -> Some (`Access_token token)
-             | None -> None))
-      ; flag
-          "api-key"
-          (optional string)
-          ~doc:"KEY YouTube API key (default is $YT_API_KEY)"
-        |> map ~f:(function
-          | Some key -> Some (`Api_key key)
-          | None ->
-            (match Sys.getenv "YT_API_KEY" with
-             | Some key -> Some (`Api_key key)
-             | None -> None))
-      ]
-      ~if_nothing_chosen:Raise
+    match%map.Command
+      let open Command.Param in
+      flag "api-key" (optional string) ~doc:"KEY YouTube API key (default is $YT_API_KEY)"
+    with
+    | Some api_key -> `Api_key api_key
+    | None ->
+      let creds = Thread_safe.block_on_async_exn (fun () -> Oauth.load () >>| ok_exn) in
+      (* TODO: Automatically refresh token when necessary. *)
+      `Access_token creds.access_token
   ;;
 end
 

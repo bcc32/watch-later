@@ -3,8 +3,6 @@ open! Async
 open! Import
 open Deferred.Or_error.Let_syntax
 
-(* TODO: Store auth token in ~/.cache. *)
-
 let rec fill_random_bytes (rng : Cryptokit.Random.rng) bytes ~pos ~len ~byte_is_acceptable
   =
   if len <= 0
@@ -103,8 +101,18 @@ let obtain_access_token ~client_id ~client_secret =
   if response.status |> Cohttp.Code.code_of_status |> Cohttp.Code.is_success
   then (
     let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
-    print_endline body;
-    return ())
+    let%bind json =
+      Or_error.try_with (fun () -> Yojson.Basic.from_string body) |> Deferred.return
+    in
+    let%bind access_token, refresh_token =
+      Or_error.try_with (fun () ->
+        let open Yojson.Basic.Util in
+        let access_token = json |> member "access_token" |> to_string in
+        let refresh_token = json |> member "refresh_token" |> to_string in
+        access_token, refresh_token)
+      |> Deferred.return
+    in
+    return ({ access_token; refresh_token } : Oauth.t))
   else
     raise_s
       [%message
@@ -114,11 +122,14 @@ let obtain_access_token ~client_id ~client_secret =
 
 let command =
   Command.async_or_error
-    ~summary:"Generate valid OAuth 2.0 token for YouTube Data API"
+    ~summary:"Generate and save valid OAuth 2.0 credentials for YouTube Data API"
     (let%map_open.Command () = return ()
      and client_id = flag "client-id" (required string) ~doc:"STRING OAuth Client ID"
      and client_secret =
        flag "client-secret" (required string) ~doc:"STRING OAuth Client Secret"
      in
-     fun () -> obtain_access_token ~client_id ~client_secret)
+     fun () ->
+       let%bind creds = obtain_access_token ~client_id ~client_secret in
+       let%bind () = Oauth.save creds in
+       return ())
 ;;
