@@ -89,7 +89,7 @@ let get_video_info t video_spec =
        Or_error.error_s [%message "Failed to get video info" (video_spec : Video_spec.t)])
 ;;
 
-let get_playlist_items t playlist_id =
+let get_playlist_items ?video_id t playlist_id =
   let open Deferred.Or_error.Let_syntax in
   let rec loop page_token rev_items =
     let%bind json =
@@ -102,10 +102,13 @@ let get_playlist_items t playlist_id =
            ; "playlistId", Playlist_id.to_string playlist_id
            ; "maxResults", "50"
            ]
+           @ (match page_token with
+             | None -> []
+             | Some page_token -> [ "pageToken", page_token ])
            @
-           match page_token with
+           match video_id with
            | None -> []
-           | Some page_token -> [ "pageToken", page_token ])
+           | Some video_id -> [ "videoId", Video_id.to_string video_id ])
       >>| Yojson.Basic.from_string
     in
     let%bind page_items, next_page_token =
