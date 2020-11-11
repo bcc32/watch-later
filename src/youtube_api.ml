@@ -157,11 +157,3 @@ let delete_playlist_item t playlist_item_id =
     ~params:[ "id", playlist_item_id ]
   |> Deferred.Or_error.ignore_m
 ;;
-
-let clear_playlist t playlist_id =
-  let open Deferred.Or_error.Let_syntax in
-  let%bind playlist_item_ids =
-    get_playlist_items t playlist_id >>| List.map ~f:Playlist_item.id
-  in
-  Deferred.Or_error.List.iter playlist_item_ids ~f:(delete_playlist_item t)
-;;

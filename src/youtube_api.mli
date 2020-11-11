@@ -44,5 +44,3 @@ val delete_playlist_item
   :  t
   -> string (** playlist item ID *)
   -> unit Or_error.t Deferred.t
-
-val clear_playlist : t -> Playlist_id.t -> unit Or_error.t Deferred.t
