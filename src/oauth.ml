@@ -77,14 +77,17 @@ let refresh { client_id; client_secret; access_token = _; refresh_token; expiry 
           ~status:(Cohttp.Code.string_of_status response.status)]
 ;;
 
-let refresh_and_save t =
+let perform_refresh_and_save t =
   let%bind t = refresh t in
   let%bind () = save t in
   return t
 ;;
 
-let refresh_and_save_if_expired t =
-  if Time_ns.is_earlier (Time_ns.now ()) ~than:t.expiry
-  then return t
-  else refresh_and_save t
+let refresh_and_save t when_ =
+  match when_ with
+  | `Force -> perform_refresh_and_save t
+  | `If_expired ->
+    if Time_ns.is_earlier (Time_ns.now ()) ~than:t.expiry
+    then return t
+    else perform_refresh_and_save t
 ;;

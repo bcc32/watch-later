@@ -144,10 +144,17 @@ module Refresh = struct
   let command =
     Command.async_or_error
       ~summary:"Obtain a fresh access token from the saved refresh token"
-      (let%map_open.Command () = return () in
+      (let%map_open.Command () = return ()
+       and force =
+         flag
+           "force"
+           no_arg
+           ~doc:" Refresh access token even if it doesn't appear to have expired"
+       in
        fun () ->
          let%bind creds = Oauth.load () in
-         Oauth.refresh_and_save_if_expired creds |> Deferred.Or_error.ignore_m)
+         Oauth.refresh_and_save creds (if force then `Force else `If_expired)
+         |> Deferred.Or_error.ignore_m)
   ;;
 end
 
