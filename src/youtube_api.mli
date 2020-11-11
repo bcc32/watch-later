@@ -33,4 +33,5 @@ val get_video_json
   -> parts:string list
   -> Yojson.Basic.t Or_error.t Deferred.t
 
+val get_playlist_items : t -> Playlist_id.t -> Playlist_item.t list Or_error.t Deferred.t
 val clear_playlist : t -> Playlist_id.t -> unit Or_error.t Deferred.t

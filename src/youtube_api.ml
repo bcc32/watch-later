@@ -89,16 +89,16 @@ let get_video_info t video_spec =
        Or_error.error_s [%message "Failed to get video info" (video_spec : Video_spec.t)])
 ;;
 
-let get_playlist_item_ids t playlist_id =
+let get_playlist_items t playlist_id =
   let open Deferred.Or_error.Let_syntax in
-  let rec loop page_token rev_ids =
+  let rec loop page_token rev_items =
     let%bind json =
       call
         t
         ~method_:`GET
         ~endpoint:"playlistItems"
         ~params:
-          ([ "part", "id"
+          ([ "part", "id,contentDetails"
            ; "playlistId", Playlist_id.to_string playlist_id
            ; "maxResults", "50"
            ]
@@ -108,16 +108,25 @@ let get_playlist_item_ids t playlist_id =
            | Some page_token -> [ "pageToken", page_token ])
       >>| Yojson.Basic.from_string
     in
-    let%bind page_ids, next_page_token =
+    let%bind page_items, next_page_token =
       try
         let open Yojson.Basic.Util in
-        let page_ids =
+        let page_items =
           json
           |> member "items"
-          |> convert_each (fun item -> item |> member "id" |> to_string)
+          |> convert_each (fun item ->
+            let id = item |> member "id" |> to_string in
+            let video_id =
+              item
+              |> member "contentDetails"
+              |> member "videoId"
+              |> to_string
+              |> Video_id.of_string
+            in
+            ({ id; video_id } : Playlist_item.t))
         in
         let next_page_token = json |> member "nextPageToken" |> to_string_option in
-        return (page_ids, next_page_token)
+        return (page_items, next_page_token)
       with
       | e ->
         Deferred.Or_error.error_s
@@ -127,10 +136,10 @@ let get_playlist_item_ids t playlist_id =
               (e : exn)
               ~json:(Yojson.Basic.to_string json : string)]
     in
-    let rev_ids = List.rev_append page_ids rev_ids in
+    let rev_items = List.rev_append page_items rev_items in
     match next_page_token with
-    | None -> return (List.rev rev_ids)
-    | Some page_token -> loop (Some page_token) rev_ids
+    | None -> return (List.rev rev_items)
+    | Some page_token -> loop (Some page_token) rev_items
   in
   loop None []
 ;;
@@ -148,6 +157,8 @@ let delete_playlist_item t playlist_item_id =
 
 let clear_playlist t playlist_id =
   let open Deferred.Or_error.Let_syntax in
-  let%bind playlist_item_ids = get_playlist_item_ids t playlist_id in
+  let%bind playlist_item_ids =
+    get_playlist_items t playlist_id >>| List.map ~f:Playlist_item.id
+  in
   Deferred.Or_error.List.iter playlist_item_ids ~f:(delete_playlist_item t)
 ;;
