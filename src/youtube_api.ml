@@ -63,7 +63,11 @@ let get_video_json t video_spec ~parts =
   let video_id = Video_spec.video_id video_spec in
   let parts = String.concat parts ~sep:"," in
   let%bind json =
-    call t ~method_:`GET ~endpoint:"videos" ~params:[ "id", video_id; "part", parts ]
+    call
+      t
+      ~method_:`GET
+      ~endpoint:"videos"
+      ~params:[ "id", Video_id.to_string video_id; "part", parts ]
   in
   return (Yojson.Basic.from_string json)
 ;;

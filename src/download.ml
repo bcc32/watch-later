@@ -10,7 +10,11 @@ let download (video : Video_info.t) ~base_dir =
     Async_interactive.Job.run !"downloading %{sexp:Video_info.t}" video ~f:(fun () ->
       let%bind () = Unix.mkdir ~p:() working_dir in
       let%map result =
-        Process.run () ~prog:"youtube-dl" ~args:[ "--"; video.video_id ] ~working_dir
+        Process.run
+          ()
+          ~prog:"youtube-dl"
+          ~args:[ "--"; Video_id.to_string video.video_id ]
+          ~working_dir
       in
       let result = Or_error.ignore_m result in
       Or_error.tag_arg

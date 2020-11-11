@@ -3,7 +3,7 @@ open! Async
 open! Import
 
 type t =
-  | Video_id of string
+  | Video_id of Video_id.t
   | Video_url of Video_url.t
 [@@deriving sexp_of]
 
@@ -11,7 +11,7 @@ let of_video_id id = Video_id id
 
 let of_string string =
   try Video_url (string |> Video_url.of_string) with
-  | _ -> Video_id string
+  | _ -> Video_id (Video_id.of_string string)
 ;;
 
 (* TODO Validate format *)

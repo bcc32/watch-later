@@ -4,7 +4,9 @@ open! Import
 open Deferred.Or_error.Let_syntax
 
 let browse_video video_spec =
-  Browse.url (Uri.of_string ("https://youtu.be/" ^ Video_spec.video_id video_spec))
+  Browse.url
+    (Uri.of_string
+       (sprintf !"https://youtu.be/%{Video_id}" (Video_spec.video_id video_spec)))
 ;;
 
 module Which_videos = struct

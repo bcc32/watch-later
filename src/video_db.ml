@@ -158,7 +158,7 @@ let video_info_reader =
   let open Db.Reader.Let_syntax in
   let%map_open channel_id = by_name "channel_id" >>| string_exn
   and channel_title = by_name "channel_title" >>| string_exn
-  and video_id = by_name "video_id" >>| string_exn
+  and video_id = by_name "video_id" >>| string_exn >>| Video_id.of_string
   and video_title = by_name "video_title" >>| string_exn in
   { Video_info.channel_id; channel_title; video_id; video_title }
 ;;
@@ -195,7 +195,7 @@ let add_video t (video_info : Video_info.t) ~mark_watched ~overwrite =
     Db.Stmt.run
       Arity4
       stmt
-      (TEXT video_info.video_id)
+      (TEXT (Video_id.to_string video_info.video_id))
       (TEXT video_info.video_title)
       (TEXT video_info.channel_id)
       (TEXT video_info.channel_title)
@@ -210,12 +210,16 @@ let add_video t (video_info : Video_info.t) ~mark_watched ~overwrite =
       | `Unwatched -> 0L
     in
     let%bind changes =
-      Db.Stmt.run Arity2 (force t.mark_watched) (INT watched) (TEXT video_info.video_id)
+      Db.Stmt.run
+        Arity2
+        (force t.mark_watched)
+        (INT watched)
+        (TEXT (Video_id.to_string video_info.video_id))
     in
     if changes <> 1
     then
       Deferred.Or_error.error_s
-        [%message "Failed to mark watched" ~video_id:(video_info.video_id : string)]
+        [%message "Failed to mark watched" ~video_id:(video_info.video_id : Video_id.t)]
     else return ()
 ;;
 
@@ -227,14 +231,16 @@ let mark_watched t video_spec state =
   in
   let video_id = Video_spec.video_id video_spec in
   let stmt = force t.mark_watched in
-  match%bind Db.Stmt.run Arity2 stmt (INT watched) (TEXT video_id) with
+  match%bind
+    Db.Stmt.run Arity2 stmt (INT watched) (TEXT (Video_id.to_string video_id))
+  with
   | 0 ->
     Deferred.Or_error.error_s
-      [%message "No rows were changed" (video_id : string) (watched : int64)]
+      [%message "No rows were changed" (video_id : Video_id.t) (watched : int64)]
   | 1 -> return ()
   | changes ->
     Deferred.Or_error.error_s
-      [%message "Unexpected change count" (video_id : string) (changes : int)]
+      [%message "Unexpected change count" (video_id : Video_id.t) (changes : int)]
 ;;
 
 module Filter = struct
