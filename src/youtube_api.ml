@@ -25,7 +25,10 @@ end
 
 type t = { credentials : Credentials.t }
 
-let create credentials = { credentials }
+let param =
+  let%map.Command credentials = Credentials.param in
+  { credentials }
+;;
 
 let only_accept_ok code =
   match (code : Cohttp.Code.status_code) with

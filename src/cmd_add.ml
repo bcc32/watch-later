@@ -3,9 +3,8 @@ open! Async
 open! Import
 open Deferred.Or_error.Let_syntax
 
-let main ~credentials ~dbpath ~mark_watched ~overwrite ~video_ids =
+let main ~api ~dbpath ~mark_watched ~overwrite ~video_ids =
   Video_db.with_file dbpath ~f:(fun db ->
-    let api = Youtube_api.create credentials in
     Deferred.List.map video_ids ~f:(fun spec ->
       (* FIXME: No need to fetch video_info for videos that are already present,
          if overwrite=false. *)
@@ -18,7 +17,7 @@ let command =
   Command.async_or_error
     ~summary:"Add video(s) to queue"
     (let%map_open.Command () = return ()
-     and credentials = Youtube_api.Credentials.param
+     and api = Youtube_api.param
      and dbpath = Params.dbpath
      and mark_watched =
        flag
@@ -35,5 +34,5 @@ let command =
          ~doc:" overwrite existing entries (default skip)"
          ~aliases:[ "f" ]
      and video_ids = Params.nonempty_videos in
-     fun () -> main ~credentials ~dbpath ~mark_watched ~overwrite ~video_ids)
+     fun () -> main ~api ~dbpath ~mark_watched ~overwrite ~video_ids)
 ;;

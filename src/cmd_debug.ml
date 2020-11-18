@@ -28,8 +28,7 @@ module What_to_show = struct
   ;;
 end
 
-let main ~credentials ~video_id ~what_to_show =
-  let api = Youtube_api.create credentials in
+let main ~api ~video_id ~what_to_show =
   match (what_to_show : What_to_show.t) with
   | Video_info ->
     let%map video_info = Youtube_api.get_video_info api video_id in
@@ -45,8 +44,8 @@ let command =
   Command.async_or_error
     ~summary:"Debug YouTube API calls"
     (let%map_open.Command () = return ()
-     and credentials = Youtube_api.Credentials.param
+     and api = Youtube_api.param
      and video_id = Params.video
      and what_to_show = What_to_show.param in
-     fun () -> main ~credentials ~video_id ~what_to_show)
+     fun () -> main ~api ~video_id ~what_to_show)
 ;;

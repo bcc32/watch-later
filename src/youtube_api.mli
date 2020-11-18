@@ -2,18 +2,9 @@ open! Core
 open! Async
 open! Import
 
-module Credentials : sig
-  type t =
-    [ `Access_token of string
-    | `Api_key of string
-    ]
-
-  val param : t Command.Param.t
-end
-
 type t
 
-val create : Credentials.t -> t
+val param : t Command.Param.t
 
 val call
   :  ?accept_status:(Cohttp.Code.status_code -> bool)
