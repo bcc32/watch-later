@@ -3,10 +3,10 @@ open! Async
 open! Import
 open Deferred.Or_error.Let_syntax
 
-let main ~credentials ~dbpath ~mark_watched ~overwrite ~video_specs =
+let main ~credentials ~dbpath ~mark_watched ~overwrite ~video_ids =
   Video_db.with_file dbpath ~f:(fun db ->
     let api = Youtube_api.create credentials in
-    Deferred.List.map video_specs ~f:(fun spec ->
+    Deferred.List.map video_ids ~f:(fun spec ->
       (* FIXME: No need to fetch video_info for videos that are already present,
          if overwrite=false. *)
       let%bind video_info = Youtube_api.get_video_info api spec in
@@ -34,6 +34,6 @@ let command =
          no_arg
          ~doc:" overwrite existing entries (default skip)"
          ~aliases:[ "f" ]
-     and video_specs = Params.nonempty_videos in
-     fun () -> main ~credentials ~dbpath ~mark_watched ~overwrite ~video_specs)
+     and video_ids = Params.nonempty_videos in
+     fun () -> main ~credentials ~dbpath ~mark_watched ~overwrite ~video_ids)
 ;;

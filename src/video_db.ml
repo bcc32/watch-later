@@ -223,13 +223,12 @@ let add_video t (video_info : Video_info.t) ~mark_watched ~overwrite =
     else return ()
 ;;
 
-let mark_watched t video_spec state =
+let mark_watched t video_id state =
   let watched =
     match state with
     | `Watched -> 1L
     | `Unwatched -> 0L
   in
-  let video_id = Video_spec.video_id video_spec in
   let stmt = force t.mark_watched in
   match%bind
     Db.Stmt.run Arity2 stmt (INT watched) (TEXT (Video_id.to_string video_id))

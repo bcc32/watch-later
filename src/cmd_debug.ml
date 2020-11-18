@@ -28,15 +28,15 @@ module What_to_show = struct
   ;;
 end
 
-let main ~credentials ~video_spec ~what_to_show =
+let main ~credentials ~video_id ~what_to_show =
   let api = Youtube_api.create credentials in
   match (what_to_show : What_to_show.t) with
   | Video_info ->
-    let%map video_info = Youtube_api.get_video_info api video_spec in
+    let%map video_info = Youtube_api.get_video_info api video_id in
     print_s [%sexp (video_info : Video_info.t)]
   | Json { extra_parts } ->
     let%map json =
-      Youtube_api.get_video_json api video_spec ~parts:("snippet" :: extra_parts)
+      Youtube_api.get_video_json api video_id ~parts:("snippet" :: extra_parts)
     in
     print_string (Yojson.Basic.pretty_to_string json)
 ;;
@@ -46,7 +46,7 @@ let command =
     ~summary:"Debug YouTube API calls"
     (let%map_open.Command () = return ()
      and credentials = Youtube_api.Credentials.param
-     and video_spec = Params.video
+     and video_id = Params.video
      and what_to_show = What_to_show.param in
-     fun () -> main ~credentials ~video_spec ~what_to_show)
+     fun () -> main ~credentials ~video_id ~what_to_show)
 ;;

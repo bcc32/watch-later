@@ -29,7 +29,7 @@ val add_video
 
 val mark_watched
   :  t
-  -> Video_spec.t
+  -> Video_id.t
   -> [ `Watched | `Unwatched ]
   -> unit Or_error.t Deferred.t
 

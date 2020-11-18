@@ -26,15 +26,10 @@ module Remove_video = struct
       (let%map_open.Command () = return ()
        and credentials = Youtube_api.Credentials.param
        and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.arg_type)
-       and videos =
-         anon (non_empty_sequence_as_list ("VIDEO-SPEC" %: Video_spec.arg_type))
-       in
+       and videos = Params.nonempty_videos in
        fun () ->
          let youtube_api = Youtube_api.create credentials in
-         Deferred.Or_error.List.iter videos ~f:(fun video_spec ->
-           (* TODO: Add [Video_id.arg_type] which allows video URLs, and get rid
-              of the extraneous [Video_spec.t] type. *)
-           let video_id = Video_spec.video_id video_spec in
+         Deferred.Or_error.List.iter videos ~f:(fun video_id ->
            let%bind items =
              Youtube_api.get_playlist_items youtube_api playlist_id ~video_id
            in

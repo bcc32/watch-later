@@ -58,9 +58,8 @@ let call ?(accept_status = only_accept_ok) t ~method_ ~endpoint ~params =
 ;;
 
 (* FIXME: Can raise if JSON parsing fails. *)
-let get_video_json t video_spec ~parts =
+let get_video_json t video_id ~parts =
   let open Deferred.Or_error.Let_syntax in
-  let video_id = Video_spec.video_id video_spec in
   let parts = String.concat parts ~sep:"," in
   let%bind json =
     call
@@ -72,21 +71,20 @@ let get_video_json t video_spec ~parts =
   return (Yojson.Basic.from_string json)
 ;;
 
-let get_video_info t video_spec =
+let get_video_info t video_id =
   let open Deferred.Or_error.Let_syntax in
-  let%bind json = get_video_json t video_spec ~parts:[ "snippet" ] in
+  let%bind json = get_video_json t video_id ~parts:[ "snippet" ] in
   Deferred.return
     (try
        let open Yojson.Basic.Util in
        let snippet = json |> member "items" |> index 0 |> member "snippet" in
        let channel_id = snippet |> member "channelId" |> to_string in
        let channel_title = snippet |> member "channelTitle" |> to_string in
-       let video_id = Video_spec.video_id video_spec in
        let video_title = snippet |> member "title" |> to_string in
        Ok { Video_info.channel_id; channel_title; video_id; video_title }
      with
      | Yojson.Basic.Util.Undefined _ ->
-       Or_error.error_s [%message "Failed to get video info" (video_spec : Video_spec.t)])
+       Or_error.error_s [%message "Failed to get video info" (video_id : Video_id.t)])
 ;;
 
 let get_playlist_items ?video_id t playlist_id =

@@ -23,13 +23,13 @@ val call
   -> params:(string, string) List.Assoc.t
   -> string Or_error.t Deferred.t
 
-val get_video_info : t -> Video_spec.t -> Video_info.t Or_error.t Deferred.t
+val get_video_info : t -> Video_id.t -> Video_info.t Or_error.t Deferred.t
 
 (** See https://developers.google.com/youtube/v3/docs/videos/list for the
     documentation of [parts]. *)
 val get_video_json
   :  t
-  -> Video_spec.t
+  -> Video_id.t
   -> parts:string list
   -> Yojson.Basic.t Or_error.t Deferred.t
 
