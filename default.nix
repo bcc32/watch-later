@@ -23,4 +23,10 @@ in buildDunePackage {
     yojson
   ];
   meta = { homepage = "https://github.com/bcc32/watch-later"; };
+
+  nativeBuildInputs = [ installShellFiles ];
+  postInstall =
+    ''
+    installShellCompletion share/completions/watch-later.bash
+    '';
 }
