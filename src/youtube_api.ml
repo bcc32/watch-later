@@ -36,7 +36,7 @@ let only_accept_ok code =
   | _ -> false
 ;;
 
-let call ?(accept_status = only_accept_ok) t ~method_ ~endpoint ~params =
+let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
   let uri =
     let path = "youtube/v3" ^/ endpoint in
     Uri.with_query' (Uri.make () ~scheme:"https" ~host:"www.googleapis.com" ~path) params
@@ -47,7 +47,8 @@ let call ?(accept_status = only_accept_ok) t ~method_ ~endpoint ~params =
       Cohttp.Header.init_with "Authorization" ("Bearer " ^ token), uri
     | `Api_key key -> Cohttp.Header.init (), Uri.add_query_param' uri ("key", key)
   in
-  let%bind response, body = Cohttp_async.Client.call method_ uri ~headers in
+  let body = Option.map body ~f:(fun json -> `String (Yojson.Basic.to_string json)) in
+  let%bind response, body = Cohttp_async.Client.call ?body method_ uri ~headers in
   if accept_status response.status
   then Cohttp_async.Body.to_string body |> Deferred.ok
   else (
@@ -156,5 +157,27 @@ let delete_playlist_item t playlist_item_id =
     ~endpoint:"playlistItems"
     ~accept_status:(Poly.( = ) `No_content)
     ~params:[ "id", playlist_item_id ]
+  |> Deferred.Or_error.ignore_m
+;;
+
+let append_video_to_playlist t playlist_id video_id =
+  call
+    t
+    ~method_:`POST
+    ~endpoint:"playlistItems"
+    ~params:[ "part", "snippet" ]
+    ~body:
+      (`Assoc
+         [ "kind", `String "youtube#playlistItem"
+         ; ( "snippet"
+           , `Assoc
+               [ "playlistId", `String (Playlist_id.to_string playlist_id)
+               ; ( "resourceId"
+                 , `Assoc
+                     [ "kind", `String "youtube#video"
+                     ; "videoId", `String (Video_id.to_string video_id)
+                     ] )
+               ] )
+         ])
   |> Deferred.Or_error.ignore_m
 ;;

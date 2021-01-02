@@ -8,6 +8,7 @@ val param : t Command.Param.t
 
 val call
   :  ?accept_status:(Cohttp.Code.status_code -> bool)
+  -> ?body:Yojson.Basic.t
   -> t
   -> method_:Cohttp.Code.meth
   -> endpoint:string
@@ -34,4 +35,10 @@ val get_playlist_items
 val delete_playlist_item
   :  t
   -> string (** playlist item ID *)
+  -> unit Or_error.t Deferred.t
+
+val append_video_to_playlist
+  :  t
+  -> Playlist_id.t
+  -> Video_id.t
   -> unit Or_error.t Deferred.t

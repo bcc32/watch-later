@@ -3,6 +3,20 @@ open! Async
 open! Import
 open Deferred.Or_error.Let_syntax
 
+module Append_videos = struct
+  let command =
+    Command.async_or_error
+      ~summary:"Append video(s) to a playlist"
+      (let%map_open.Command () = return ()
+       and api = Youtube_api.param
+       and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.arg_type)
+       and videos = Params.nonempty_videos in
+       fun () ->
+         Deferred.Or_error.List.iter videos ~f:(fun video_id ->
+           Youtube_api.append_video_to_playlist api playlist_id video_id))
+  ;;
+end
+
 module List = struct
   let command =
     Command.async_or_error
@@ -36,5 +50,8 @@ end
 let command =
   Command.group
     ~summary:"Commands for managing playlists"
-    [ "list", List.command; "remove-video", Remove_video.command ]
+    [ "append-videos", Append_videos.command
+    ; "list", List.command
+    ; "remove-video", Remove_video.command
+    ]
 ;;
