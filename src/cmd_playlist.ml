@@ -9,7 +9,7 @@ module Append_videos = struct
       ~summary:"Append video(s) to a playlist"
       (let%map_open.Command () = return ()
        and api = Youtube_api.param
-       and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.arg_type)
+       and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type)
        and videos = Params.nonempty_videos in
        fun () ->
          Deferred.Or_error.List.iter videos ~f:(fun video_id ->
@@ -23,7 +23,7 @@ module Dedup = struct
       ~summary:"Remove duplicate videos in a playlist"
       (let%map_open.Command () = return ()
        and api = Youtube_api.param
-       and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.arg_type) in
+       and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type) in
        fun () ->
          let%bind items = Youtube_api.get_playlist_items api playlist_id in
          let _, duplicate_video_items =
@@ -51,7 +51,7 @@ module List = struct
       ~summary:"List the IDs of the videos in a playlist"
       (let%map_open.Command () = return ()
        and api = Youtube_api.param
-       and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.arg_type) in
+       and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type) in
        fun () ->
          let%bind items = Youtube_api.get_playlist_items api playlist_id in
          List.iter items ~f:(fun item -> printf !"%{Video_id}\n" item.video_id);
@@ -65,7 +65,7 @@ module Remove_video = struct
       ~summary:"Remove videos from a playlist"
       (let%map_open.Command () = return ()
        and api = Youtube_api.param
-       and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.arg_type)
+       and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type)
        and videos = Params.nonempty_videos in
        fun () ->
          Deferred.Or_error.List.iter videos ~f:(fun video_id ->
