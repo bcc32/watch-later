@@ -17,6 +17,34 @@ module Append_videos = struct
   ;;
 end
 
+module Dedup = struct
+  let command =
+    Command.async_or_error
+      ~summary:"Remove duplicate videos in a playlist"
+      (let%map_open.Command () = return ()
+       and api = Youtube_api.param
+       and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.arg_type) in
+       fun () ->
+         let%bind items = Youtube_api.get_playlist_items api playlist_id in
+         let _, duplicate_video_items =
+           List.fold
+             items
+             ~init:(Set.empty (module Video_id), [])
+             ~f:(fun (seen_video_ids, duplicates) ({ id = _; video_id } as item) ->
+               if Set.mem seen_video_ids video_id
+               then seen_video_ids, item :: duplicates
+               else Set.add seen_video_ids video_id, duplicates)
+         in
+         let%bind () =
+           Deferred.Or_error.List.iter duplicate_video_items ~f:(fun item ->
+             Log.Global.info_s
+               [%message "Deleting playlist item" (item : Playlist_item.t)];
+             Youtube_api.delete_playlist_item api item.id)
+         in
+         return ())
+  ;;
+end
+
 module List = struct
   let command =
     Command.async_or_error
@@ -51,6 +79,7 @@ let command =
   Command.group
     ~summary:"Commands for managing playlists"
     [ "append-videos", Append_videos.command
+    ; "dedup", Dedup.command
     ; "list", List.command
     ; "remove-video", Remove_video.command
     ]
