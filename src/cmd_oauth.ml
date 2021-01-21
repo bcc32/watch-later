@@ -37,13 +37,15 @@ let is_valid_code_verifier_char = function
 
 let generate_code_verifier_and_challenge =
   let rng =
-    Cryptokit.Random.pseudo_rng (Cryptokit.Random.string Cryptokit.Random.secure_rng 20)
+    lazy
+      (Cryptokit.Random.pseudo_rng
+         (Cryptokit.Random.string Cryptokit.Random.secure_rng 20))
   in
   let to_base64url = String.tr_multi ~target:"+/" ~replacement:"-_" |> unstage in
   fun () ->
     let buf = Bytes.create 128 in
     fill_random_bytes
-      rng
+      (force rng)
       buf
       ~pos:0
       ~len:128
