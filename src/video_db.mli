@@ -27,6 +27,8 @@ val add_video
   -> overwrite:bool
   -> unit Or_error.t Deferred.t
 
+val mem : t -> Video_id.t -> bool Or_error.t Deferred.t
+
 val mark_watched
   :  t
   -> Video_id.t

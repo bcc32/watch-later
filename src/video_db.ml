@@ -11,6 +11,7 @@ type t =
   ; select_non_watched_videos : (select * arity0) Db.Stmt.t Lazy.t
   ; select_count_total_videos : (select * arity0) Db.Stmt.t Lazy.t
   ; select_count_watched_videos : (select * arity0) Db.Stmt.t Lazy.t
+  ; select_video_by_id : (select * arity1) Db.Stmt.t Lazy.t
   ; add_video_overwrite : (non_select * arity4) Db.Stmt.t Lazy.t
   ; add_video_no_overwrite : (non_select * arity4) Db.Stmt.t Lazy.t
   ; mark_watched : (non_select * arity2) Db.Stmt.t Lazy.t
@@ -55,6 +56,18 @@ let select_count_watched_videos db =
   Db.prepare_exn db Select Arity0 {|
 SELECT COUNT(*) FROM videos
 WHERE watched;
+|}
+;;
+
+let select_video_by_id db =
+  Db.prepare_exn
+    db
+    Select
+    Arity1
+    {|
+SELECT channel_id, channel_title, video_id, video_title, watched
+FROM videos
+WHERE video_id = ?;
 |}
 ;;
 
@@ -114,6 +127,7 @@ let create ?(should_setup_schema = true) db =
     ; select_non_watched_videos = lazy (select_non_watched_videos db)
     ; select_count_total_videos = lazy (select_count_total_videos db)
     ; select_count_watched_videos = lazy (select_count_watched_videos db)
+    ; select_video_by_id = lazy (select_video_by_id db)
     ; add_video_overwrite = lazy (add_video_overwrite db)
     ; add_video_no_overwrite = lazy (add_video_no_overwrite db)
     ; mark_watched = lazy (mark_watched db)
@@ -159,13 +173,20 @@ let video_info_reader =
   let%map_open channel_id = by_name "channel_id" >>| string_exn
   and channel_title = by_name "channel_title" >>| string_exn
   and video_id = by_name "video_id" >>| string_exn >>| Video_id.of_string
-  and video_title = by_name "video_title" >>| string_exn in
-  { Video_info.channel_id; channel_title; video_id; video_title }
+  and video_title = by_name "video_title" >>| string_exn
+  and watched =
+    optional (by_name "watched")
+    >>| Option.map ~f:(fun data ->
+      let int64 = int64_exn data in
+      Int64.( <> ) 0L int64)
+  in
+  { Video_info.channel_id; channel_title; video_id; video_title }, watched
 ;;
 
 let iter_non_watched_videos t ~f =
   let stmt = force t.select_non_watched_videos in
-  Db.Stmt.select Arity0 stmt video_info_reader ~f
+  Db.Stmt.select Arity0 stmt video_info_reader ~f:(fun (video_info, _watched) ->
+    f video_info)
 ;;
 
 let video_stats t =
@@ -223,6 +244,22 @@ let add_video t (video_info : Video_info.t) ~mark_watched ~overwrite =
     else return ()
 ;;
 
+let mem t video_id =
+  let stmt = force t.select_video_by_id in
+  let mem = ref false in
+  let%bind () =
+    Db.Stmt.select
+      Arity1
+      stmt
+      video_info_reader
+      (TEXT (Video_id.to_string video_id))
+      ~f:(fun _info_and_watched ->
+        mem := true;
+        return ())
+  in
+  return !mem
+;;
+
 let mark_watched t video_id state =
   let watched =
     match state with
@@ -265,12 +302,15 @@ let get_random_unwatched_video
       t
       ({ video_id; video_title; channel_id; channel_title } : Filter.t)
   =
-  Db.Stmt.select_one
-    Arity4
-    (force t.get_random_unwatched_video)
-    video_info_reader
-    (Sqlite3.Data.opt_text video_id)
-    (Sqlite3.Data.opt_text video_title)
-    (Sqlite3.Data.opt_text channel_id)
-    (Sqlite3.Data.opt_text channel_title)
+  let%map video_info, _watched =
+    Db.Stmt.select_one
+      Arity4
+      (force t.get_random_unwatched_video)
+      video_info_reader
+      (Sqlite3.Data.opt_text video_id)
+      (Sqlite3.Data.opt_text video_title)
+      (Sqlite3.Data.opt_text channel_id)
+      (Sqlite3.Data.opt_text channel_title)
+  in
+  video_info
 ;;

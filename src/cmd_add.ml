@@ -5,11 +5,14 @@ open Deferred.Or_error.Let_syntax
 
 let main ~api ~dbpath ~mark_watched ~overwrite ~video_ids =
   Video_db.with_file dbpath ~f:(fun db ->
-    Deferred.List.map video_ids ~f:(fun spec ->
-      (* FIXME: No need to fetch video_info for videos that are already present,
-         if overwrite=false. *)
-      let%bind video_info = Youtube_api.get_video_info api spec in
-      Video_db.add_video db video_info ~mark_watched ~overwrite)
+    Deferred.List.map video_ids ~f:(fun video_id ->
+      (* FIXME: This check/add should be in a transaction. *)
+      let%bind already_present = Video_db.mem db video_id in
+      if already_present && not overwrite
+      then return ()
+      else (
+        let%bind video_info = Youtube_api.get_video_info api video_id in
+        Video_db.add_video db video_info ~mark_watched ~overwrite))
     |> Deferred.map ~f:Or_error.combine_errors_unit)
 ;;
 

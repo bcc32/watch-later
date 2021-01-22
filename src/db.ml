@@ -25,11 +25,13 @@ module Reader = struct
 
   let by_index index data _by_headers = data.(index)
   let by_name name _data by_headers = Map.find_exn by_headers name
+  let optional t data by_headers = Option.try_with (fun () -> t data by_headers)
 
   module Open_on_rhs_intf = struct
     module type S = sig
       val by_index : int -> Sqlite3.Data.t t
       val by_name : string -> Sqlite3.Data.t t
+      val optional : 'a t -> 'a option t
     end
   end
 
@@ -37,6 +39,7 @@ module Reader = struct
       (struct
         let by_index = by_index
         let by_name = by_name
+        let optional = optional
       end)
 
   let stmt t stmt =

@@ -9,11 +9,13 @@ module Reader : sig
   val stmt : 'a t -> Sqlite3.stmt -> 'a Or_error.t
   val by_index : int -> Sqlite3.Data.t t
   val by_name : string -> Sqlite3.Data.t t
+  val optional : 'a t -> 'a option t
 
   module Open_on_rhs_intf : sig
     module type S = sig
       val by_index : int -> Sqlite3.Data.t t
       val by_name : string -> Sqlite3.Data.t t
+      val optional : 'a t -> 'a option t
     end
   end
 
