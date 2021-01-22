@@ -11,3 +11,5 @@ type t =
   ; video_title : string
   }
 [@@deriving sexp_of]
+
+val t : t Caqti_type.t

@@ -2,8 +2,8 @@ with import <nixpkgs> { };
 
 let
   inherit (ocamlPackages)
-    buildDunePackage async async_interactive async_ssl cohttp-async core
-    cryptokit ocaml_sqlite3 uri webbrowser yojson;
+    buildDunePackage async async_interactive async_ssl caqti-async
+    caqti-driver-sqlite3 cohttp-async core cryptokit uri webbrowser yojson;
 
 in buildDunePackage {
   pname = "watch-later";
@@ -14,10 +14,11 @@ in buildDunePackage {
     async
     async_interactive
     async_ssl
+    caqti-async
+    caqti-driver-sqlite3
     cohttp-async
     core
     cryptokit
-    ocaml_sqlite3
     uri
     webbrowser
     yojson
@@ -25,8 +26,7 @@ in buildDunePackage {
   meta = { homepage = "https://github.com/bcc32/watch-later"; };
 
   nativeBuildInputs = [ installShellFiles ];
-  postInstall =
-    ''
+  postInstall = ''
     installShellCompletion share/completions/watch-later.bash
-    '';
+  '';
 }

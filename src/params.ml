@@ -52,6 +52,7 @@ let nonempty_videos =
   | _ :: _ as specs -> specs
 ;;
 
+(* TODO: Move this to Filter module. *)
 let filter =
   let%map_open.Command () = return ()
   and video_id = flag "video-id" (optional string) ~doc:"ID video ID"

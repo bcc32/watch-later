@@ -15,6 +15,8 @@
   (async (and (>= v0.14.0) (< v0.15.0)))
   (async_interactive (and (>= v0.14.0) (< v0.15.0)))
   (async_ssl (and (>= v0.14.0) (< v0.15.0)))
+  (caqti-async (and (>= 1.3.0) (< 1.4.0~)))
+  (caqti-driver-sqlite3 (and (>= 1.3.0) (< 1.4.0~)))
   (cohttp-async (and (>= 2.0.0) (< 3.0.0)))
   (core (and (>= v0.14.0) (< v0.15.0)))
   (cryptokit (and (>= 1.6.0) (< 1.7.0~)))

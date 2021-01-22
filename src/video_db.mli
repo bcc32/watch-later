@@ -4,9 +4,6 @@ open! Import
 
 type t
 
-val open_file : ?should_setup_schema:bool -> string -> t Or_error.t Deferred.t
-val close : t -> unit Or_error.t Deferred.t
-
 val with_file
   :  ?should_setup_schema:bool
   -> string
