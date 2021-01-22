@@ -6,3 +6,6 @@
 * TODO Store JSON as blob for easy migrations and extensions
 * TODO Record timestamp when video is added/watched
 * TODO Improve error message when database file not found
+* TODO Use Caqti_async as database library
+[[https://paurkedal.github.io/ocaml-caqti/caqti-async/Caqti_async/module-type-CONNECTION/index.html][Caqti_async.Connection]] supports transactions and async operations.
+* TODO Automatically refresh OAuth token when necessary
