@@ -9,7 +9,10 @@ let main ~api ~dbpath ~mark_watched ~overwrite ~video_ids =
       (* FIXME: This check/add should be in a transaction. *)
       let%bind already_present = Video_db.mem db video_id in
       if already_present && not overwrite
-      then return ()
+      then (
+        match mark_watched with
+        | None -> return ()
+        | Some state -> Video_db.mark_watched db video_id state)
       else (
         let%bind video_info = Youtube_api.get_video_info api video_id in
         Video_db.add_video db video_info ~mark_watched ~overwrite))
