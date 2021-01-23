@@ -83,6 +83,8 @@ let perform_refresh_and_save t =
   return t
 ;;
 
+let load_fresh () = load () >>= perform_refresh_and_save
+
 let refresh_and_save t when_ =
   match when_ with
   | `Force -> perform_refresh_and_save t

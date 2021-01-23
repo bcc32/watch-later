@@ -8,4 +8,5 @@
 * TODO Improve error message when database file not found
 * TODO Use Caqti_async as database library
 [[https://paurkedal.github.io/ocaml-caqti/caqti-async/Caqti_async/module-type-CONNECTION/index.html][Caqti_async.Connection]] supports transactions and async operations.
-* TODO Automatically refresh OAuth token when necessary
+* DONE Automatically refresh OAuth token when necessary
+CLOSED: [2021-01-22 Fri 19:05]

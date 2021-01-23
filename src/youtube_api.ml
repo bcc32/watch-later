@@ -17,8 +17,9 @@ module Credentials = struct
     with
     | Some api_key -> `Api_key api_key
     | None ->
-      let creds = Thread_safe.block_on_async_exn (fun () -> Oauth.load () >>| ok_exn) in
-      (* TODO: Automatically refresh token when necessary. *)
+      let creds =
+        Thread_safe.block_on_async_exn (fun () -> Oauth.load_fresh () >>| ok_exn)
+      in
       `Access_token creds.access_token
   ;;
 end
