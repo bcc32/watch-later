@@ -12,5 +12,3 @@ val videos : Video_id.t list Command.Param.t
 
 (** Non-empty list of video IDs. *)
 val nonempty_videos : Video_id.t list Command.Param.t
-
-val filter : Video_db.Filter.t Command.Param.t

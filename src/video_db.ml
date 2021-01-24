@@ -5,29 +5,38 @@ open Deferred.Or_error.Let_syntax
 
 module Filter = struct
   type t =
-    { video_id : string option
-    ; video_title : string option
-    ; channel_id : string option
+    { channel_id : string option
     ; channel_title : string option
+    ; video_id : string option
+    ; video_title : string option
     }
   [@@deriving fields]
 
   let is_empty =
     let is_none _ _ = Option.is_none in
     Fields.Direct.for_all
-      ~video_id:is_none
-      ~video_title:is_none
       ~channel_id:is_none
       ~channel_title:is_none
+      ~video_id:is_none
+      ~video_title:is_none
+  ;;
+
+  let param =
+    let%map_open.Command () = return ()
+    and channel_id = flag "channel-id" (optional string) ~doc:"ID channel ID"
+    and channel_title = flag "channel-title" (optional string) ~doc:"TITLE channel TITLE"
+    and video_id = flag "video-id" (optional string) ~doc:"ID video ID"
+    and video_title = flag "video-title" (optional string) ~doc:"TITLE video TITLE" in
+    { channel_id; channel_title; video_id; video_title }
   ;;
 
   let t : t Caqti_type.t =
     Caqti_type.custom
       Caqti_type.(tup4 (option string) (option string) (option string) (option string))
-      ~encode:(fun { video_id; video_title; channel_id; channel_title } ->
-        Ok (video_id, video_title, channel_id, channel_title))
-      ~decode:(fun (video_id, video_title, channel_id, channel_title) ->
-        Ok { video_id; video_title; channel_id; channel_title })
+      ~encode:(fun { channel_id; channel_title; video_id; video_title } ->
+        Ok (channel_id, channel_title, video_id, video_title))
+      ~decode:(fun (channel_id, channel_title, video_id, video_title) ->
+        Ok { channel_id; channel_title; video_id; video_title })
   ;;
 end
 

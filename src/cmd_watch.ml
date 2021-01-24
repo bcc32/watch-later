@@ -40,7 +40,7 @@ let command =
          ~default:true
          ~doc:"(true|false) mark video as watched (default true)"
      and video_ids = Params.videos
-     and filter = Params.filter in
+     and filter = Video_db.Filter.param in
      fun () ->
        let which_videos : Which_videos.t =
          match video_ids, Video_db.Filter.is_empty filter with

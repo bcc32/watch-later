@@ -34,13 +34,9 @@ val mark_watched
   -> unit Or_error.t Deferred.t
 
 module Filter : sig
-  type t =
-    { video_id : string option
-    ; video_title : string option
-    ; channel_id : string option
-    ; channel_title : string option
-    }
+  type t
 
+  val param : t Command.Param.t
   val is_empty : t -> bool
 end
 

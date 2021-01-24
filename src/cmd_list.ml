@@ -34,7 +34,7 @@ let command =
     (let%map_open.Command () = return ()
      and dbpath = Params.dbpath
      and video_ids = Params.videos
-     and filter = Params.filter
+     and filter = Video_db.Filter.param
      and watched =
        flag
          "watched"
