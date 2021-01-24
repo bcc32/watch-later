@@ -145,7 +145,7 @@ let add_video ~conflict_resolution =
     sprintf
       {|
 INSERT OR %s INTO videos
-(video_id, video_title, channel_id, channel_title)
+(channel_id, channel_title, video_id, video_title)
 VALUES (?, ?, ?, ?)
 |}
       conflict_resolution
