@@ -1,5 +1,5 @@
 { pkgs ? import <nixpkgs> { } }:
-let inherit (pkgs) mkShell gmp m4 libffi opam openssl pkgconfig sqlite zlib;
+let inherit (pkgs) mkShell m4 libffi opam openssl pkgconfig sqlite zlib;
 in mkShell {
-  buildInputs = [ gmp m4 libffi opam openssl pkgconfig sqlite zlib ];
+  buildInputs = [ m4 libffi opam openssl pkgconfig sqlite zlib ];
 }
