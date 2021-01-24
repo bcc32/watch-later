@@ -150,17 +150,27 @@ let with_file ?should_setup_schema dbpath ~f =
       Conn.disconnect ())
 ;;
 
-let wrap_error = Deferred.Result.map_error ~f:(fun e -> `Error e)
+let wrap_core_error = Deferred.Result.map_error ~f:(fun e -> `Error e)
 
-let unwrap_error =
+let unwrap_core_error =
   Deferred.Result.map_error ~f:(function
     | `Error e -> e
     | #Caqti_error.t as e -> e |> Caqti_error.show |> Error.of_string)
 ;;
 
+let unwrap_core_error_and_unsupported ~name =
+  Deferred.Result.map_error ~f:(function
+    | `Error e -> e
+    | `Unsupported -> Error.createf "Unsupported operation: %s" name
+    | #Caqti_error.t as e -> e |> Caqti_error.show |> Error.of_string)
+;;
+
 let iter_non_watched_videos (module Conn : Caqti_async.CONNECTION) ~f =
-  Conn.iter_s select_non_watched_videos (fun video_info -> f video_info |> wrap_error) ()
-  |> unwrap_error
+  Conn.iter_s
+    select_non_watched_videos
+    (fun video_info -> f video_info |> wrap_core_error)
+    ()
+  |> unwrap_core_error
 ;;
 
 let video_stats (module Conn : Caqti_async.CONNECTION) =
@@ -171,13 +181,6 @@ let video_stats (module Conn : Caqti_async.CONNECTION) =
     ; watched_videos
     ; unwatched_videos = total_videos - watched_videos
     }
-;;
-
-let wrap_unsupported_error =
-  Deferred.Result.map_error ~f:(function
-    | #Caqti_error.retrieve as e -> e
-    | `Unsupported ->
-      `Error (Error.of_string "Unsupported operation: Response.affected_count"))
 ;;
 
 let add_video
@@ -198,8 +201,9 @@ let add_video
     in
     let%bind rows_affected =
       Conn.call mark_watched (watched, video_info.video_id) ~f:(fun response ->
-        Conn.Response.affected_count response |> wrap_unsupported_error)
-      |> unwrap_error
+        let%bind.Deferred.Result () = Conn.Response.exec response in
+        Conn.Response.affected_count response)
+      |> unwrap_core_error_and_unsupported ~name:"affected_count"
     in
     if rows_affected <> 1
     then
@@ -221,8 +225,9 @@ let mark_watched (module Conn : Caqti_async.CONNECTION) video_id state =
   in
   match%bind
     Conn.call mark_watched (watched, video_id) ~f:(fun response ->
-      Conn.Response.affected_count response |> wrap_unsupported_error)
-    |> unwrap_error
+      let%bind.Deferred.Result () = Conn.Response.exec response in
+      Conn.Response.affected_count response)
+    |> unwrap_core_error_and_unsupported ~name:"affected_count"
   with
   | 0 ->
     Deferred.Or_error.error_s
