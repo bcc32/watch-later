@@ -60,8 +60,12 @@ module Migrate = struct
       (sprintf "PRAGMA user_version = %d" n)
   ;;
 
-  let create_videos_table =
-    {|
+  let disable_foreign_keys = "PRAGMA foreign_keys = OFF"
+  let enable_foreign_keys = "PRAGMA foreign_keys = ON"
+
+  module V1 = struct
+    let create_videos_table =
+      {|
 CREATE TABLE videos(
   video_id      TEXT PRIMARY KEY,
   video_title   TEXT,
@@ -70,10 +74,124 @@ CREATE TABLE videos(
   watched       INTEGER NOT NULL DEFAULT 0
 )
 |}
-  ;;
+    ;;
+
+    let all = [ create_videos_table ]
+  end
+
+  module V2 = struct
+    let create_channels_table =
+      {|
+CREATE TABLE channels (
+  id    TEXT PRIMARY KEY,
+  title TEXT NOT NULL
+)
+|}
+    ;;
+
+    let create_new_videos_table =
+      {|
+CREATE TABLE videos_new (
+  id         TEXT PRIMARY KEY,
+  title      TEXT NOT NULL,
+  channel_id TEXT NOT NULL REFERENCES channels ON DELETE CASCADE,
+  watched    INTEGER NOT NULL DEFAULT 0
+)
+|}
+    ;;
+
+    (* Pick latest channel title for each channel ID
+
+       According to https://sqlite.org/lang_select.html,
+
+       When the min() or max() aggregate functions are used in an aggregate query, all
+       bare columns in the result set take values from the input row which also contains
+       the minimum or maximum. So in the query above, the value of the "b" column in the
+       output will be the value of the "b" column in the input row that has the largest
+       "c" value. There is still an ambiguity if two or more of the input rows have the
+       same minimum or maximum value or if the query contains more than one min() and/or
+       max() aggregate function. Only the built-in min() and max() functions work this
+       way.  *)
+    let populate_channels_table =
+      {|
+INSERT INTO channels (id, title)
+SELECT channel_id, channel_title
+  FROM (
+    SELECT max(rowid), channel_id, channel_title
+      FROM videos AS v1
+     GROUP BY channel_id)
+|}
+    ;;
+
+    let populate_new_videos_table =
+      {|
+INSERT INTO videos_new (id, title, channel_id, watched)
+SELECT video_id, video_title, channel_id, watched
+  FROM videos
+|}
+    ;;
+
+    let drop_old_videos_table = {|
+DROP TABLE videos
+|}
+
+    let rename_new_videos_table = {|
+ALTER TABLE videos_new RENAME TO videos
+|}
+
+    let create_videos_index_on_channel_id =
+      {|
+CREATE INDEX index_videos_on_channel_id ON videos (channel_id)
+|}
+    ;;
+
+    let create_trigger_to_delete_unused_channels =
+      {|
+CREATE TRIGGER trigger_delete_unused_channel
+  AFTER DELETE ON videos
+  FOR EACH ROW
+    WHEN NOT EXISTS (SELECT 1 FROM videos WHERE channel_id = old.channel_id)
+    BEGIN
+      DELETE FROM channels WHERE id = old.channel_id;
+    END
+|}
+    ;;
+
+    let create_videos_all_view =
+      {|
+CREATE VIEW videos_all (
+  video_id,
+  video_title,
+  channel_id,
+  channel_title,
+  watched
+)
+  AS
+  SELECT videos.id, videos.title, channels.id, channels.title, videos.watched
+  FROM videos JOIN channels ON videos.channel_id = channels.id
+|}
+    ;;
+
+    let all =
+      [ disable_foreign_keys
+      ; create_channels_table
+      ; create_new_videos_table
+      ; populate_channels_table
+      ; populate_new_videos_table
+      ; drop_old_videos_table
+      ; rename_new_videos_table
+      ; create_videos_index_on_channel_id
+      ; create_trigger_to_delete_unused_channels
+      ; create_videos_all_view
+      ; enable_foreign_keys
+      ]
+    ;;
+  end
+
+  let vacuum = Caqti_request.exec Caqti_type.unit "VACUUM"
 
   let migrations =
-    [| [ create_videos_table ] |]
+    [| V1.all; V2.all |]
     |> Array.map ~f:(List.map ~f:(Caqti_request.exec ~oneshot:true Caqti_type.unit))
   ;;
 
@@ -92,24 +210,35 @@ CREATE TABLE videos(
               (desired_user_version : int)]
       | Less ->
         (* [user_version] is equal to the next set of migration statements to apply *)
-        let stmts = migrations.(user_version) in
-        let%bind () = Conn.start () |> convert_error in
-        (match%bind.Deferred
-           Deferred.Or_error.List.iter stmts ~f:(fun stmt ->
-             Conn.exec stmt () |> convert_error)
-         with
-         | Error e1 as result ->
-           (match%map.Deferred Conn.rollback () |> convert_error with
-            | Ok () -> result
-            | Error e2 -> Error (Error.of_list [ e1; e2 ]))
-         | Ok () ->
-           let%bind () =
-             Conn.exec (set_user_version (user_version + 1)) () |> convert_error
-           in
-           let%bind () = Conn.commit () |> convert_error in
-           return (`Repeat (user_version + 1))))
+        Async_interactive.Job.run
+          "Migrating database version %d to %d"
+          user_version
+          (user_version + 1)
+          ~f:(fun () ->
+            let stmts = migrations.(user_version) in
+            let%bind () = Conn.start () |> convert_error in
+            match%bind.Deferred
+              Deferred.Or_error.List.iter stmts ~f:(fun stmt ->
+                Conn.exec stmt () |> convert_error)
+            with
+            | Error e1 as result ->
+              (match%map.Deferred Conn.rollback () |> convert_error with
+               | Ok () -> result
+               | Error e2 -> Error (Error.of_list [ e1; e2 ]))
+            | Ok () ->
+              let%bind () =
+                Conn.exec (set_user_version (user_version + 1)) () |> convert_error
+              in
+              let%bind () = Conn.commit () |> convert_error in
+              let%bind () = Conn.exec vacuum () |> convert_error in
+              return (`Repeat (user_version + 1))))
   ;;
 end
+
+(* Enable enforcement of foreign key constraints *)
+let enable_foreign_keys =
+  Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA foreign_keys = ON"
+;;
 
 (* Set busy timeout to 10ms.  This query uses [find] because it returns the new busy
    timeout. *)
@@ -127,6 +256,7 @@ let with_file dbpath ~f =
   let uri = Uri.make ~scheme:"sqlite3" ~path:dbpath () in
   let%bind db = Caqti_async.connect uri |> convert_error in
   let (module Conn) = db in
+  let%bind () = Conn.exec enable_foreign_keys () |> convert_error in
   let%bind () =
     Conn.find set_busy_timeout () |> convert_error |> Deferred.Or_error.ignore_m
   in
@@ -160,7 +290,7 @@ let select_non_watched_videos =
     Video_info.t
     {|
 SELECT channel_id, channel_title, video_id, video_title
-FROM videos
+FROM videos_all
 WHERE NOT watched
 |}
 ;;
@@ -204,36 +334,78 @@ let mark_watched =
     Caqti_type.(tup2 bool Video_id.t)
     {|
 UPDATE videos SET watched = ?
-WHERE video_id = ?
+WHERE id = ?
 |}
 ;;
 
-let add_video ~conflict_resolution =
+let add_channel ~overwrite =
   let sql =
     sprintf
       {|
-INSERT OR %s INTO videos
-(channel_id, channel_title, video_id, video_title)
-VALUES (?, ?, ?, ?)
+INSERT %s INTO channels (id, title)
+VALUES (?, ?)
+%s
 |}
-      conflict_resolution
+      (if overwrite then "" else "OR IGNORE")
+      (if overwrite
+       then {|
+ON CONFLICT (id)
+DO UPDATE SET title = excluded.title
+|}
+       else "")
   in
-  Caqti_request.exec Video_info.t sql
+  Caqti_request.exec Caqti_type.(tup2 string string) sql
 ;;
 
-let add_video_overwrite = add_video ~conflict_resolution:"REPLACE"
-let add_video_no_overwrite = add_video ~conflict_resolution:"IGNORE"
+let add_channel_overwrite = add_channel ~overwrite:true
+let add_channel_no_overwrite = add_channel ~overwrite:false
+
+let add_video ~overwrite =
+  let sql =
+    sprintf
+      {|
+INSERT %s INTO videos
+(id, title, channel_id)
+VALUES (?, ?, ?)
+%s
+|}
+      (if overwrite then "" else "OR IGNORE")
+      (if overwrite
+       then
+         {|
+ON CONFLICT (id)
+DO UPDATE SET title = excluded.title,
+              channel_id = excluded.channel_id
+|}
+       else "")
+  in
+  Caqti_request.exec Caqti_type.(tup3 Video_id.t string string) sql
+;;
+
+let add_video_overwrite = add_video ~overwrite:true
+let add_video_no_overwrite = add_video ~overwrite:false
 
 let add_video
       (module Conn : Caqti_async.CONNECTION)
-      video_info
+      (video_info : Video_info.t)
       ~mark_watched:should_mark_watched
       ~overwrite
   =
-  let request = if overwrite then add_video_overwrite else add_video_no_overwrite in
-  let%bind () = Conn.exec request video_info |> convert_error in
+  let%bind () = Conn.start () |> convert_error in
+  let%bind () =
+    Conn.exec
+      (if overwrite then add_channel_overwrite else add_channel_no_overwrite)
+      (video_info.channel_id, video_info.channel_title)
+    |> convert_error
+  in
+  let%bind () =
+    Conn.exec
+      (if overwrite then add_video_overwrite else add_video_no_overwrite)
+      (video_info.video_id, video_info.video_title, video_info.channel_id)
+    |> convert_error
+  in
   match should_mark_watched with
-  | None -> return ()
+  | None -> Conn.commit () |> convert_error
   | Some state ->
     let watched =
       match state with
@@ -246,6 +418,7 @@ let add_video
         Conn.Response.affected_count response)
       |> unwrap_core_error_and_unsupported ~name:"affected_count"
     in
+    let%bind () = Conn.commit () |> convert_error in
     if rows_affected <> 1
     then
       Deferred.Or_error.error_s
@@ -259,7 +432,7 @@ let select_video_by_id =
     Caqti_type.(tup2 Video_info.t bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched
-FROM videos
+FROM videos_all
 WHERE video_id = ?
 |}
 ;;
@@ -303,7 +476,7 @@ let get_random_unwatched_video =
     Filter.t
     Video_info.t
     {|
-SELECT channel_id, channel_title, video_id, video_title FROM videos
+SELECT channel_id, channel_title, video_id, video_title FROM videos_all
 WHERE NOT watched
   AND ($1 IS NULL OR channel_id = $1)
   AND ($2 IS NULL OR channel_title GLOB $2)
@@ -324,7 +497,7 @@ let get_videos =
     Caqti_type.(tup2 (option bool) Filter.t)
     Caqti_type.(tup2 Video_info.t bool)
     {|
-SELECT channel_id, channel_title, video_id, video_title, watched FROM videos
+SELECT channel_id, channel_title, video_id, video_title, watched FROM videos_all
 WHERE ($1 IS NULL OR watched IS TRUE = $1 IS TRUE)
   AND ($2 IS NULL OR channel_id = $2)
   AND ($3 IS NULL OR channel_title GLOB $3)
