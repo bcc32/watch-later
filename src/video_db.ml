@@ -42,16 +42,27 @@ end
 
 type t = Caqti_async.connection
 
+(* TODO: Sprinkling convert_error everywhere might not be necessary if we define an
+   appropriate error monad with all of the possibilities. *)
 let convert_error =
   Deferred.Result.map_error ~f:(fun e -> e |> Caqti_error.show |> Error.of_string)
 ;;
 
-let setup_schema =
-  Caqti_request.exec
-    ~oneshot:true
-    Caqti_type.unit
+module Migrate = struct
+  let get_user_version =
+    Caqti_request.find Caqti_type.unit Caqti_type.int "PRAGMA user_version"
+  ;;
+
+  let set_user_version n =
+    Caqti_request.exec
+      ~oneshot:true
+      Caqti_type.unit
+      (sprintf "PRAGMA user_version = %d" n)
+  ;;
+
+  let create_videos_table =
     {|
-CREATE TABLE IF NOT EXISTS videos(
+CREATE TABLE videos(
   video_id      TEXT PRIMARY KEY,
   video_title   TEXT,
   channel_id    TEXT,
@@ -59,11 +70,55 @@ CREATE TABLE IF NOT EXISTS videos(
   watched       INTEGER NOT NULL DEFAULT 0
 )
 |}
-;;
+  ;;
 
-(* Set busy timeout to 10ms *)
+  let migrations =
+    [| [ create_videos_table ] |]
+    |> Array.map ~f:(List.map ~f:(Caqti_request.exec ~oneshot:true Caqti_type.unit))
+  ;;
+
+  let desired_user_version = Array.length migrations
+
+  let ensure_up_to_date (module Conn : Caqti_async.CONNECTION) =
+    let%bind user_version = Conn.find get_user_version () |> convert_error in
+    Deferred.Or_error.repeat_until_finished user_version (fun user_version ->
+      match Ordering.of_int (Int.compare user_version desired_user_version) with
+      | Equal -> return (`Finished ())
+      | Greater ->
+        Deferred.Or_error.error_s
+          [%message
+            "Database user version exceeds expected version"
+              (user_version : int)
+              (desired_user_version : int)]
+      | Less ->
+        (* [user_version] is equal to the next set of migration statements to apply *)
+        let stmts = migrations.(user_version) in
+        let%bind () = Conn.start () |> convert_error in
+        (match%bind.Deferred
+           Deferred.Or_error.List.iter stmts ~f:(fun stmt ->
+             Conn.exec stmt () |> convert_error)
+         with
+         | Error e1 as result ->
+           (match%map.Deferred Conn.rollback () |> convert_error with
+            | Ok () -> result
+            | Error e2 -> Error (Error.of_list [ e1; e2 ]))
+         | Ok () ->
+           let%bind () =
+             Conn.exec (set_user_version (user_version + 1)) () |> convert_error
+           in
+           let%bind () = Conn.commit () |> convert_error in
+           return (`Repeat (user_version + 1))))
+  ;;
+end
+
+(* Set busy timeout to 10ms.  This query uses [find] because it returns the new busy
+   timeout. *)
 let set_busy_timeout =
-  Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA busy_timeout = 10"
+  Caqti_request.find
+    ~oneshot:true
+    Caqti_type.unit
+    Caqti_type.int
+    "PRAGMA busy_timeout = 10"
 ;;
 
 let optimize = Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA optimize"
@@ -71,9 +126,11 @@ let optimize = Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA optimize
 let with_file dbpath ~f =
   let uri = Uri.make ~scheme:"sqlite3" ~path:dbpath () in
   let%bind db = Caqti_async.connect uri |> convert_error in
-  let (module Conn : Caqti_async.CONNECTION) = db in
-  let%bind () = Conn.exec setup_schema () |> convert_error in
-  let%bind () = Conn.exec set_busy_timeout () |> convert_error in
+  let (module Conn) = db in
+  let%bind () =
+    Conn.find set_busy_timeout () |> convert_error |> Deferred.Or_error.ignore_m
+  in
+  let%bind () = Migrate.ensure_up_to_date db in
   Monitor.protect
     (fun () -> f db)
     ~finally:(fun () ->
