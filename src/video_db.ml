@@ -277,13 +277,6 @@ let unwrap_core_error =
     | #Caqti_error.t as e -> e |> Caqti_error.show |> Error.of_string)
 ;;
 
-let unwrap_core_error_and_unsupported ~name =
-  Deferred.Result.map_error ~f:(function
-    | `Error e -> e
-    | `Unsupported -> Error.createf "Unsupported operation: %s" name
-    | #Caqti_error.t as e -> e |> Caqti_error.show |> Error.of_string)
-;;
-
 let select_non_watched_videos =
   Caqti_request.collect
     Caqti_type.unit
@@ -413,10 +406,8 @@ let add_video
       | `Unwatched -> false
     in
     let%bind rows_affected =
-      Conn.call mark_watched (watched, video_info.video_id) ~f:(fun response ->
-        let%bind.Deferred.Result () = Conn.Response.exec response in
-        Conn.Response.affected_count response)
-      |> unwrap_core_error_and_unsupported ~name:"affected_count"
+      Conn.exec_with_affected_count mark_watched (watched, video_info.video_id)
+      |> convert_error
     in
     let%bind () = Conn.commit () |> convert_error in
     if rows_affected <> 1
@@ -453,10 +444,7 @@ let mark_watched (module Conn : Caqti_async.CONNECTION) video_id state =
     | `Unwatched -> false
   in
   match%bind
-    Conn.call mark_watched (watched, video_id) ~f:(fun response ->
-      let%bind.Deferred.Result () = Conn.Response.exec response in
-      Conn.Response.affected_count response)
-    |> unwrap_core_error_and_unsupported ~name:"affected_count"
+    Conn.exec_with_affected_count mark_watched (watched, video_id) |> convert_error
   with
   | 0 ->
     Deferred.Or_error.error_s
