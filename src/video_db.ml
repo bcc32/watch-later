@@ -61,19 +61,17 @@ let convert_error =
   Deferred.Result.map_error ~f:(fun e -> e |> Caqti_error.show |> Error.of_string)
 ;;
 
-let create ?(should_setup_schema = true) (module Conn : Caqti_async.CONNECTION) =
-  let%bind () =
-    if should_setup_schema then Conn.exec setup_schema () |> convert_error else return ()
-  in
+let create (module Conn : Caqti_async.CONNECTION) =
+  let%bind () = Conn.exec setup_schema () |> convert_error in
   return (module Conn : Caqti_async.CONNECTION)
 ;;
 
-let with_file ?should_setup_schema dbpath ~f =
+let with_file dbpath ~f =
   let uri = Uri.make ~scheme:"sqlite3" ~path:dbpath () in
   let%bind db = Caqti_async.connect uri |> convert_error in
   Monitor.protect
     (fun () ->
-       let%bind db = create ?should_setup_schema db in
+       let%bind db = create db in
        f db)
     ~finally:(fun () ->
       let (module Conn : Caqti_async.CONNECTION) = db in

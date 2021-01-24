@@ -4,11 +4,7 @@ open! Import
 
 type t
 
-val with_file
-  :  ?should_setup_schema:bool
-  -> string
-  -> f:(t -> 'a Or_error.t Deferred.t)
-  -> 'a Or_error.t Deferred.t
+val with_file : string -> f:(t -> 'a Or_error.t Deferred.t) -> 'a Or_error.t Deferred.t
 
 val iter_non_watched_videos
   :  t
