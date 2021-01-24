@@ -6,7 +6,8 @@
 * TODO Store JSON as blob for easy migrations and extensions
 * TODO Record timestamp when video is added/watched
 * TODO Improve error message when database file not found
-* TODO Use Caqti_async as database library
+* DONE Use Caqti_async as database library
+CLOSED: [2021-01-24 Sun 02:49]
 :LOGBOOK:
 CLOCK: [2021-01-22 Fri 16:15]--[2021-01-22 Fri 19:03] =>  2:48
 :END:
