@@ -253,7 +253,7 @@ let get_videos =
     Caqti_type.(tup2 Video_info.t bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched FROM videos
-WHERE $1 IS NULL OR watched IS TRUE = $1 IS TRUE
+WHERE ($1 IS NULL OR watched IS TRUE = $1 IS TRUE)
   AND ($2 IS NULL OR channel_id = $2)
   AND ($3 IS NULL OR channel_title GLOB $3)
   AND ($4 IS NULL OR video_id = $4)
