@@ -237,6 +237,10 @@ let mark_watched (module Conn : Caqti_async.CONNECTION) video_id state =
       [%message "Unexpected change count" (video_id : Video_id.t) (changes : int)]
 ;;
 
+(* TODO: Once Caqti supports Sqlite user functions, replace globbing with a Re-based
+   regexp.
+
+   https://github.com/paurkedal/ocaml-caqti/issues/56 *)
 let get_random_unwatched_video =
   Caqti_request.find_opt
     Filter.t
