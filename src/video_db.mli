@@ -24,6 +24,7 @@ val add_video
   -> overwrite:bool
   -> unit Or_error.t Deferred.t
 
+val get : t -> Video_id.t -> (Video_info.t * bool) option Or_error.t Deferred.t
 val mem : t -> Video_id.t -> bool Or_error.t Deferred.t
 
 val mark_watched
@@ -44,3 +45,9 @@ module Filter : sig
 end
 
 val get_random_unwatched_video : t -> Filter.t -> Video_info.t Or_error.t Deferred.t
+
+val get_videos
+  :  t
+  -> Filter.t
+  -> watched:bool option
+  -> (Video_info.t * bool) list Or_error.t Deferred.t

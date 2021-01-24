@@ -188,12 +188,16 @@ let add_video
 let select_video_by_id =
   Caqti_request.find_opt
     Video_id.t
-    Video_info.t
+    Caqti_type.(tup2 Video_info.t bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched
 FROM videos
 WHERE video_id = ?
 |}
+;;
+
+let get (module Conn : Caqti_async.CONNECTION) video_id =
+  Conn.find_opt select_video_by_id video_id |> convert_error
 ;;
 
 let mem (module Conn : Caqti_async.CONNECTION) video_id =
@@ -241,4 +245,22 @@ LIMIT 1
 let get_random_unwatched_video (module Conn : Caqti_async.CONNECTION) filter =
   let%map video = Conn.find_opt get_random_unwatched_video filter |> convert_error in
   Option.value_exn video ~message:"No unwatched videos matching filter"
+;;
+
+let get_videos =
+  Caqti_request.collect
+    Caqti_type.(tup2 (option bool) Filter.t)
+    Caqti_type.(tup2 Video_info.t bool)
+    {|
+SELECT channel_id, channel_title, video_id, video_title, watched FROM videos
+WHERE $1 IS NULL OR watched IS TRUE = $1 IS TRUE
+  AND ($2 IS NULL OR channel_id = $2)
+  AND ($3 IS NULL OR channel_title GLOB $3)
+  AND ($4 IS NULL OR video_id = $4)
+  AND ($5 IS NULL OR video_title GLOB $5)
+|}
+;;
+
+let get_videos (module Conn : Caqti_async.CONNECTION) filter ~watched =
+  Conn.collect_list get_videos (watched, filter) |> convert_error
 ;;
