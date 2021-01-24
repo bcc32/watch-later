@@ -48,85 +48,6 @@ CREATE TABLE IF NOT EXISTS videos(
 |}
 ;;
 
-let select_non_watched_videos =
-  Caqti_request.collect
-    Caqti_type.unit
-    Video_info.t
-    {|
-SELECT channel_id, channel_title, video_id, video_title
-FROM videos
-WHERE NOT watched
-|}
-;;
-
-let select_count_total_videos =
-  Caqti_request.find Caqti_type.unit Caqti_type.int {|
-SELECT COUNT(*) FROM videos
-|}
-;;
-
-let select_count_watched_videos =
-  Caqti_request.find
-    Caqti_type.unit
-    Caqti_type.int
-    {|
-SELECT COUNT(*) FROM videos
-WHERE watched
-|}
-;;
-
-let select_video_by_id =
-  Caqti_request.find_opt
-    Video_id.t
-    Video_info.t
-    {|
-SELECT channel_id, channel_title, video_id, video_title, watched
-FROM videos
-WHERE video_id = ?
-|}
-;;
-
-let add_video ~conflict_resolution =
-  let sql =
-    sprintf
-      {|
-INSERT OR %s INTO videos
-(video_id, video_title, channel_id, channel_title)
-VALUES (?, ?, ?, ?)
-|}
-      conflict_resolution
-  in
-  Caqti_request.exec Video_info.t sql
-;;
-
-let add_video_overwrite = add_video ~conflict_resolution:"REPLACE"
-let add_video_no_overwrite = add_video ~conflict_resolution:"IGNORE"
-
-let mark_watched =
-  Caqti_request.exec
-    Caqti_type.(tup2 bool Video_id.t)
-    {|
-UPDATE videos SET watched = ?
-WHERE video_id = ?
-|}
-;;
-
-let get_random_unwatched_video =
-  Caqti_request.find_opt
-    Filter.t
-    Video_info.t
-    {|
-SELECT channel_id, channel_title, video_id, video_title FROM videos
-WHERE NOT watched
-  AND ($1 IS NULL OR channel_id = $1)
-  AND ($2 IS NULL OR channel_title GLOB $2)
-  AND ($3 IS NULL OR video_id = $3)
-  AND ($4 IS NULL OR video_title GLOB $4)
-ORDER BY RANDOM()
-LIMIT 1
-|}
-;;
-
 let convert_error =
   Deferred.Result.map_error ~f:(fun e -> e |> Caqti_error.show |> Error.of_string)
 ;;
@@ -165,12 +86,39 @@ let unwrap_core_error_and_unsupported ~name =
     | #Caqti_error.t as e -> e |> Caqti_error.show |> Error.of_string)
 ;;
 
+let select_non_watched_videos =
+  Caqti_request.collect
+    Caqti_type.unit
+    Video_info.t
+    {|
+SELECT channel_id, channel_title, video_id, video_title
+FROM videos
+WHERE NOT watched
+|}
+;;
+
 let iter_non_watched_videos (module Conn : Caqti_async.CONNECTION) ~f =
   Conn.iter_s
     select_non_watched_videos
     (fun video_info -> f video_info |> wrap_core_error)
     ()
   |> unwrap_core_error
+;;
+
+let select_count_total_videos =
+  Caqti_request.find Caqti_type.unit Caqti_type.int {|
+SELECT COUNT(*) FROM videos
+|}
+;;
+
+let select_count_watched_videos =
+  Caqti_request.find
+    Caqti_type.unit
+    Caqti_type.int
+    {|
+SELECT COUNT(*) FROM videos
+WHERE watched
+|}
 ;;
 
 let video_stats (module Conn : Caqti_async.CONNECTION) =
@@ -182,6 +130,31 @@ let video_stats (module Conn : Caqti_async.CONNECTION) =
     ; unwatched_videos = total_videos - watched_videos
     }
 ;;
+
+let mark_watched =
+  Caqti_request.exec
+    Caqti_type.(tup2 bool Video_id.t)
+    {|
+UPDATE videos SET watched = ?
+WHERE video_id = ?
+|}
+;;
+
+let add_video ~conflict_resolution =
+  let sql =
+    sprintf
+      {|
+INSERT OR %s INTO videos
+(video_id, video_title, channel_id, channel_title)
+VALUES (?, ?, ?, ?)
+|}
+      conflict_resolution
+  in
+  Caqti_request.exec Video_info.t sql
+;;
+
+let add_video_overwrite = add_video ~conflict_resolution:"REPLACE"
+let add_video_no_overwrite = add_video ~conflict_resolution:"IGNORE"
 
 let add_video
       (module Conn : Caqti_async.CONNECTION)
@@ -212,6 +185,17 @@ let add_video
     else return ()
 ;;
 
+let select_video_by_id =
+  Caqti_request.find_opt
+    Video_id.t
+    Video_info.t
+    {|
+SELECT channel_id, channel_title, video_id, video_title, watched
+FROM videos
+WHERE video_id = ?
+|}
+;;
+
 let mem (module Conn : Caqti_async.CONNECTION) video_id =
   Conn.find_opt select_video_by_id video_id |> convert_error >>| Option.is_some
 ;;
@@ -236,6 +220,22 @@ let mark_watched (module Conn : Caqti_async.CONNECTION) video_id state =
   | changes ->
     Deferred.Or_error.error_s
       [%message "Unexpected change count" (video_id : Video_id.t) (changes : int)]
+;;
+
+let get_random_unwatched_video =
+  Caqti_request.find_opt
+    Filter.t
+    Video_info.t
+    {|
+SELECT channel_id, channel_title, video_id, video_title FROM videos
+WHERE NOT watched
+  AND ($1 IS NULL OR channel_id = $1)
+  AND ($2 IS NULL OR channel_title GLOB $2)
+  AND ($3 IS NULL OR video_id = $3)
+  AND ($4 IS NULL OR video_title GLOB $4)
+ORDER BY RANDOM()
+LIMIT 1
+|}
 ;;
 
 let get_random_unwatched_video (module Conn : Caqti_async.CONNECTION) filter =
