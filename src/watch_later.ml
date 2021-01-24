@@ -7,7 +7,6 @@ let command =
     ~summary:"Manage YouTube queue"
     [ "add", Cmd_add.command
     ; "debug", Cmd_debug.command
-    ; "download", Cmd_download.command
     ; "list", Cmd_list.command
     ; "mark-watched", Cmd_mark_watched.command
     ; "oauth", Cmd_oauth.command
