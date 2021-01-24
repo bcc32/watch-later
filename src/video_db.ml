@@ -42,6 +42,10 @@ end
 
 type t = Caqti_async.connection
 
+let convert_error =
+  Deferred.Result.map_error ~f:(fun e -> e |> Caqti_error.show |> Error.of_string)
+;;
+
 let setup_schema =
   Caqti_request.exec
     ~oneshot:true
@@ -57,25 +61,25 @@ CREATE TABLE IF NOT EXISTS videos(
 |}
 ;;
 
-let convert_error =
-  Deferred.Result.map_error ~f:(fun e -> e |> Caqti_error.show |> Error.of_string)
+(* Set busy timeout to 10ms *)
+let set_busy_timeout =
+  Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA busy_timeout = 10"
 ;;
 
-let create (module Conn : Caqti_async.CONNECTION) =
-  let%bind () = Conn.exec setup_schema () |> convert_error in
-  return (module Conn : Caqti_async.CONNECTION)
-;;
+let optimize = Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA optimize"
 
 let with_file dbpath ~f =
   let uri = Uri.make ~scheme:"sqlite3" ~path:dbpath () in
   let%bind db = Caqti_async.connect uri |> convert_error in
+  let (module Conn : Caqti_async.CONNECTION) = db in
+  let%bind () = Conn.exec setup_schema () |> convert_error in
+  let%bind () = Conn.exec set_busy_timeout () |> convert_error in
   Monitor.protect
-    (fun () ->
-       let%bind db = create db in
-       f db)
+    (fun () -> f db)
     ~finally:(fun () ->
-      let (module Conn : Caqti_async.CONNECTION) = db in
-      Conn.disconnect ())
+      let%bind.Deferred result = Conn.exec optimize () |> convert_error in
+      let%bind.Deferred () = Conn.disconnect () in
+      Deferred.return (ok_exn result))
 ;;
 
 let wrap_core_error = Deferred.Result.map_error ~f:(fun e -> `Error e)
