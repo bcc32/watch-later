@@ -198,6 +198,7 @@ CREATE VIEW videos_all (
   let desired_user_version = Array.length migrations
 
   let ensure_up_to_date (module Conn : Caqti_async.CONNECTION) =
+    (* FIXME: Need to have transaction around checking user version and upgrading. *)
     let%bind user_version = Conn.find get_user_version () |> convert_error in
     Deferred.Or_error.repeat_until_finished user_version (fun user_version ->
       match Ordering.of_int (Int.compare user_version desired_user_version) with
