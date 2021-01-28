@@ -7,7 +7,7 @@ module Filter = struct
   type t =
     { channel_id : string option
     ; channel_title : string option
-    ; video_id : string option
+    ; video_id : Video_id.t option
     ; video_title : string option
     }
   [@@deriving fields]
@@ -25,14 +25,16 @@ module Filter = struct
     let%map_open.Command () = return ()
     and channel_id = flag "channel-id" (optional string) ~doc:"ID channel ID"
     and channel_title = flag "channel-title" (optional string) ~doc:"TITLE channel TITLE"
-    and video_id = flag "video-id" (optional string) ~doc:"ID video ID"
+    and video_id =
+      flag "video-id" (optional Video_id.Plain_or_in_url.arg_type) ~doc:"ID video ID"
     and video_title = flag "video-title" (optional string) ~doc:"TITLE video TITLE" in
     { channel_id; channel_title; video_id; video_title }
   ;;
 
   let t : t Caqti_type.t =
     Caqti_type.custom
-      Caqti_type.(tup4 (option string) (option string) (option string) (option string))
+      Caqti_type.(
+        tup4 (option string) (option string) (option Video_id.t) (option string))
       ~encode:(fun { channel_id; channel_title; video_id; video_title } ->
         Ok (channel_id, channel_title, video_id, video_title))
       ~decode:(fun (channel_id, channel_title, video_id, video_title) ->
