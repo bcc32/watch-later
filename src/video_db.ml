@@ -243,14 +243,14 @@ let enable_foreign_keys =
   Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA foreign_keys = ON"
 ;;
 
-(* Set busy timeout to 50ms.  This query uses [find] because it returns the new busy
+(* Set busy timeout to 10 seconds.  This query uses [find] because it returns the new busy
    timeout. *)
 let set_busy_timeout =
   Caqti_request.find
     ~oneshot:true
     Caqti_type.unit
     Caqti_type.int
-    "PRAGMA busy_timeout = 50"
+    "PRAGMA busy_timeout = 10000"
 ;;
 
 let optimize = Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA optimize"
