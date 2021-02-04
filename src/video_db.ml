@@ -479,8 +479,9 @@ LIMIT 1
 ;;
 
 let get_random_unwatched_video (module Conn : Caqti_async.CONNECTION) filter =
-  let%map video = Conn.find_opt get_random_unwatched_video filter |> convert_error in
-  Option.value_exn video ~message:"No unwatched videos matching filter"
+  match%bind Conn.find_opt get_random_unwatched_video filter |> convert_error with
+  | Some video -> return video
+  | None -> Deferred.Or_error.error_s [%message "No unwatched videos matching filter"]
 ;;
 
 let get_videos =
