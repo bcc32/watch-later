@@ -1,34 +1,13 @@
 open! Core
 open! Async
 open! Import
+open Deferred.Or_error.Let_syntax
 
-(* TODO: open Deferred.Or_error.Let_syntax *)
+type t = { access_token : string }
 
-module Credentials = struct
-  type t =
-    [ `Access_token of string
-    | `Api_key of string
-    ]
-
-  let param =
-    match%map.Command
-      let open Command.Param in
-      flag "api-key" (optional string) ~doc:"KEY YouTube API key (default is $YT_API_KEY)"
-    with
-    | Some api_key -> `Api_key api_key
-    | None ->
-      let creds =
-        Thread_safe.block_on_async_exn (fun () -> Oauth.load_fresh () >>| ok_exn)
-      in
-      `Access_token creds.access_token
-  ;;
-end
-
-type t = { credentials : Credentials.t }
-
-let param =
-  let%map.Command credentials = Credentials.param in
-  { credentials }
+let create () =
+  let%map creds = Oauth.load_fresh () in
+  { access_token = creds.access_token }
 ;;
 
 let only_accept_ok code =
@@ -43,23 +22,21 @@ let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
     Uri.with_query' (Uri.make () ~scheme:"https" ~host:"www.googleapis.com" ~path) params
   in
   let headers, uri =
-    match t.credentials with
-    | `Access_token token ->
-      Cohttp.Header.init_with "Authorization" ("Bearer " ^ token), uri
-    | `Api_key key -> Cohttp.Header.init (), Uri.add_query_param' uri ("key", key)
+    Cohttp.Header.init_with "Authorization" ("Bearer " ^ t.access_token), uri
   in
   let body = Option.map body ~f:(fun json -> `String (Yojson.Basic.to_string json)) in
-  let%bind response, body = Cohttp_async.Client.call ?body method_ uri ~headers in
+  let%bind response, body =
+    Cohttp_async.Client.call ?body method_ uri ~headers |> Deferred.ok
+  in
   if accept_status response.status
   then Cohttp_async.Body.to_string body |> Deferred.ok
   else (
-    let%bind body = Cohttp_async.Body.to_string body in
-    return
-      (Or_error.error_s
-         [%message
-           "unacceptable status code"
-             ~_:(response.status : Cohttp.Code.status_code)
-             (body : string)]))
+    let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
+    Deferred.Or_error.error_s
+      [%message
+        "unacceptable status code"
+          ~_:(response.status : Cohttp.Code.status_code)
+          (body : string)])
 ;;
 
 (* FIXME: Can raise if JSON parsing fails. *)

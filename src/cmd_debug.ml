@@ -44,8 +44,9 @@ let command =
   Command.async_or_error
     ~summary:"Debug YouTube API calls"
     (let%map_open.Command () = return ()
-     and api = Youtube_api.param
      and video_id = Params.video
      and what_to_show = What_to_show.param in
-     fun () -> main ~api ~video_id ~what_to_show)
+     fun () ->
+       let%bind api = Youtube_api.create () in
+       main ~api ~video_id ~what_to_show)
 ;;

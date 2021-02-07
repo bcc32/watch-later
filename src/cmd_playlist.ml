@@ -8,10 +8,10 @@ module Append_videos = struct
     Command.async_or_error
       ~summary:"Append video(s) to a playlist"
       (let%map_open.Command () = return ()
-       and api = Youtube_api.param
        and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type)
        and videos = Params.nonempty_videos in
        fun () ->
+         let%bind api = Youtube_api.create () in
          Deferred.Or_error.List.iter videos ~f:(fun video_id ->
            Youtube_api.append_video_to_playlist api playlist_id video_id))
   ;;
@@ -22,9 +22,9 @@ module Dedup = struct
     Command.async_or_error
       ~summary:"Remove duplicate videos in a playlist"
       (let%map_open.Command () = return ()
-       and api = Youtube_api.param
        and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type) in
        fun () ->
+         let%bind api = Youtube_api.create () in
          let%bind items = Youtube_api.get_playlist_items api playlist_id in
          let _, duplicate_video_items =
            List.fold
@@ -50,9 +50,9 @@ module List = struct
     Command.async_or_error
       ~summary:"List the IDs of the videos in a playlist"
       (let%map_open.Command () = return ()
-       and api = Youtube_api.param
        and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type) in
        fun () ->
+         let%bind api = Youtube_api.create () in
          let%bind items = Youtube_api.get_playlist_items api playlist_id in
          List.iter items ~f:(fun item -> printf !"%{Video_id}\n" item.video_id);
          return ())
@@ -64,10 +64,10 @@ module Remove_video = struct
     Command.async_or_error
       ~summary:"Remove videos from a playlist"
       (let%map_open.Command () = return ()
-       and api = Youtube_api.param
        and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type)
        and videos = Params.nonempty_videos in
        fun () ->
+         let%bind api = Youtube_api.create () in
          Deferred.Or_error.List.iter videos ~f:(fun video_id ->
            let%bind items = Youtube_api.get_playlist_items api playlist_id ~video_id in
            Deferred.Or_error.List.iter items ~f:(fun item ->

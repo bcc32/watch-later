@@ -4,7 +4,7 @@ open! Import
 
 type t
 
-val param : t Command.Param.t
+val create : unit -> t Or_error.t Deferred.t
 
 val call
   :  ?accept_status:(Cohttp.Code.status_code -> bool)
