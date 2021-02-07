@@ -83,8 +83,6 @@ let perform_refresh_and_save t =
   return t
 ;;
 
-let load_fresh () = load () >>= perform_refresh_and_save
-
 let refresh_and_save t when_ =
   match when_ with
   | `Force -> perform_refresh_and_save t
@@ -93,3 +91,5 @@ let refresh_and_save t when_ =
     then return t
     else perform_refresh_and_save t
 ;;
+
+let load_fresh () = load () >>= Fn.flip refresh_and_save `If_expired
