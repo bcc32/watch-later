@@ -3,11 +3,35 @@ open! Async
 open! Import
 open Deferred.Or_error.Let_syntax
 
-type t = { access_token : string }
+let log =
+  Log.create
+    ~level:`Info
+    ~output:[ Log.Output.stderr ~format:`Sexp_hum () ]
+    ~on_error:`Raise
+    ()
+;;
+
+type t =
+  { access_token : string
+  ; log : Log.t
+  }
 
 let create () =
   let%map creds = Oauth.load_fresh () in
-  { access_token = creds.access_token }
+  { access_token = creds.access_token; log }
+;;
+
+let command ?extract_exn ~summary ?readme param =
+  Command.async_or_error
+    ?extract_exn
+    ~summary
+    ?readme
+    (let%map_open.Command () = return ()
+     and () = Log.set_level_via_param log
+     and main = param in
+     fun () ->
+       let%bind api = create () in
+       main api)
 ;;
 
 let only_accept_ok code =
@@ -25,6 +49,14 @@ let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
     Cohttp.Header.init_with "Authorization" ("Bearer " ^ t.access_token), uri
   in
   let body = Option.map body ~f:(fun json -> `String (Yojson.Basic.to_string json)) in
+  Log.debug_s
+    t.log
+    [%message
+      "Making YouTube API request"
+        (method_ : Cohttp.Code.meth)
+        (uri : Uri_sexp.t)
+        (headers : Cohttp.Header.t)
+        (body : (Cohttp.Body.t option[@sexp.option]))];
   let%bind response, body =
     Cohttp_async.Client.call ?body method_ uri ~headers |> Deferred.ok
   in

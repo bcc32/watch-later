@@ -4,7 +4,12 @@ open! Import
 
 type t
 
-val create : unit -> t Or_error.t Deferred.t
+val command
+  :  ?extract_exn:bool
+  -> summary:string
+  -> ?readme:(unit -> string)
+  -> (t -> unit Or_error.t Deferred.t) Command.Param.t
+  -> Command.t
 
 val call
   :  ?accept_status:(Cohttp.Code.status_code -> bool)

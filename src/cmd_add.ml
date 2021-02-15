@@ -20,7 +20,7 @@ let main ~api ~dbpath ~mark_watched ~overwrite ~video_ids =
 ;;
 
 let command =
-  Command.async_or_error
+  Youtube_api.command
     ~summary:"Add video(s) to queue"
     (let%map_open.Command () = return ()
      and dbpath = Params.dbpath
@@ -39,7 +39,5 @@ let command =
          ~doc:" overwrite existing entries (default skip)"
          ~aliases:[ "f" ]
      and video_ids = Params.nonempty_videos in
-     fun () ->
-       let%bind api = Youtube_api.create () in
-       main ~api ~dbpath ~mark_watched ~overwrite ~video_ids)
+     fun api -> main ~api ~dbpath ~mark_watched ~overwrite ~video_ids)
 ;;
