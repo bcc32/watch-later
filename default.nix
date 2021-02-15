@@ -1,11 +1,8 @@
-with import <nixpkgs> { };
+{ lib, nix-gitignore, installShellFiles, ocamlPackages, buildDunePackage, async
+, async_interactive, async_ssl, caqti-async, caqti-driver-sqlite3, cohttp-async
+, core, cryptokit, uri, webbrowser, yojson }:
 
-let
-  inherit (ocamlPackages)
-    buildDunePackage async async_interactive async_ssl caqti-async
-    caqti-driver-sqlite3 cohttp-async core cryptokit uri webbrowser yojson;
-
-in buildDunePackage {
+buildDunePackage {
   pname = "watch-later";
   version = "0.1.0";
   useDune2 = true;
