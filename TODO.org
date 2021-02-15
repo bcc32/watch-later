@@ -1,6 +1,6 @@
 * TODO Integration tests
 * TODO Plain text format
-* TODO Parallel operations (e.g., add, download)
+* TODO Batch YouTube API requests
 * DONE Separate table for channel id -> channel name mapping
 CLOSED: [2021-01-24 Sun 16:30]
 * TODO Store JSON as blob for easy migrations and extensions
