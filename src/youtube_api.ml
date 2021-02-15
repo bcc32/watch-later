@@ -34,9 +34,8 @@ let command ?extract_exn ~summary ?readme param =
        main api)
 ;;
 
-let only_accept_ok code =
-  match (code : Cohttp.Code.status_code) with
-  | `OK -> true
+let only_accept_ok : Cohttp.Code.status_code -> bool = function
+  | #Cohttp.Code.success_status -> true
   | _ -> false
 ;;
 
@@ -159,14 +158,8 @@ let get_playlist_items ?video_id t playlist_id =
   loop None []
 ;;
 
-(* FIXME: Polymorphic comparison *)
 let delete_playlist_item t playlist_item_id =
-  call
-    t
-    ~method_:`DELETE
-    ~endpoint:"playlistItems"
-    ~accept_status:(Poly.( = ) `No_content)
-    ~params:[ "id", playlist_item_id ]
+  call t ~method_:`DELETE ~endpoint:"playlistItems" ~params:[ "id", playlist_item_id ]
   |> Deferred.Or_error.ignore_m
 ;;
 
