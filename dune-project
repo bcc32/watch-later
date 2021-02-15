@@ -19,7 +19,7 @@
   (caqti-driver-sqlite3 (and (>= 1.3.0) (< 1.4.0~)))
   (cohttp-async (and (>= 2.0.0) (< 3.0.0)))
   (core (and (>= v0.14.0) (< v0.15.0)))
-  (cryptokit (and (>= 1.6.0) (< 1.7.0~)))
+  (cryptokit (and (>= 1.16.0) (< 1.17.0~)))
   (ppx_jane (and (>= v0.14.0) (< v0.15.0)))
   (re (and (>= 1.0) (< 2.0)))
   (sqlite3 (and (>= 5.0.0) (< 6.0.0)))
