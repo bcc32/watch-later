@@ -3,4 +3,4 @@
  (libraries async async_interactive async_kernel.eager_deferred caqti-async
    caqti-driver-sqlite3 cohttp-async core cryptokit re uri webbrowser yojson)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane ppx_log)))

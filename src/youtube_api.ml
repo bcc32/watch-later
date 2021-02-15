@@ -49,26 +49,26 @@ let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
     Cohttp.Header.init_with "Authorization" ("Bearer " ^ t.access_token), uri
   in
   let body = Option.map body ~f:(fun json -> `String (Yojson.Basic.to_string json)) in
-  Log.debug_s
+  [%log.debug
     t.log
-    [%message
       "Making YouTube API request"
-        (method_ : Cohttp.Code.meth)
-        (uri : Uri_sexp.t)
-        (headers : Cohttp.Header.t)
-        (body : (Cohttp.Body.t option[@sexp.option]))];
+      (method_ : Cohttp.Code.meth)
+      (uri : Uri_sexp.t)
+      (headers : Cohttp.Header.t)
+      (body : (Cohttp.Body.t option[@sexp.option]))];
   let%bind response, body =
     Cohttp_async.Client.call ?body method_ uri ~headers |> Deferred.ok
   in
+  let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
+  [%log.debug t.log "Received response" (response : Cohttp.Response.t) (body : string)];
   if accept_status response.status
-  then Cohttp_async.Body.to_string body |> Deferred.ok
-  else (
-    let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
+  then return body
+  else
     Deferred.Or_error.error_s
       [%message
         "unacceptable status code"
           ~_:(response.status : Cohttp.Code.status_code)
-          (body : string)])
+          (body : string)]
 ;;
 
 (* FIXME: Can raise if JSON parsing fails. *)

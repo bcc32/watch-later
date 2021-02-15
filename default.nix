@@ -1,6 +1,6 @@
-{ lib, nix-gitignore, installShellFiles, ocamlPackages, buildDunePackage, async
+{ lib, nix-gitignore, installShellFiles, buildDunePackage, async
 , async_interactive, async_ssl, caqti-async, caqti-driver-sqlite3, cohttp-async
-, core, cryptokit, uri, webbrowser, yojson }:
+, core, cryptokit, ppx_log, uri, webbrowser, yojson }:
 
 buildDunePackage {
   pname = "watch-later";
@@ -16,6 +16,7 @@ buildDunePackage {
     cohttp-async
     core
     cryptokit
+    ppx_log
     uri
     webbrowser
     yojson
