@@ -28,17 +28,15 @@ module What_to_show = struct
   ;;
 end
 
-let main ~api ~video_id ~what_to_show =
+let main ~api ~video_ids ~what_to_show =
+  let video_ids = Queue.of_list video_ids in
   match (what_to_show : What_to_show.t) with
   | Video_info ->
-    let%map video_info = Youtube_api.get_video_info api video_id in
-    print_s [%sexp (video_info : Video_info.t)]
+    let%map video_info = Youtube_api.get_video_info' api video_ids in
+    print_s [%sexp (video_info : Video_info.t Or_error.t Queue.t)]
   | Json { extra_parts } ->
     let%map json =
-      Youtube_api.get_video_json'
-        api
-        (Queue.singleton video_id)
-        ~parts:("snippet" :: extra_parts)
+      Youtube_api.get_video_json' api video_ids ~parts:("snippet" :: extra_parts)
     in
     print_endline (Yojson.Basic.pretty_to_string json)
 ;;
@@ -47,7 +45,7 @@ let command =
   Youtube_api.command
     ~summary:"Debug YouTube API calls"
     (let%map_open.Command () = return ()
-     and video_id = Params.video
+     and video_ids = Params.nonempty_videos
      and what_to_show = What_to_show.param in
-     fun api -> main ~api ~video_id ~what_to_show)
+     fun api -> main ~api ~video_ids ~what_to_show)
 ;;
