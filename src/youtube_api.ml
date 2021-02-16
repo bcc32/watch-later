@@ -100,53 +100,64 @@ let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
 
 let get_video_json_batch t (video_id_batch : Video_id_batch.t) ~parts =
   let video_ids =
-    (((video_id_batch :> Video_id.t Queue.t) |> Queue.to_list : Video_id.t list)
+    ((video_id_batch :> Video_id.t Queue.t)
+     |> Queue.to_list
+     |> Set.stable_dedup_list (module Video_id)
      :> string list)
-    |> String.concat ~sep:","
   in
-  let parts = String.concat parts ~sep:"," in
-  call t ~method_:`GET ~endpoint:"videos" ~params:[ "id", video_ids; "part", parts ]
-  >>| Yojson.Basic.from_string
+  let%bind json =
+    call
+      t
+      ~method_:`GET
+      ~endpoint:"videos"
+      ~params:
+        [ "id", String.concat ~sep:"," video_ids; "part", String.concat ~sep:"," parts ]
+  in
+  let%bind json =
+    Deferred.return (Or_error.try_with (fun () -> Yojson.Basic.from_string json))
+  in
+  let%bind items_by_id =
+    Deferred.return
+      (Or_error.try_with (fun () ->
+         let open Yojson.Basic.Util in
+         json
+         |> member "items"
+         |> convert_each (fun json ->
+           json |> member "id" |> to_string |> Video_id.of_string, json)
+         |> Map.of_alist_exn (module Video_id)))
+  in
+  return
+    (Queue.map
+       (video_id_batch :> Video_id.t Queue.t)
+       ~f:(fun video_id ->
+         match Map.find items_by_id video_id with
+         | Some json -> Ok json
+         | None -> Or_error.error_s [%message "No such video" (video_id : Video_id.t)]))
 ;;
 
 let get_video_json' t video_ids ~parts =
   video_ids
   |> Pipe.map' ~max_queue_length:Video_id_batch.max_queue_length ~f:(fun video_ids ->
     let batch = Video_id_batch.of_queue_exn video_ids in
-    let%map.Deferred result = get_video_json_batch t batch ~parts in
-    Queue.singleton result)
+    match%map.Deferred get_video_json_batch t batch ~parts with
+    | Error _ as result -> Queue.singleton result
+    | Ok results -> results)
 ;;
 
 let get_video_info' t video_ids =
   video_ids
   |> get_video_json' t ~parts:[ "snippet" ]
-  |> Pipe.map' ~f:(fun queue ->
-    Deferred.return
-      (Queue.concat_map queue ~f:(fun json ->
-         match json with
-         | Error _ as result -> [ result ]
-         | Ok json ->
-           let open Yojson.Basic.Util in
-           json
-           |> member "items"
-           |> convert_each (fun json ->
-             Or_error.try_with (fun () ->
-               let snippet = json |> member "snippet" in
-               let channel_id =
-                 snippet |> member "channelId" |> to_string
-               in
-               let channel_title =
-                 snippet |> member "channelTitle" |> to_string
-               in
-               let video_id =
-                 json |> member "id" |> to_string |> Video_id.of_string
-               in
-               let video_title = snippet |> member "title" |> to_string in
-               { Video_info.channel_id
-               ; channel_title
-               ; video_id
-               ; video_title
-               })))))
+  |> Pipe.map
+       ~f:
+         (Or_error.bind ~f:(fun json ->
+            let open Yojson.Basic.Util in
+            Or_error.try_with (fun () ->
+              let snippet = json |> member "snippet" in
+              let channel_id = snippet |> member "channelId" |> to_string in
+              let channel_title = snippet |> member "channelTitle" |> to_string in
+              let video_id = json |> member "id" |> to_string |> Video_id.of_string in
+              let video_title = snippet |> member "title" |> to_string in
+              { Video_info.channel_id; channel_title; video_id; video_title })))
 ;;
 
 let get_video_info t video_id =
