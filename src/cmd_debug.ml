@@ -28,16 +28,18 @@ module What_to_show = struct
 end
 
 let main ~api ~video_ids ~what_to_show =
-  let video_ids = Queue.of_list video_ids in
+  let video_ids = Pipe.of_list video_ids in
   match (what_to_show : What_to_show.t) with
   | Video_info ->
-    let%map video_info = Youtube_api.get_video_info' api video_ids in
-    print_s [%sexp (video_info : Video_info.t Or_error.t Queue.t)]
+    Youtube_api.get_video_info' api video_ids
+    |> Pipe.iter_without_pushback ~f:(fun video_info ->
+      print_s [%sexp (video_info : Video_info.t Or_error.t)])
+    |> Deferred.ok
   | Json { extra_parts } ->
-    let%map json =
-      Youtube_api.get_video_json' api video_ids ~parts:("snippet" :: extra_parts)
-    in
-    print_endline (Yojson.Basic.pretty_to_string json)
+    Youtube_api.get_video_json' api video_ids ~parts:("snippet" :: extra_parts)
+    |> Pipe.iter_without_pushback ~f:(fun json ->
+      print_endline (Yojson.Basic.pretty_to_string (ok_exn json)))
+    |> Deferred.ok
 ;;
 
 let command =

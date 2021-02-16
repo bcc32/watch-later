@@ -2,6 +2,35 @@ open! Core
 open! Async
 open! Import
 
+module Video_id_batch : sig
+  type t = private Video_id.t Queue.t [@@deriving sexp_of]
+
+  include Invariant.S with type t := t
+
+  val max_queue_length : int
+  val of_queue_exn : Video_id.t Queue.t -> t
+end = struct
+  type t = Video_id.t Queue.t [@@deriving sexp_of]
+
+  let max_queue_length = 50
+
+  let invariant t =
+    Invariant.invariant [%here] t [%sexp_of: t] (fun () ->
+      if Queue.length t > max_queue_length
+      then
+        raise_s
+          [%message
+            "Video ID batch too long"
+              ~length:(Queue.length t : int)
+              (max_queue_length : int)])
+  ;;
+
+  let of_queue_exn t =
+    invariant t;
+    t
+  ;;
+end
+
 let log =
   Log.create
     ~level:`Info
@@ -69,42 +98,61 @@ let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
           (body : string)]
 ;;
 
-let get_video_json' t video_ids ~parts =
+let get_video_json_batch t (video_id_batch : Video_id_batch.t) ~parts =
   let video_ids =
-    ((video_ids |> Queue.to_list : Video_id.t list) :> string list)
+    (((video_id_batch :> Video_id.t Queue.t) |> Queue.to_list : Video_id.t list)
+     :> string list)
     |> String.concat ~sep:","
   in
   let parts = String.concat parts ~sep:"," in
-  let%bind json =
-    call t ~method_:`GET ~endpoint:"videos" ~params:[ "id", video_ids; "part", parts ]
-  in
-  Deferred.return (Or_error.try_with (fun () -> Yojson.Basic.from_string json))
+  call t ~method_:`GET ~endpoint:"videos" ~params:[ "id", video_ids; "part", parts ]
+  >>| Yojson.Basic.from_string
+;;
+
+let get_video_json' t video_ids ~parts =
+  video_ids
+  |> Pipe.map' ~max_queue_length:Video_id_batch.max_queue_length ~f:(fun video_ids ->
+    let batch = Video_id_batch.of_queue_exn video_ids in
+    let%map.Deferred result = get_video_json_batch t batch ~parts in
+    Queue.singleton result)
 ;;
 
 let get_video_info' t video_ids =
-  let%bind json = get_video_json' t video_ids ~parts:[ "snippet" ] in
-  Deferred.return
-    (Or_error.try_with (fun () ->
-       let open Yojson.Basic.Util in
-       json
-       |> member "items"
-       |> convert_each (fun json ->
-         Or_error.try_with (fun () ->
-           let snippet = json |> member "snippet" in
-           let channel_id = snippet |> member "channelId" |> to_string in
-           let channel_title = snippet |> member "channelTitle" |> to_string in
-           let video_id =
-             json |> member "id" |> to_string |> Video_id.of_string
-           in
-           let video_title = snippet |> member "title" |> to_string in
-           { Video_info.channel_id; channel_title; video_id; video_title }))
-       |> Queue.of_list))
+  video_ids
+  |> get_video_json' t ~parts:[ "snippet" ]
+  |> Pipe.map' ~f:(fun queue ->
+    Deferred.return
+      (Queue.concat_map queue ~f:(fun json ->
+         match json with
+         | Error _ as result -> [ result ]
+         | Ok json ->
+           let open Yojson.Basic.Util in
+           json
+           |> member "items"
+           |> convert_each (fun json ->
+             Or_error.try_with (fun () ->
+               let snippet = json |> member "snippet" in
+               let channel_id =
+                 snippet |> member "channelId" |> to_string
+               in
+               let channel_title =
+                 snippet |> member "channelTitle" |> to_string
+               in
+               let video_id =
+                 json |> member "id" |> to_string |> Video_id.of_string
+               in
+               let video_title = snippet |> member "title" |> to_string in
+               { Video_info.channel_id
+               ; channel_title
+               ; video_id
+               ; video_title
+               })))))
 ;;
 
 let get_video_info t video_id =
-  get_video_info' t (Queue.singleton video_id)
-  >>| Fn.flip Queue.get 0
-  |> Deferred.map ~f:Or_error.join
+  get_video_info' t (Pipe.singleton video_id)
+  |> Pipe.read_all
+  |> Deferred.map ~f:(Fn.flip Queue.get 0)
 ;;
 
 let get_playlist_items ?video_id t playlist_id =
