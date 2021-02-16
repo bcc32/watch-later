@@ -270,9 +270,11 @@ let with_file_and_txn dbpath ~f =
       let%bind () = Conn.commit () |> convert_error in
       return result
     | Error _ as result ->
+      (* FIXME: Report both errors *)
       let%bind () = Conn.rollback () |> convert_error in
       Deferred.return result
   in
+  (* FIXME: Maybe don't bother optimizing if result is an error *)
   let%bind () = Conn.exec optimize () |> convert_error in
   let%bind () = Conn.disconnect () |> Deferred.ok in
   Deferred.return result
