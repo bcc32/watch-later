@@ -9,7 +9,7 @@ module Which_videos = struct
 end
 
 let main ~dbpath ~watched ~(which_videos : Which_videos.t) =
-  Video_db.with_file dbpath ~f:(fun db ->
+  Video_db.with_file_and_txn dbpath ~f:(fun db ->
     match which_videos with
     | These ids ->
       Deferred.Or_error.List.iter ids ~f:(fun video_id ->

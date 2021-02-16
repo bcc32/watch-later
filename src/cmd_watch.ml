@@ -13,7 +13,7 @@ module Which_videos = struct
 end
 
 let main ~dbpath ~mark_watched ~(which_videos : Which_videos.t) =
-  Video_db.with_file dbpath ~f:(fun db ->
+  Video_db.with_file_and_txn dbpath ~f:(fun db ->
     let%bind which_videos =
       match which_videos with
       | These ids -> return ids

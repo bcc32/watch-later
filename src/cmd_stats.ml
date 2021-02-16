@@ -3,7 +3,7 @@ open! Async
 open! Import
 
 let main dbpath =
-  Video_db.with_file dbpath ~f:(fun db ->
+  Video_db.with_file_and_txn dbpath ~f:(fun db ->
     let%bind stats = Video_db.video_stats db in
     print_s [%sexp (stats : Stats.t)];
     return ())

@@ -3,7 +3,7 @@ open! Async
 open! Import
 
 let main ~api ~dbpath ~mark_watched ~overwrite ~video_ids =
-  Video_db.with_file dbpath ~f:(fun db ->
+  Video_db.with_file_and_txn dbpath ~f:(fun db ->
     Deferred.List.map video_ids ~f:(fun video_id ->
       (* FIXME: This check/add should be in a transaction. *)
       let%bind already_present = Video_db.mem db video_id in

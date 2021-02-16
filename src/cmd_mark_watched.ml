@@ -3,7 +3,7 @@ open! Async
 open! Import
 
 let main ~dbpath ~undo ~video_ids =
-  Video_db.with_file dbpath ~f:(fun db ->
+  Video_db.with_file_and_txn dbpath ~f:(fun db ->
     Deferred.Or_error.List.iter video_ids ~f:(fun spec ->
       Video_db.mark_watched db spec (if undo then `Unwatched else `Watched)))
 ;;

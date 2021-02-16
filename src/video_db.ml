@@ -254,7 +254,7 @@ let set_busy_timeout =
 
 let optimize = Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA optimize"
 
-let with_file dbpath ~f =
+let with_file_and_txn dbpath ~f =
   let uri = Uri.make ~scheme:"sqlite3" ~path:dbpath () in
   let%bind db = Caqti_async.connect uri |> convert_error in
   let (module Conn) = db in
@@ -263,12 +263,19 @@ let with_file dbpath ~f =
     Conn.find set_busy_timeout () |> convert_error |> Deferred.Or_error.ignore_m
   in
   let%bind () = Migrate.ensure_up_to_date db in
-  Monitor.protect
-    (fun () -> f db)
-    ~finally:(fun () ->
-      let%bind.Deferred result = Conn.exec optimize () |> convert_error in
-      let%bind.Deferred () = Conn.disconnect () in
-      Deferred.return (ok_exn result))
+  let%bind () = Conn.start () |> convert_error in
+  let%bind.Deferred result =
+    match%bind.Deferred Monitor.try_with_join_or_error (fun () -> f db) with
+    | Ok result ->
+      let%bind () = Conn.commit () |> convert_error in
+      return result
+    | Error _ as result ->
+      let%bind () = Conn.rollback () |> convert_error in
+      Deferred.return result
+  in
+  let%bind () = Conn.exec optimize () |> convert_error in
+  let%bind () = Conn.disconnect () |> Deferred.ok in
+  Deferred.return result
 ;;
 
 let wrap_core_error = Deferred.Result.map_error ~f:(fun e -> `Error e)
@@ -386,7 +393,6 @@ let add_video
       ~mark_watched:should_mark_watched
       ~overwrite
   =
-  let%bind () = Conn.start () |> convert_error in
   let%bind () =
     Conn.exec
       (if overwrite then add_channel_overwrite else add_channel_no_overwrite)
@@ -400,7 +406,7 @@ let add_video
     |> convert_error
   in
   match should_mark_watched with
-  | None -> Conn.commit () |> convert_error
+  | None -> return ()
   | Some state ->
     let watched =
       match state with
@@ -411,7 +417,6 @@ let add_video
       Conn.exec_with_affected_count mark_watched (watched, video_info.video_id)
       |> convert_error
     in
-    let%bind () = Conn.commit () |> convert_error in
     if rows_affected <> 1
     then
       Deferred.Or_error.error_s
