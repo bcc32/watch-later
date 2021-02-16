@@ -18,3 +18,5 @@ CLOCK: [2021-01-22 Fri 16:15]--[2021-01-22 Fri 19:03] =>  2:48
 [[https://paurkedal.github.io/ocaml-caqti/caqti-async/Caqti_async/module-type-CONNECTION/index.html][Caqti_async.Connection]] supports transactions and async operations.
 * DONE Automatically refresh OAuth token when necessary
 CLOSED: [2021-01-22 Fri 19:05]
+* TODO Add custom user tags to database
+Could be used as individual sublists to watch later
