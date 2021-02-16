@@ -4,27 +4,30 @@ open! Import
 
 let main ~api ~dbpath ~mark_watched ~overwrite ~video_ids =
   Video_db.with_file_and_txn dbpath ~f:(fun db ->
-    video_ids
-    |> Pipe.of_list
-    |> Youtube_api.get_video_info' api
-    |> Pipe.fold ~init:[] ~f:(fun accum video_info ->
-      let result =
-        let%bind video_info = Deferred.return video_info in
-        let%bind already_present = Video_db.mem db video_info.video_id in
-        if already_present && not overwrite
-        then (
-          match mark_watched with
-          | None -> return ()
-          | Some state -> Video_db.mark_watched db video_info.video_id state)
-        else (
-          let%bind video_info =
-            Youtube_api.get_video_info api video_info.video_id
-          in
-          Video_db.add_video db video_info ~mark_watched ~overwrite)
-      in
-      let%map.Deferred result = result in
-      result :: accum)
-    |> Deferred.map ~f:(Or_error.combine_errors_unit << List.rev))
+    match%map.Deferred
+      video_ids
+      |> Pipe.of_list
+      |> Youtube_api.get_video_info' api
+      |> Pipe.filter_map' ~f:(fun video_info ->
+        let result =
+          let%bind video_info = Deferred.return video_info in
+          let%bind already_present = Video_db.mem db video_info.video_id in
+          if already_present && not overwrite
+          then (
+            match mark_watched with
+            | None -> return ()
+            | Some state -> Video_db.mark_watched db video_info.video_id state)
+          else (
+            let%bind video_info =
+              Youtube_api.get_video_info api video_info.video_id
+            in
+            Video_db.add_video db video_info ~mark_watched ~overwrite)
+        in
+        result |> Deferred.map ~f:Result.error)
+      |> Pipe.to_list
+    with
+    | [] -> Ok ()
+    | _ :: _ as errors -> Error (Error.of_list errors))
 ;;
 
 let command =
