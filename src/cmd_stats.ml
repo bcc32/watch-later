@@ -1,7 +1,6 @@
 open! Core
 open! Async
 open! Import
-open Deferred.Or_error.Let_syntax
 
 let main dbpath =
   Video_db.with_file dbpath ~f:(fun db ->

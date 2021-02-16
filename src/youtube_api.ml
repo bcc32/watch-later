@@ -1,7 +1,6 @@
 open! Core
 open! Async
 open! Import
-open Deferred.Or_error.Let_syntax
 
 let log =
   Log.create
@@ -71,7 +70,6 @@ let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
 ;;
 
 let get_video_json' t video_ids ~parts =
-  let open Deferred.Or_error.Let_syntax in
   let video_ids =
     ((video_ids |> Queue.to_list : Video_id.t list) :> string list)
     |> String.concat ~sep:","
@@ -84,7 +82,6 @@ let get_video_json' t video_ids ~parts =
 ;;
 
 let get_video_info' t video_ids =
-  let open Deferred.Or_error.Let_syntax in
   let%bind json = get_video_json' t video_ids ~parts:[ "snippet" ] in
   Deferred.return
     (Or_error.try_with (fun () ->
@@ -111,7 +108,6 @@ let get_video_info t video_id =
 ;;
 
 let get_playlist_items ?video_id t playlist_id =
-  let open Deferred.Or_error.Let_syntax in
   let rec loop page_token rev_items =
     let%bind json =
       call

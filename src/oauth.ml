@@ -1,7 +1,6 @@
 open! Core
 open! Async
 open! Import
-open Deferred.Or_error.Let_syntax
 
 type t =
   { client_id : string

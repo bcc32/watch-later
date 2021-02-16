@@ -1,7 +1,6 @@
 open! Core
 open! Async
 open! Import
-open Deferred.Or_error.Let_syntax
 
 module What_to_show = struct
   type t =

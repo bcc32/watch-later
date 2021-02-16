@@ -1,7 +1,6 @@
 open! Core
 open! Async
 open! Import
-open Deferred.Or_error.Let_syntax
 
 let rec fill_random_bytes (rng : Cryptokit.Random.rng) bytes ~pos ~len ~byte_is_acceptable
   =

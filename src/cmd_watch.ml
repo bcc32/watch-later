@@ -1,7 +1,6 @@
 open! Core
 open! Async
 open! Import
-open Deferred.Or_error.Let_syntax
 
 let browse_video video_id =
   Browse.url (Uri.of_string (sprintf !"https://youtu.be/%{Video_id}" video_id))
