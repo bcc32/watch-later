@@ -22,11 +22,16 @@ val call
 
 val get_video_info : t -> Video_id.t -> Video_info.t Or_error.t Deferred.t
 
+val get_video_info'
+  :  t
+  -> Video_id.t Queue.t
+  -> Video_info.t Or_error.t Queue.t Or_error.t Deferred.t
+
 (** See https://developers.google.com/youtube/v3/docs/videos/list for the
     documentation of [parts]. *)
-val get_video_json
+val get_video_json'
   :  t
-  -> Video_id.t
+  -> Video_id.t Queue.t
   -> parts:string list
   -> Yojson.Basic.t Or_error.t Deferred.t
 

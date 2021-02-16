@@ -35,9 +35,12 @@ let main ~api ~video_id ~what_to_show =
     print_s [%sexp (video_info : Video_info.t)]
   | Json { extra_parts } ->
     let%map json =
-      Youtube_api.get_video_json api video_id ~parts:("snippet" :: extra_parts)
+      Youtube_api.get_video_json'
+        api
+        (Queue.singleton video_id)
+        ~parts:("snippet" :: extra_parts)
     in
-    print_string (Yojson.Basic.pretty_to_string json)
+    print_endline (Yojson.Basic.pretty_to_string json)
 ;;
 
 let command =

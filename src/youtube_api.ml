@@ -70,34 +70,44 @@ let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
           (body : string)]
 ;;
 
-(* FIXME: Can raise if JSON parsing fails. *)
-let get_video_json t video_id ~parts =
+let get_video_json' t video_ids ~parts =
   let open Deferred.Or_error.Let_syntax in
+  let video_ids =
+    ((video_ids |> Queue.to_list : Video_id.t list) :> string list)
+    |> String.concat ~sep:","
+  in
   let parts = String.concat parts ~sep:"," in
   let%bind json =
-    call
-      t
-      ~method_:`GET
-      ~endpoint:"videos"
-      ~params:[ "id", Video_id.to_string video_id; "part", parts ]
+    call t ~method_:`GET ~endpoint:"videos" ~params:[ "id", video_ids; "part", parts ]
   in
-  return (Yojson.Basic.from_string json)
+  Deferred.return (Or_error.try_with (fun () -> Yojson.Basic.from_string json))
+;;
+
+let get_video_info' t video_ids =
+  let open Deferred.Or_error.Let_syntax in
+  let%bind json = get_video_json' t video_ids ~parts:[ "snippet" ] in
+  Deferred.return
+    (Or_error.try_with (fun () ->
+       let open Yojson.Basic.Util in
+       json
+       |> member "items"
+       |> convert_each (fun json ->
+         Or_error.try_with (fun () ->
+           let snippet = json |> member "snippet" in
+           let channel_id = snippet |> member "channelId" |> to_string in
+           let channel_title = snippet |> member "channelTitle" |> to_string in
+           let video_id =
+             json |> member "id" |> to_string |> Video_id.of_string
+           in
+           let video_title = snippet |> member "title" |> to_string in
+           { Video_info.channel_id; channel_title; video_id; video_title }))
+       |> Queue.of_list))
 ;;
 
 let get_video_info t video_id =
-  let open Deferred.Or_error.Let_syntax in
-  let%bind json = get_video_json t video_id ~parts:[ "snippet" ] in
-  Deferred.return
-    (try
-       let open Yojson.Basic.Util in
-       let snippet = json |> member "items" |> index 0 |> member "snippet" in
-       let channel_id = snippet |> member "channelId" |> to_string in
-       let channel_title = snippet |> member "channelTitle" |> to_string in
-       let video_title = snippet |> member "title" |> to_string in
-       Ok { Video_info.channel_id; channel_title; video_id; video_title }
-     with
-     | Yojson.Basic.Util.Undefined _ ->
-       Or_error.error_s [%message "Failed to get video info" (video_id : Video_id.t)])
+  get_video_info' t (Queue.singleton video_id)
+  >>| Fn.flip Queue.get 0
+  |> Deferred.map ~f:Or_error.join
 ;;
 
 let get_playlist_items ?video_id t playlist_id =
