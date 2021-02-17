@@ -20,3 +20,4 @@ CLOCK: [2021-01-22 Fri 16:15]--[2021-01-22 Fri 19:03] =>  2:48
 CLOSED: [2021-01-22 Fri 19:05]
 * TODO Add custom user tags to database
 Could be used as individual sublists to watch later
+* TODO Set journaling mode to WAL
