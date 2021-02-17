@@ -3,6 +3,8 @@ open! Async
 open! Import
 
 (* TODO: Add video duration, thumbnail link, description? *)
+(* FIXME: This module is an anti-pattern.  It forces sub-optimal queries when not all
+   fields may be necessary. *)
 
 type t =
   { channel_id : string
