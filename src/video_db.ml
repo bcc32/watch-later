@@ -492,9 +492,9 @@ let get_random_unwatched_video =
 SELECT channel_id, channel_title, video_id, video_title FROM videos_all
 WHERE NOT watched
   AND ($1 IS NULL OR channel_id = $1)
-  AND ($2 IS NULL OR channel_title GLOB $2)
+  AND ($2 IS NULL OR channel_title LIKE $2 ESCAPE '%')
   AND ($3 IS NULL OR video_id = $3)
-  AND ($4 IS NULL OR video_title GLOB $4)
+  AND ($4 IS NULL OR video_title LIKE $4 ESCAPE '%')
 ORDER BY RANDOM()
 LIMIT 1
 |}
@@ -514,9 +514,9 @@ let get_videos =
 SELECT channel_id, channel_title, video_id, video_title, watched FROM videos_all
 WHERE ($1 IS NULL OR watched IS TRUE = $1 IS TRUE)
   AND ($2 IS NULL OR channel_id = $2)
-  AND ($3 IS NULL OR channel_title GLOB $3)
+  AND ($3 IS NULL OR channel_title LIKE $3 ESCAPE '%')
   AND ($4 IS NULL OR video_id = $4)
-  AND ($5 IS NULL OR video_title GLOB $5)
+  AND ($5 IS NULL OR video_title LIKE $5 ESCAPE '%')
 |}
 ;;
 
