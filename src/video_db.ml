@@ -282,13 +282,13 @@ let with_file_and_txn dbpath ~f =
   let%bind () = Conn.start () |> convert_error in
   let%bind.Deferred result =
     match%bind.Deferred Monitor.try_with_join_or_error (fun () -> f db) with
-    | Ok result ->
+    | Ok x ->
       let%bind () = Conn.commit () |> convert_error in
-      return result
-    | Error _ as result ->
-      (* FIXME: Report both errors *)
-      let%bind () = Conn.rollback () |> convert_error in
-      Deferred.return result
+      return x
+    | Error error as result ->
+      (match%map.Deferred Conn.rollback () |> convert_error with
+       | Ok () -> result
+       | Error rollback_error -> Error (Error.of_list [ error; rollback_error ]))
   in
   (* FIXME: Maybe don't bother optimizing if result is an error *)
   let%bind () = Conn.exec optimize () |> convert_error in
