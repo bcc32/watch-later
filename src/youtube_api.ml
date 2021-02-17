@@ -31,22 +31,11 @@ end = struct
   ;;
 end
 
-let log =
-  Log.create
-    ~level:`Info
-    ~output:[ Log.Output.stderr ~format:`Sexp_hum () ]
-    ~on_error:`Raise
-    ()
-;;
-
-type t =
-  { access_token : string
-  ; log : Log.t
-  }
+type t = { access_token : string }
 
 let create () =
   let%map creds = Oauth.load_fresh () in
-  { access_token = creds.access_token; log }
+  { access_token = creds.access_token }
 ;;
 
 let command ?extract_exn ~summary ?readme param =
@@ -55,7 +44,7 @@ let command ?extract_exn ~summary ?readme param =
     ~summary
     ?readme
     (let%map_open.Command () = return ()
-     and () = Log.set_level_via_param log
+     and () = Log.Global.set_level_via_param ()
      and main = param in
      fun () ->
        let%bind api = create () in
@@ -76,9 +65,8 @@ let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
     Cohttp.Header.init_with "Authorization" ("Bearer " ^ t.access_token), uri
   in
   let body = Option.map body ~f:(fun json -> `String (Yojson.Basic.to_string json)) in
-  [%log.debug
-    t.log
-      "Making YouTube API request"
+  [%log.global.debug
+    "Making YouTube API request"
       (method_ : Cohttp.Code.meth)
       (uri : Uri_sexp.t)
       (headers : Cohttp.Header.t)
@@ -87,7 +75,7 @@ let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
     Cohttp_async.Client.call ?body method_ uri ~headers |> Deferred.ok
   in
   let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
-  [%log.debug t.log "Received response" (response : Cohttp.Response.t) (body : string)];
+  [%log.global.debug "Received response" (response : Cohttp.Response.t) (body : string)];
   if accept_status response.status
   then return body
   else
