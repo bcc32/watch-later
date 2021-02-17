@@ -8,16 +8,17 @@ let dbpath =
     flag
       "dbpath"
       (optional Filename.arg_type)
-      ~doc:
-        "FILE path to database file (default is $WATCH_LATER_DBPATH or \
-         $HOME/watch-later.db)"
+      ~doc:"FILE path to database file (default is $XDG_DATA_HOME/watch-later.db)"
   in
   match path with
   | Some path -> path
   | None ->
-    (match Sys.getenv "WATCH_LATER_DBPATH" with
-     | Some path -> path
-     | None -> Sys.getenv_exn "HOME" ^/ "watch-later.db")
+    let basedir =
+      match Sys.getenv "XDG_DATA_HOME" with
+      | Some path -> path
+      | None -> Sys.getenv_exn "HOME" ^/ ".local" ^/ "share"
+    in
+    basedir ^/ "watch-later.db"
 ;;
 
 let video =

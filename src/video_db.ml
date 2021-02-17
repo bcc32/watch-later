@@ -271,6 +271,10 @@ let set_busy_timeout =
 let optimize = Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA optimize"
 
 let with_file_and_txn dbpath ~f =
+  (* TODO: Once available, use [File_path] library. *)
+  let%bind () =
+    Monitor.try_with_or_error (fun () -> Unix.mkdir ~p:() (Filename.dirname dbpath))
+  in
   let uri = Uri.make ~scheme:"sqlite3" ~path:dbpath () in
   let%bind db = Caqti_async.connect uri |> convert_error in
   let (module Conn) = db in
