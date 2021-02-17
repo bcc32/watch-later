@@ -189,10 +189,26 @@ CREATE VIEW videos_all (
     ;;
   end
 
+  module V3 = struct
+    let create_videos_index_on_title =
+      {|
+CREATE INDEX index_videos_on_title ON videos (title COLLATE NOCASE)
+|}
+    ;;
+
+    let create_channels_index_on_title =
+      {|
+CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
+|}
+    ;;
+
+    let all = [ create_videos_index_on_title; create_channels_index_on_title ]
+  end
+
   let vacuum = Caqti_request.exec Caqti_type.unit "VACUUM"
 
   let migrations =
-    [| V1.all; V2.all |]
+    [| V1.all; V2.all; V3.all |]
     |> Array.map ~f:(List.map ~f:(Caqti_request.exec ~oneshot:true Caqti_type.unit))
   ;;
 
