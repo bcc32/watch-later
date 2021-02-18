@@ -227,29 +227,32 @@ CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
   let desired_user_version = Array.length migrations
 
   let increase_version ((module Conn) : t) =
-    with_txn
-      (module Conn)
-      ~f:(fun () ->
-        let%bind user_version = Conn.find get_user_version () |> convert_error in
-        if user_version < desired_user_version
-        then
-          Async_interactive.Job.run
-            "Migrating database version %d to %d"
-            user_version
-            (user_version + 1)
-            ~f:(fun () ->
-              (* [user_version] is equal to the next set of migration statements to apply *)
-              let stmts = migrations.(user_version) in
-              let%bind () =
-                Deferred.Or_error.List.iter stmts ~f:(fun stmt ->
-                  Conn.exec stmt () |> convert_error)
-              in
-              let%bind () =
-                Conn.exec (set_user_version (user_version + 1)) () |> convert_error
-              in
-              let%bind () = Conn.exec vacuum () |> convert_error in
-              return ())
-        else return ())
+    let%bind () =
+      with_txn
+        (module Conn)
+        ~f:(fun () ->
+          let%bind user_version = Conn.find get_user_version () |> convert_error in
+          if user_version >= desired_user_version
+          then return ()
+          else
+            Async_interactive.Job.run
+              "Migrating database version %d to %d"
+              user_version
+              (user_version + 1)
+              ~f:(fun () ->
+                (* [user_version] is equal to the next set of migration statements to apply *)
+                let stmts = migrations.(user_version) in
+                let%bind () =
+                  Deferred.Or_error.List.iter stmts ~f:(fun stmt ->
+                    Conn.exec stmt () |> convert_error)
+                in
+                let%bind () =
+                  Conn.exec (set_user_version (user_version + 1)) () |> convert_error
+                in
+                return ()))
+    in
+    let%bind () = Conn.exec vacuum () |> convert_error in
+    return ()
   ;;
 
   let rec ensure_up_to_date ((module Conn) as db : t) ~retries =
@@ -275,7 +278,12 @@ CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
            that the schema was migrated. *)
         match%bind.Deferred increase_version db with
         | Ok () -> ensure_up_to_date db ~retries
-        | Error _ -> ensure_up_to_date db ~retries:(retries - 1))
+        | Error err ->
+          [%log.global.error
+            "Failed to upgrade schema, retrying"
+              (err : Error.t)
+              ~retries_remaining:(retries - 1 : int)];
+          ensure_up_to_date db ~retries:(retries - 1))
   ;;
 end
 
