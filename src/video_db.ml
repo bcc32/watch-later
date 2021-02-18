@@ -49,6 +49,18 @@ let convert_error =
   Deferred.Result.map_error ~f:(fun e -> e |> Caqti_error.show |> Error.of_string)
 ;;
 
+let with_txn ((module Conn) : t) ~f =
+  let%bind () = Conn.start () |> convert_error in
+  match%bind.Deferred Monitor.try_with_join_or_error ~name:"with_txn" ~here:[%here] f with
+  | Ok x ->
+    let%bind () = Conn.commit () |> convert_error in
+    return x
+  | Error error as result ->
+    (match%map.Deferred Conn.rollback () |> convert_error with
+     | Ok () -> result
+     | Error rollback_error -> Error (Error.of_list [ error; rollback_error ]))
+;;
+
 module Migrate = struct
   let get_user_version =
     Caqti_request.find Caqti_type.unit Caqti_type.int "PRAGMA user_version"
@@ -214,42 +226,56 @@ CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
 
   let desired_user_version = Array.length migrations
 
-  let ensure_up_to_date ((module Conn) : t) =
-    (* FIXME: Need to have transaction around checking user version and upgrading. *)
-    let%bind user_version = Conn.find get_user_version () |> convert_error in
-    Deferred.Or_error.repeat_until_finished user_version (fun user_version ->
-      match Ordering.of_int (Int.compare user_version desired_user_version) with
-      | Equal -> return (`Finished ())
-      | Greater ->
-        Deferred.Or_error.error_s
-          [%message
-            "Database user version exceeds expected version"
-              (user_version : int)
-              (desired_user_version : int)]
-      | Less ->
-        (* [user_version] is equal to the next set of migration statements to apply *)
-        Async_interactive.Job.run
-          "Migrating database version %d to %d"
-          user_version
-          (user_version + 1)
-          ~f:(fun () ->
-            let stmts = migrations.(user_version) in
-            let%bind () = Conn.start () |> convert_error in
-            match%bind.Deferred
-              Deferred.Or_error.List.iter stmts ~f:(fun stmt ->
-                Conn.exec stmt () |> convert_error)
-            with
-            | Error e1 as result ->
-              (match%map.Deferred Conn.rollback () |> convert_error with
-               | Ok () -> result
-               | Error e2 -> Error (Error.of_list [ e1; e2 ]))
-            | Ok () ->
+  let increase_version ((module Conn) : t) =
+    with_txn
+      (module Conn)
+      ~f:(fun () ->
+        let%bind user_version = Conn.find get_user_version () |> convert_error in
+        if user_version < desired_user_version
+        then
+          Async_interactive.Job.run
+            "Migrating database version %d to %d"
+            user_version
+            (user_version + 1)
+            ~f:(fun () ->
+              (* [user_version] is equal to the next set of migration statements to apply *)
+              let stmts = migrations.(user_version) in
+              let%bind () =
+                Deferred.Or_error.List.iter stmts ~f:(fun stmt ->
+                  Conn.exec stmt () |> convert_error)
+              in
               let%bind () =
                 Conn.exec (set_user_version (user_version + 1)) () |> convert_error
               in
-              let%bind () = Conn.commit () |> convert_error in
               let%bind () = Conn.exec vacuum () |> convert_error in
-              return (`Repeat (user_version + 1))))
+              return ())
+        else return ())
+  ;;
+
+  let rec ensure_up_to_date ((module Conn) as db : t) ~retries =
+    let%bind user_version = Conn.find get_user_version () |> convert_error in
+    match Ordering.of_int (Int.compare user_version desired_user_version) with
+    | Equal -> return ()
+    | Greater ->
+      Deferred.Or_error.error_s
+        [%message
+          "Database user version exceeds expected version"
+            (user_version : int)
+            (desired_user_version : int)]
+    | Less ->
+      if retries <= 0
+      then
+        Deferred.Or_error.error_s
+          [%message
+            "Failed to upgrade database to latest version"
+              (user_version : int)
+              (desired_user_version : int)]
+      else (
+        (* We don't really care if [increase_version] fails with, say, SQLITE_BUSY, only
+           that the schema was migrated. *)
+        match%bind.Deferred increase_version db with
+        | Ok () -> ensure_up_to_date db ~retries
+        | Error _ -> ensure_up_to_date db ~retries:(retries - 1))
   ;;
 end
 
@@ -279,14 +305,15 @@ let setup_connection ((module Conn) as db : t) =
       ~expect:"WAL"
       "PRAGMA journal_mode = WAL"
   in
-  let%bind () = Migrate.ensure_up_to_date db in
+  let%bind () = Migrate.ensure_up_to_date db ~retries:3 in
   return ()
 ;;
 
 let with_file_and_txn dbpath ~f =
   (* TODO: Once available, use [File_path] library. *)
   let%bind () =
-    Monitor.try_with_or_error (fun () -> Unix.mkdir ~p:() (Filename.dirname dbpath))
+    Monitor.try_with_or_error ~here:[%here] (fun () ->
+      Unix.mkdir ~p:() (Filename.dirname dbpath))
   in
   let uri =
     Uri.make
@@ -298,17 +325,7 @@ let with_file_and_txn dbpath ~f =
   let%bind db = Caqti_async.connect uri |> convert_error in
   let%bind () = setup_connection db in
   let (module Conn) = db in
-  let%bind () = Conn.start () |> convert_error in
-  let%bind.Deferred result =
-    match%bind.Deferred Monitor.try_with_join_or_error (fun () -> f db) with
-    | Ok x ->
-      let%bind () = Conn.commit () |> convert_error in
-      return x
-    | Error error as result ->
-      (match%map.Deferred Conn.rollback () |> convert_error with
-       | Ok () -> result
-       | Error rollback_error -> Error (Error.of_list [ error; rollback_error ]))
-  in
+  let%bind.Deferred result = with_txn (module Conn) ~f:(fun () -> f db) in
   (* FIXME: Maybe don't bother optimizing if result is an error *)
   let%bind () = exec_oneshot db "PRAGMA optimize" in
   let%bind () = Conn.disconnect () |> Deferred.ok in
