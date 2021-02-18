@@ -17,6 +17,11 @@ Manage YouTube queue
   . . path                        Print file path to database
   . . . [-dbpath FILE]            path to database file (default is
                                   $XDG_DATA_HOME/watch-later.db)
+  . . query                       Run an arbitrary SQL query on stdin against
+                                  the database
+  . . . [-- ARG]                  command-line arguments to pass to sqlite3
+  . . . [-dbpath FILE]            path to database file (default is
+                                  $XDG_DATA_HOME/watch-later.db)
   . get-video                     Debug YouTube API calls
   . . [-- VIDEO]                  escape videos whose IDs may start with [-]
   . . [-json]                     Display raw JSON API response
