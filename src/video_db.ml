@@ -253,43 +253,43 @@ CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
   ;;
 end
 
-(* Enable enforcement of foreign key constraints *)
-let enable_foreign_keys =
-  Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA foreign_keys = ON"
+let exec_oneshot ((module Conn) : t) sql =
+  Conn.exec (Caqti_request.exec ~oneshot:true Caqti_type.unit sql) () |> convert_error
 ;;
 
-(* Set journal mode to write-ahead logging *)
-let set_journal_mode_to_wal =
-  Caqti_request.find
-    ~oneshot:true
-    Caqti_type.unit
-    Caqti_type.string
-    "PRAGMA journal_mode = WAL"
-;;
-
-(* Set busy timeout to 10 seconds.  This query uses [find] because it returns the new busy
-   timeout. *)
-let set_busy_timeout =
-  Caqti_request.find
-    ~oneshot:true
-    Caqti_type.unit
-    Caqti_type.int
-    "PRAGMA busy_timeout = 10000"
-;;
-
-let optimize = Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA optimize"
-
-let setup_connection ((module Conn) : t) =
-  let%bind () = Conn.exec enable_foreign_keys () |> convert_error in
-  let%bind () =
-    let%bind journal_mode = Conn.find set_journal_mode_to_wal () |> convert_error in
-    [%test_result: String.Caseless.t] journal_mode ~expect:"wal";
-    return ()
+let find_and_check ((module Conn) : t) type_ test ?here ?message ?equal ~expect sql =
+  let%bind actual =
+    Conn.find (Caqti_request.find ~oneshot:true Caqti_type.unit type_ sql) ()
+    |> convert_error
   in
+  test ?here ?message ?equal ~expect actual;
+  return ()
+;;
+
+let setup_connection ((module Conn) as db : t) =
+  (* Enable enforcement of foreign key constraints *)
+  let%bind () = exec_oneshot db "PRAGMA foreign_keys = ON" in
+  (* Set journal mode to write-ahead logging *)
   let%bind () =
-    Conn.find set_busy_timeout () |> convert_error |> Deferred.Or_error.ignore_m
+    find_and_check
+      db
+      Caqti_type.string
+      [%test_result: String.Caseless.t]
+      ~here:[ [%here] ]
+      ~expect:"WAL"
+      "PRAGMA journal_mode = WAL"
   in
-  let%bind () = Migrate.ensure_up_to_date (module Conn) in
+  (* Set busy timeout to 10 seconds *)
+  let%bind () =
+    find_and_check
+      db
+      Caqti_type.int
+      [%test_result: int]
+      ~here:[ [%here] ]
+      ~expect:10_000
+      "PRAGMA busy_timeout = 10000"
+  in
+  let%bind () = Migrate.ensure_up_to_date db in
   return ()
 ;;
 
@@ -314,7 +314,7 @@ let with_file_and_txn dbpath ~f =
        | Error rollback_error -> Error (Error.of_list [ error; rollback_error ]))
   in
   (* FIXME: Maybe don't bother optimizing if result is an error *)
-  let%bind () = Conn.exec optimize () |> convert_error in
+  let%bind () = exec_oneshot db "PRAGMA optimize" in
   let%bind () = Conn.disconnect () |> Deferred.ok in
   Deferred.return result
 ;;
