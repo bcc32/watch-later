@@ -8,6 +8,7 @@ mkShell {
     opam
     pkgconfig
     # For this project
+    gmp
     libffi
     openssl
     sqlite
