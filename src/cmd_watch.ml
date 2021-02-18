@@ -18,8 +18,8 @@ let main ~dbpath ~mark_watched ~(which_videos : Which_videos.t) =
       match which_videos with
       | These ids -> return ids
       | Filter filter ->
-        let%map video_info = Video_db.get_random_unwatched_video db filter in
-        [ video_info.video_id ]
+        let%map video_id = Video_db.get_random_unwatched_video db filter in
+        [ video_id ]
     in
     Deferred.Or_error.List.iter which_videos ~f:(fun video_id ->
       let%bind () = Deferred.return (browse_video video_id) in

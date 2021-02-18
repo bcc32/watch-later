@@ -491,9 +491,9 @@ let mark_watched (module Conn : Caqti_async.CONNECTION) video_id state =
 let get_random_unwatched_video =
   Caqti_request.find_opt
     Filter.t
-    Video_info.t
+    Video_id.t
     {|
-SELECT channel_id, channel_title, video_id, video_title FROM videos_all
+SELECT video_id FROM videos_all
 WHERE NOT watched
   AND ($1 IS NULL OR channel_id = $1)
   AND ($2 IS NULL OR channel_title LIKE $2 ESCAPE '\')
@@ -506,7 +506,7 @@ LIMIT 1
 
 let get_random_unwatched_video (module Conn : Caqti_async.CONNECTION) filter =
   match%bind Conn.find_opt get_random_unwatched_video filter |> convert_error with
-  | Some video -> return video
+  | Some video_id -> return video_id
   | None -> Deferred.Or_error.error_s [%message "No unwatched videos matching filter"]
 ;;
 

@@ -39,7 +39,7 @@ module Filter : sig
   val is_empty : t -> bool
 end
 
-val get_random_unwatched_video : t -> Filter.t -> Video_info.t Or_error.t Deferred.t
+val get_random_unwatched_video : t -> Filter.t -> Video_id.t Or_error.t Deferred.t
 
 val get_videos
   :  t
