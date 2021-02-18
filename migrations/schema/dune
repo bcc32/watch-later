@@ -1,0 +1,16 @@
+(rule
+ (target schema.sql.gen)
+ (deps
+  (source_tree ..)
+  (:gen ./gen/gen.exe))
+ (action
+  (chdir
+   ..
+   (with-stdout-to
+    %{target}
+    (run %{gen})))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff schema.sql schema.sql.gen)))

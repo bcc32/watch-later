@@ -23,6 +23,7 @@
   (ppx_jane (and (>= v0.14.0) (< v0.15.0)))
   (ppx_log (and (>= v0.14.0) (< v0.15.0)))
   (re (and (>= 1.0) (< 2.0)))
+  (shexp (and :with-test (>= v0.14.0) (< v0.15.0)))
   (sqlite3 (and (>= 5.0.0) (< 6.0.0)))
   (uri (and (>= 3.0.0) (< 4.0.0)))
   (webbrowser (and (>= 0.6.1) (< 0.7.0)))

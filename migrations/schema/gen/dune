@@ -1,0 +1,5 @@
+(executable
+ (name gen)
+ (libraries shexp.process)
+ (preprocess
+  (pps ppx_let)))
