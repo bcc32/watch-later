@@ -279,16 +279,6 @@ let setup_connection ((module Conn) as db : t) =
       ~expect:"WAL"
       "PRAGMA journal_mode = WAL"
   in
-  (* Set busy timeout to 10 seconds *)
-  let%bind () =
-    find_and_check
-      db
-      Caqti_type.int
-      [%test_result: int]
-      ~here:[ [%here] ]
-      ~expect:10_000
-      "PRAGMA busy_timeout = 10000"
-  in
   let%bind () = Migrate.ensure_up_to_date db in
   return ()
 ;;
@@ -298,7 +288,13 @@ let with_file_and_txn dbpath ~f =
   let%bind () =
     Monitor.try_with_or_error (fun () -> Unix.mkdir ~p:() (Filename.dirname dbpath))
   in
-  let uri = Uri.make ~scheme:"sqlite3" ~path:dbpath () in
+  let uri =
+    Uri.make
+      ~scheme:"sqlite3"
+      ~path:dbpath
+      ~query:[ "busy_timeout", [ Int.to_string 10_000 ] ]
+      ()
+  in
   let%bind db = Caqti_async.connect uri |> convert_error in
   let%bind () = setup_connection db in
   let (module Conn) = db in
