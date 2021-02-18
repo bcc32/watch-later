@@ -21,3 +21,4 @@ CLOSED: [2021-01-22 Fri 19:05]
 * TODO Add custom user tags to database
 Could be used as individual sublists to watch later
 * TODO Set journaling mode to WAL
+* TODO Auto-generate schema file
