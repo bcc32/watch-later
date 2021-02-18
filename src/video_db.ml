@@ -538,5 +538,11 @@ WHERE ($1 IS NULL OR watched IS TRUE = $1 IS TRUE)
 ;;
 
 let get_videos ((module Conn) : t) filter ~watched =
-  Conn.collect_list get_videos (watched, filter) |> convert_error
+  Pipe.create_reader ~close_on_exception:false (fun writer ->
+    Conn.iter_s
+      get_videos
+      (fun elt -> Pipe.write writer elt |> Deferred.ok)
+      (watched, filter)
+    |> convert_error
+    |> Deferred.Or_error.ok_exn)
 ;;

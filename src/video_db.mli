@@ -40,4 +40,4 @@ val get_videos
   :  t
   -> Filter.t
   -> watched:bool option
-  -> (Video_info.t * bool) list Or_error.t Deferred.t
+  -> (Video_info.t * bool) Pipe.Reader.t

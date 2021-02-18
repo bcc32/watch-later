@@ -21,9 +21,12 @@ let main ~dbpath ~watched ~(which_videos : Which_videos.t) =
           print_s [%message (video_info : Video_info.t) (watched : bool)];
           return ())
     | Filter filter ->
-      let%bind videos = Video_db.get_videos db filter ~watched in
-      List.iter videos ~f:(fun (video_info, watched) ->
-        print_s [%message (video_info : Video_info.t) (watched : bool)]);
+      let%bind () =
+        Video_db.get_videos db filter ~watched
+        |> Pipe.iter_without_pushback ~f:(fun (video_info, watched) ->
+          print_s [%message (video_info : Video_info.t) (watched : bool)])
+        |> Deferred.ok
+      in
       return ())
 ;;
 
