@@ -258,6 +258,15 @@ let enable_foreign_keys =
   Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA foreign_keys = ON"
 ;;
 
+(* Set journal mode to write-ahead logging *)
+let set_journal_mode_to_wal =
+  Caqti_request.find
+    ~oneshot:true
+    Caqti_type.unit
+    Caqti_type.string
+    "PRAGMA journal_mode = WAL"
+;;
+
 (* Set busy timeout to 10 seconds.  This query uses [find] because it returns the new busy
    timeout. *)
 let set_busy_timeout =
@@ -279,6 +288,11 @@ let with_file_and_txn dbpath ~f =
   let%bind db = Caqti_async.connect uri |> convert_error in
   let (module Conn) = db in
   let%bind () = Conn.exec enable_foreign_keys () |> convert_error in
+  let%bind () =
+    let%bind journal_mode = Conn.find set_journal_mode_to_wal () |> convert_error in
+    [%test_result: String.Caseless.t] journal_mode ~expect:"wal";
+    return ()
+  in
   let%bind () =
     Conn.find set_busy_timeout () |> convert_error |> Deferred.Or_error.ignore_m
   in
