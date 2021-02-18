@@ -53,4 +53,8 @@ module Get_video = struct
   ;;
 end
 
-let command = Command.group ~summary:"Debugging tools" [ "get-video", Get_video.command ]
+let command =
+  Command.group
+    ~summary:"Debugging tools"
+    [ "db", Cmd_debug_db.command; "get-video", Get_video.command ]
+;;

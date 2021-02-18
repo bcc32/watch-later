@@ -13,6 +13,10 @@ Manage YouTube queue
   . [-overwrite]                  overwrite existing entries (default skip)
                                   (alias: -f)
   debug                           Debugging tools
+  . db                            Database debugging commands
+  . . path                        Print file path to database
+  . . . [-dbpath FILE]            path to database file (default is
+                                  $XDG_DATA_HOME/watch-later.db)
   . get-video                     Debug YouTube API calls
   . . [-- VIDEO]                  escape videos whose IDs may start with [-]
   . . [-json]                     Display raw JSON API response
