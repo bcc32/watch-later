@@ -214,7 +214,7 @@ CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
 
   let desired_user_version = Array.length migrations
 
-  let ensure_up_to_date (module Conn : Caqti_async.CONNECTION) =
+  let ensure_up_to_date ((module Conn) : t) =
     (* FIXME: Need to have transaction around checking user version and upgrading. *)
     let%bind user_version = Conn.find get_user_version () |> convert_error in
     Deferred.Or_error.repeat_until_finished user_version (fun user_version ->
@@ -330,7 +330,7 @@ WHERE watched
 |}
 ;;
 
-let video_stats (module Conn : Caqti_async.CONNECTION) =
+let video_stats ((module Conn) : t) =
   let%bind total_videos = Conn.find select_count_total_videos () |> convert_error in
   let%bind watched_videos = Conn.find select_count_watched_videos () |> convert_error in
   return
@@ -397,7 +397,7 @@ let add_video_overwrite = add_video ~overwrite:true
 let add_video_no_overwrite = add_video ~overwrite:false
 
 let add_video
-      (module Conn : Caqti_async.CONNECTION)
+      ((module Conn) : t)
       (video_info : Video_info.t)
       ~mark_watched:should_mark_watched
       ~overwrite
@@ -444,15 +444,15 @@ WHERE video_id = ?
 |}
 ;;
 
-let get (module Conn : Caqti_async.CONNECTION) video_id =
+let get ((module Conn) : t) video_id =
   Conn.find_opt select_video_by_id video_id |> convert_error
 ;;
 
-let mem (module Conn : Caqti_async.CONNECTION) video_id =
+let mem ((module Conn) : t) video_id =
   Conn.find_opt select_video_by_id video_id |> convert_error >>| Option.is_some
 ;;
 
-let mark_watched (module Conn : Caqti_async.CONNECTION) video_id state =
+let mark_watched ((module Conn) : t) video_id state =
   (* TODO: Deduplicate this code *)
   let watched =
     match state with
@@ -491,7 +491,7 @@ LIMIT 1
 |}
 ;;
 
-let get_random_unwatched_video (module Conn : Caqti_async.CONNECTION) filter =
+let get_random_unwatched_video ((module Conn) : t) filter =
   match%bind Conn.find_opt get_random_unwatched_video filter |> convert_error with
   | Some video_id -> return video_id
   | None -> Deferred.Or_error.error_s [%message "No unwatched videos matching filter"]
@@ -511,6 +511,6 @@ WHERE ($1 IS NULL OR watched IS TRUE = $1 IS TRUE)
 |}
 ;;
 
-let get_videos (module Conn : Caqti_async.CONNECTION) filter ~watched =
+let get_videos ((module Conn) : t) filter ~watched =
   Conn.collect_list get_videos (watched, filter) |> convert_error
 ;;
