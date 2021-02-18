@@ -300,33 +300,6 @@ let with_file_and_txn dbpath ~f =
   Deferred.return result
 ;;
 
-let wrap_core_error = Deferred.Result.map_error ~f:(fun e -> `Error e)
-
-let unwrap_core_error =
-  Deferred.Result.map_error ~f:(function
-    | `Error e -> e
-    | #Caqti_error.t as e -> e |> Caqti_error.show |> Error.of_string)
-;;
-
-let select_non_watched_videos =
-  Caqti_request.collect
-    Caqti_type.unit
-    Video_info.t
-    {|
-SELECT channel_id, channel_title, video_id, video_title
-FROM videos_all
-WHERE NOT watched
-|}
-;;
-
-let iter_non_watched_videos (module Conn : Caqti_async.CONNECTION) ~f =
-  Conn.iter_s
-    select_non_watched_videos
-    (fun video_info -> f video_info |> wrap_core_error)
-    ()
-  |> unwrap_core_error
-;;
-
 let select_count_total_videos =
   Caqti_request.find Caqti_type.unit Caqti_type.int {|
 SELECT COUNT(*) FROM videos

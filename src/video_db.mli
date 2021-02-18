@@ -9,11 +9,6 @@ val with_file_and_txn
   -> f:(t -> 'a Or_error.t Deferred.t)
   -> 'a Or_error.t Deferred.t
 
-val iter_non_watched_videos
-  :  t
-  -> f:(Video_info.t -> unit Or_error.t Deferred.t)
-  -> unit Or_error.t Deferred.t
-
 val video_stats : t -> Stats.t Or_error.t Deferred.t
 
 val add_video
