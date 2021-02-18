@@ -279,14 +279,7 @@ let set_busy_timeout =
 
 let optimize = Caqti_request.exec ~oneshot:true Caqti_type.unit "PRAGMA optimize"
 
-let with_file_and_txn dbpath ~f =
-  (* TODO: Once available, use [File_path] library. *)
-  let%bind () =
-    Monitor.try_with_or_error (fun () -> Unix.mkdir ~p:() (Filename.dirname dbpath))
-  in
-  let uri = Uri.make ~scheme:"sqlite3" ~path:dbpath () in
-  let%bind db = Caqti_async.connect uri |> convert_error in
-  let (module Conn) = db in
+let setup_connection ((module Conn) : t) =
   let%bind () = Conn.exec enable_foreign_keys () |> convert_error in
   let%bind () =
     let%bind journal_mode = Conn.find set_journal_mode_to_wal () |> convert_error in
@@ -296,7 +289,19 @@ let with_file_and_txn dbpath ~f =
   let%bind () =
     Conn.find set_busy_timeout () |> convert_error |> Deferred.Or_error.ignore_m
   in
-  let%bind () = Migrate.ensure_up_to_date db in
+  let%bind () = Migrate.ensure_up_to_date (module Conn) in
+  return ()
+;;
+
+let with_file_and_txn dbpath ~f =
+  (* TODO: Once available, use [File_path] library. *)
+  let%bind () =
+    Monitor.try_with_or_error (fun () -> Unix.mkdir ~p:() (Filename.dirname dbpath))
+  in
+  let uri = Uri.make ~scheme:"sqlite3" ~path:dbpath () in
+  let%bind db = Caqti_async.connect uri |> convert_error in
+  let%bind () = setup_connection db in
+  let (module Conn) = db in
   let%bind () = Conn.start () |> convert_error in
   let%bind.Deferred result =
     match%bind.Deferred Monitor.try_with_join_or_error (fun () -> f db) with
