@@ -78,7 +78,7 @@ let obtain_access_token ~client_id ~client_secret =
         ]
       ()
   in
-  Browse.url endpoint |> ok_exn;
+  let%bind () = Browse.url endpoint in
   let%bind authorization_code =
     Monitor.try_with_or_error (fun () ->
       Async_interactive.ask_dispatch_gen "Authorization Code" ~f:(fun code ->

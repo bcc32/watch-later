@@ -9,6 +9,11 @@ let url url =
     | Error (`Msg s) ->
       raise_s [%message "Error parsing BROWSER environment variable" ~_:(s : string)]
   in
-  Webbrowser.reload ?browser (Uri.to_string url)
-  |> Result.map_error ~f:(fun (`Msg s) -> Error.of_string s)
+  Monitor.try_with_join_or_error
+    ~name:"browse"
+    ~info:
+      (Info.of_lazy_t (lazy (Info.create_s [%message "Browse.url" (url : Uri_sexp.t)])))
+    (fun () ->
+       In_thread.run (fun () -> Webbrowser.reload ?browser (Uri.to_string url))
+       |> Deferred.Result.map_error ~f:(fun (`Msg s) -> Error.of_string s))
 ;;

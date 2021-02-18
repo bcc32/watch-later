@@ -22,7 +22,7 @@ let main ~dbpath ~mark_watched ~(which_videos : Which_videos.t) =
         [ video_id ]
     in
     Deferred.Or_error.List.iter which_videos ~f:(fun video_id ->
-      let%bind () = Deferred.return (browse_video video_id) in
+      let%bind () = browse_video video_id in
       if mark_watched then Video_db.mark_watched db video_id `Watched else return ()))
 ;;
 
