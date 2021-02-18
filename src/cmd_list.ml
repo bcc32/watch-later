@@ -41,6 +41,7 @@ let command =
          ~doc:"BOOL Restrict to videos with watched status BOOL"
      in
      fun () ->
+       Writer.behave_nicely_in_pipeline ();
        let which_videos : Which_videos.t =
          match video_ids, Video_db.Filter.is_empty filter with
          | _ :: _, false -> failwith "Cannot specify both video IDs and filter"
