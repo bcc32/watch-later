@@ -8,23 +8,29 @@ module Which_videos = struct
     | Filter of Video_db.Filter.t
 end
 
-let main ~dbpath ~watched ~(which_videos : Which_videos.t) =
+let main ~dbpath ~id ~watched ~(which_videos : Which_videos.t) =
+  let print ((video_info : Video_info.t), watched) =
+    if id
+    then printf !"%{Video_id}\n" video_info.video_id
+    else print_s [%message (video_info : Video_info.t) (watched : bool)]
+  in
   Video_db.with_file_and_txn dbpath ~f:(fun db ->
     match which_videos with
     | These ids ->
       Deferred.Or_error.List.iter ids ~f:(fun video_id ->
-        match%bind Video_db.get db video_id with
-        | None ->
-          eprintf !"Video %{Video_id} not found\n" video_id;
-          return ()
-        | Some (video_info, watched) ->
-          print_s [%message (video_info : Video_info.t) (watched : bool)];
-          return ())
+        let%bind info =
+          match%bind Video_db.get db video_id with
+          | Some info -> return info
+          | None ->
+            Deferred.Or_error.error_s
+              [%message "Video not found" (video_id : Video_id.t)]
+        in
+        print info;
+        return ())
     | Filter filter ->
       let%bind () =
         Video_db.get_videos db filter ~watched
-        |> Pipe.iter_without_pushback ~f:(fun (video_info, watched) ->
-          print_s [%message (video_info : Video_info.t) (watched : bool)])
+        |> Pipe.iter_without_pushback ~f:print
         |> Deferred.ok
       in
       return ())
@@ -37,6 +43,11 @@ let command =
      and dbpath = Params.dbpath
      and video_ids = Params.videos
      and filter = Video_db.Filter.param
+     and id =
+       flag
+         "id"
+         no_arg
+         ~doc:" If passed, print just the video ID rather than all the video info"
      and watched =
        flag
          "watched"
@@ -51,5 +62,5 @@ let command =
          | _ :: _, true -> These video_ids
          | [], _ -> Filter filter
        in
-       main ~dbpath ~watched ~which_videos)
+       main ~dbpath ~id ~watched ~which_videos)
 ;;

@@ -35,6 +35,8 @@ Manage YouTube queue
   . [-channel-title TITLE]        channel TITLE
   . [-dbpath FILE]                path to database file (default is
                                   $XDG_DATA_HOME/watch-later.db)
+  . [-id]                         If passed, print just the video ID rather than
+                                  all the video info
   . [-video-id ID]                video ID
   . [-video-title TITLE]          video TITLE
   . [-watched BOOL]               Restrict to videos with watched status BOOL
