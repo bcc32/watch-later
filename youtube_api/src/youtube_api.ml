@@ -1,6 +1,7 @@
 open! Core
 open! Async
 open! Import
+module Video_info = Video_info
 
 module Video_id_batch : sig
   type t = private Video_id.t Queue.t [@@deriving sexp_of]
@@ -34,7 +35,7 @@ end
 type t = { access_token : string }
 
 let create () =
-  let%map creds = Oauth.load_fresh () in
+  let%map creds = Youtube_api_oauth.Oauth.load_fresh () in
   { access_token = creds.access_token }
 ;;
 

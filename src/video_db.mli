@@ -13,12 +13,16 @@ val video_stats : t -> Stats.t Or_error.t Deferred.t
 
 val add_video
   :  t
-  -> Video_info.t
+  -> Youtube_api.Video_info.t
   -> mark_watched:[ `Watched | `Unwatched ] option
   -> overwrite:bool
   -> unit Or_error.t Deferred.t
 
-val get : t -> Video_id.t -> (Video_info.t * bool) option Or_error.t Deferred.t
+val get
+  :  t
+  -> Video_id.t
+  -> (Youtube_api.Video_info.t * bool) option Or_error.t Deferred.t
+
 val mem : t -> Video_id.t -> bool Or_error.t Deferred.t
 
 val mark_watched
@@ -40,6 +44,6 @@ val get_videos
   :  t
   -> Filter.t
   -> watched:bool option
-  -> (Video_info.t * bool) Pipe.Reader.t
+  -> (Youtube_api.Video_info.t * bool) Pipe.Reader.t
 
 val strict_remove : t -> Video_id.t -> [ `Ok | `Missing ] Or_error.t Deferred.t

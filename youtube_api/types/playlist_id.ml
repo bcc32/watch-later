@@ -1,5 +1,4 @@
-open! Core
-open! Async
+open! Core_kernel
 open! Import
 
 include String_id.Make

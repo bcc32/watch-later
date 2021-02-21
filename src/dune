@@ -1,7 +1,7 @@
 (library
  (name watch_later)
- (libraries async async_interactive caqti-async
-   caqti-driver-sqlite3 cohttp-async core core_kernel.composition_infix
-   cryptokit re uri webbrowser yojson)
+ (libraries async async_interactive caqti-async caqti-driver-sqlite3
+   cohttp-async core core_kernel.composition_infix cryptokit re uri
+   webbrowser yojson youtube_api)
  (preprocess
   (pps ppx_jane ppx_log)))

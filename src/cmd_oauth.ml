@@ -117,7 +117,9 @@ let obtain_access_token ~client_id ~client_secret =
         , Time_ns.add (Time_ns.now ()) (Time_ns.Span.of_int_sec expires_in) ))
       |> Deferred.return
     in
-    return ({ client_id; client_secret; access_token; refresh_token; expiry } : Oauth.t))
+    return
+      ({ client_id; client_secret; access_token; refresh_token; expiry }
+       : Youtube_api_oauth.Oauth.t))
   else
     raise_s
       [%message
@@ -136,7 +138,7 @@ module Obtain = struct
        in
        fun () ->
          let%bind creds = obtain_access_token ~client_id ~client_secret in
-         let%bind () = Oauth.save creds in
+         let%bind () = Youtube_api_oauth.Oauth.save creds in
          return ())
   ;;
 end
@@ -153,8 +155,10 @@ module Refresh = struct
            ~doc:" Refresh access token even if it doesn't appear to have expired"
        in
        fun () ->
-         let%bind creds = Oauth.load () in
-         Oauth.refresh_and_save creds (if force then `Force else `If_expired)
+         let%bind creds = Youtube_api_oauth.Oauth.load () in
+         Youtube_api_oauth.Oauth.refresh_and_save
+           creds
+           (if force then `Force else `If_expired)
          |> Deferred.Or_error.ignore_m)
   ;;
 end

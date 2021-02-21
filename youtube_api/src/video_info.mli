@@ -12,6 +12,4 @@ type t =
   ; video_id : Video_id.t
   ; video_title : string
   }
-[@@deriving sexp_of]
-
-val t : t Caqti_type.t
+[@@deriving fields, sexp_of]

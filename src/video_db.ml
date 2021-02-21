@@ -2,6 +2,33 @@ open! Core
 open! Async
 open! Import
 
+module Caqti_type = struct
+  include Caqti_type
+
+  let stringable (type a) (module M : Stringable with type t = a) : a t =
+    let open M in
+    custom
+      string
+      ~encode:(fun t -> Ok (to_string t))
+      ~decode:(fun s ->
+        Or_error.try_with (fun () -> of_string s)
+        |> Result.map_error ~f:Error.to_string_hum)
+  ;;
+
+  let video_id = stringable (module Video_id)
+
+  let video_info : Youtube_api.Video_info.t t =
+    custom
+      (tup4 string string video_id string)
+      ~encode:
+        (fun ({ channel_id; channel_title; video_id; video_title } :
+                Youtube_api.Video_info.t) ->
+          Ok (channel_id, channel_title, video_id, video_title))
+      ~decode:(fun (channel_id, channel_title, video_id, video_title) ->
+        Ok { channel_id; channel_title; video_id; video_title })
+  ;;
+end
+
 module Filter = struct
   type t =
     { channel_id : string option
@@ -32,8 +59,7 @@ module Filter = struct
 
   let t : t Caqti_type.t =
     Caqti_type.custom
-      Caqti_type.(
-        tup4 (option string) (option string) (option Video_id.t) (option string))
+      Caqti_type.(tup4 (option string) (option string) (option video_id) (option string))
       ~encode:(fun { channel_id; channel_title; video_id; video_title } ->
         Ok (channel_id, channel_title, video_id, video_title))
       ~decode:(fun (channel_id, channel_title, video_id, video_title) ->
@@ -368,7 +394,7 @@ let video_stats ((module Conn) : t) =
 
 let mark_watched =
   Caqti_request.exec
-    Caqti_type.(tup2 bool Video_id.t)
+    Caqti_type.(tup2 bool video_id)
     {|
 UPDATE videos SET watched = ?
 WHERE id = ?
@@ -416,7 +442,7 @@ DO UPDATE SET title = excluded.title,
 |}
        else "")
   in
-  Caqti_request.exec Caqti_type.(tup3 Video_id.t string string) sql
+  Caqti_request.exec Caqti_type.(tup3 video_id string string) sql
 ;;
 
 let add_video_overwrite = add_video ~overwrite:true
@@ -424,7 +450,7 @@ let add_video_no_overwrite = add_video ~overwrite:false
 
 let add_video
       ((module Conn) : t)
-      (video_info : Video_info.t)
+      (video_info : Youtube_api.Video_info.t)
       ~mark_watched:should_mark_watched
       ~overwrite
   =
@@ -461,8 +487,8 @@ let add_video
 
 let select_video_by_id =
   Caqti_request.find_opt
-    Video_id.t
-    Caqti_type.(tup2 Video_info.t bool)
+    Caqti_type.video_id
+    Caqti_type.(tup2 video_info bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched
 FROM videos_all
@@ -504,7 +530,7 @@ let mark_watched ((module Conn) : t) video_id state =
 let get_random_unwatched_video =
   Caqti_request.find_opt
     Filter.t
-    Video_id.t
+    Caqti_type.video_id
     {|
 SELECT video_id FROM videos_all
 WHERE NOT watched
@@ -526,7 +552,7 @@ let get_random_unwatched_video ((module Conn) : t) filter =
 let get_videos =
   Caqti_request.collect
     Caqti_type.(tup2 (option bool) Filter.t)
-    Caqti_type.(tup2 Video_info.t bool)
+    Caqti_type.(tup2 video_info bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched FROM videos_all
 WHERE ($1 IS NULL OR watched IS TRUE = $1 IS TRUE)
@@ -547,9 +573,11 @@ let get_videos ((module Conn) : t) filter ~watched =
     |> Deferred.Or_error.ok_exn)
 ;;
 
-let remove_video = Caqti_request.exec Video_id.t {|
+let remove_video =
+  Caqti_request.exec Caqti_type.video_id {|
 DELETE FROM videos WHERE id = ?
 |}
+;;
 
 let strict_remove ((module Conn) : t) video_id =
   let%map rows_affected =

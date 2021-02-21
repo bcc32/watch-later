@@ -1,0 +1,5 @@
+(library
+ (name youtube_api_oauth)
+ (libraries async cohttp-async core core_kernel.composition_infix yojson)
+ (preprocess
+  (pps ppx_jane ppx_log)))

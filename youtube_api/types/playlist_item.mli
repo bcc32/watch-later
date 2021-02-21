@@ -1,5 +1,4 @@
-open! Core
-open! Async
+open! Core_kernel
 open! Import
 module Id : String_id.S
 

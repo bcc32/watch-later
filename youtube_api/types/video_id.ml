@@ -1,5 +1,4 @@
-open! Core
-open! Async
+open! Core_kernel
 open! Import
 
 let validate id =
@@ -43,11 +42,3 @@ module Plain_or_in_url = struct
 
   let arg_type = Command.Arg_type.create of_string
 end
-
-let t =
-  Caqti_type.custom
-    Caqti_type.string
-    ~encode:(fun t -> Ok (to_string t))
-    ~decode:(fun s ->
-      Or_error.try_with (fun () -> of_string s) |> Result.map_error ~f:Error.to_string_hum)
-;;
