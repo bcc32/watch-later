@@ -1,6 +1,6 @@
 (library
  (name watch_later)
- (libraries async async_interactive async_kernel.eager_deferred caqti-async
+ (libraries async async_interactive caqti-async
    caqti-driver-sqlite3 cohttp-async core core_kernel.composition_infix
    cryptokit re uri webbrowser yojson)
  (preprocess
