@@ -37,7 +37,7 @@ let command =
      and dbpath = Params.dbpath
      and mark_watched =
        flag
-         "mark-watched"
+         "-mark-watched"
          (optional bool)
          ~doc:"(true|false) mark video as watched (default do nothing)"
        >>| Option.map ~f:(function
@@ -45,10 +45,10 @@ let command =
          | false -> `Unwatched)
      and overwrite =
        flag
-         "overwrite"
+         "-overwrite"
          no_arg
          ~doc:" overwrite existing entries (default skip)"
-         ~aliases:[ "f" ]
+         ~aliases:[ "-f" ]
      and video_ids = Params.nonempty_videos in
      fun api -> main ~api ~dbpath ~mark_watched ~overwrite ~video_ids)
 ;;

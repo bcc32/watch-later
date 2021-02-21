@@ -13,7 +13,7 @@ let command =
     ~summary:"Mark video(s) as watched"
     (let%map_open.Command () = return ()
      and dbpath = Params.dbpath
-     and undo = flag "undo" no_arg ~doc:" mark as unwatched instead"
+     and undo = flag "-undo" no_arg ~doc:" mark as unwatched instead"
      and video_ids = Params.nonempty_videos in
      fun () -> main ~dbpath ~undo ~video_ids)
 ;;

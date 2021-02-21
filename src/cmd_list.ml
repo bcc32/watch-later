@@ -45,12 +45,12 @@ let command =
      and filter = Video_db.Filter.param
      and id =
        flag
-         "id"
+         "-id"
          no_arg
          ~doc:" If passed, print just the video ID rather than all the video info"
      and watched =
        flag
-         "watched"
+         "-watched"
          (optional bool)
          ~doc:"BOOL Restrict to videos with watched status BOOL"
      in

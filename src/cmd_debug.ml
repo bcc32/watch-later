@@ -11,10 +11,10 @@ module Get_video = struct
     let param =
       let open Command.Let_syntax in
       let%map_open () = return ()
-      and json = flag "json" no_arg ~doc:" Display raw JSON API response"
+      and json = flag "-json" no_arg ~doc:" Display raw JSON API response"
       and parts =
         flag
-          "part"
+          "-part"
           (listed string)
           ~doc:
             "PART include PART in the JSON response (see \

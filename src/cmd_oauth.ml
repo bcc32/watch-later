@@ -130,9 +130,9 @@ module Obtain = struct
     Command.async_or_error
       ~summary:"Generate and save valid OAuth 2.0 credentials for YouTube Data API"
       (let%map_open.Command () = return ()
-       and client_id = flag "client-id" (required string) ~doc:"STRING OAuth Client ID"
+       and client_id = flag "-client-id" (required string) ~doc:"STRING OAuth Client ID"
        and client_secret =
-         flag "client-secret" (required string) ~doc:"STRING OAuth Client Secret"
+         flag "-client-secret" (required string) ~doc:"STRING OAuth Client Secret"
        in
        fun () ->
          let%bind creds = obtain_access_token ~client_id ~client_secret in
@@ -148,7 +148,7 @@ module Refresh = struct
       (let%map_open.Command () = return ()
        and force =
          flag
-           "force"
+           "-force"
            no_arg
            ~doc:" Refresh access token even if it doesn't appear to have expired"
        in

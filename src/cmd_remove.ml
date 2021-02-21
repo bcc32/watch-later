@@ -23,10 +23,10 @@ let command =
      and dbpath = Params.dbpath
      and ignore_missing =
        flag
-         "ignore-missing"
+         "-ignore-missing"
          no_arg
          ~doc:" Silence errors about removing videos not in database"
-         ~aliases:[ "f" ]
+         ~aliases:[ "-f" ]
      and video_ids = Params.nonempty_videos in
      fun () -> main ~dbpath ~ignore_missing ~video_ids)
 ;;

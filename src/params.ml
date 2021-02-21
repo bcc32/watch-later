@@ -6,7 +6,7 @@ let dbpath =
   let%map_open.Command () = return ()
   and path =
     flag
-      "dbpath"
+      "-dbpath"
       (optional Filename.arg_type)
       ~doc:"FILE path to database file (default is $XDG_DATA_HOME/watch-later.db)"
   in

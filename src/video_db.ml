@@ -22,11 +22,11 @@ module Filter = struct
 
   let param =
     let%map_open.Command () = return ()
-    and channel_id = flag "channel-id" (optional string) ~doc:"ID channel ID"
-    and channel_title = flag "channel-title" (optional string) ~doc:"TITLE channel TITLE"
+    and channel_id = flag "-channel-id" (optional string) ~doc:"ID channel ID"
+    and channel_title = flag "-channel-title" (optional string) ~doc:"TITLE channel TITLE"
     and video_id =
-      flag "video-id" (optional Video_id.Plain_or_in_url.arg_type) ~doc:"ID video ID"
-    and video_title = flag "video-title" (optional string) ~doc:"TITLE video TITLE" in
+      flag "-video-id" (optional Video_id.Plain_or_in_url.arg_type) ~doc:"ID video ID"
+    and video_title = flag "-video-title" (optional string) ~doc:"TITLE video TITLE" in
     { channel_id; channel_title; video_id; video_title }
   ;;
 

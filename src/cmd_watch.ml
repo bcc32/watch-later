@@ -33,7 +33,7 @@ let command =
      and dbpath = Params.dbpath
      and mark_watched =
        flag_optional_with_default_doc
-         "mark-watched"
+         "-mark-watched"
          bool
          [%sexp_of: bool]
          ~default:true
