@@ -41,11 +41,7 @@ val get_playlist_items
   -> Playlist_id.t
   -> Playlist_item.t list Or_error.t Deferred.t
 
-(* FIXME: Add module for Playlist_item_id *)
-val delete_playlist_item
-  :  t
-  -> string (** playlist item ID *)
-  -> unit Or_error.t Deferred.t
+val delete_playlist_item : t -> Playlist_item.Id.t -> unit Or_error.t Deferred.t
 
 val append_video_to_playlist
   :  t

@@ -178,11 +178,14 @@ let get_playlist_items ?video_id t playlist_id =
     let%bind page_items, next_page_token =
       try
         let open Yojson.Basic.Util in
+        (* TODO: [Playlist_item.of_json], etc. *)
         let page_items =
           json
           |> member "items"
           |> convert_each (fun item ->
-            let id = item |> member "id" |> to_string in
+            let id =
+              item |> member "id" |> to_string |> Playlist_item.Id.of_string
+            in
             let video_id =
               item
               |> member "contentDetails"
@@ -212,7 +215,11 @@ let get_playlist_items ?video_id t playlist_id =
 ;;
 
 let delete_playlist_item t playlist_item_id =
-  call t ~method_:`DELETE ~endpoint:"playlistItems" ~params:[ "id", playlist_item_id ]
+  call
+    t
+    ~method_:`DELETE
+    ~endpoint:"playlistItems"
+    ~params:[ "id", Playlist_item.Id.to_string playlist_item_id ]
   |> Deferred.Or_error.ignore_m
 ;;
 
