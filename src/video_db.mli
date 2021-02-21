@@ -41,3 +41,5 @@ val get_videos
   -> Filter.t
   -> watched:bool option
   -> (Video_info.t * bool) Pipe.Reader.t
+
+val strict_remove : t -> Video_id.t -> [ `Ok | `Missing ] Or_error.t Deferred.t

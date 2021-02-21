@@ -66,6 +66,13 @@ Manage YouTube queue
   . remove-video                  Remove videos from a playlist
   . . [-- VIDEO]                  escape videos whose IDs may start with [-]
   . . [-log-level LEVEL]          The log level
+  remove                          Remove videos from queue
+  . [-- VIDEO]                    escape videos whose IDs may start with [-]
+  . [-dbpath FILE]                path to database file (default is
+                                  $XDG_DATA_HOME/watch-later.db)
+  . [-ignore-missing]             Silence errors about removing videos not in
+                                  database
+                                  (alias: -f)
   stats                           Show stats about the YouTube queue
   . [-dbpath FILE]                path to database file (default is
                                   $XDG_DATA_HOME/watch-later.db)

@@ -546,3 +546,14 @@ let get_videos ((module Conn) : t) filter ~watched =
     |> convert_error
     |> Deferred.Or_error.ok_exn)
 ;;
+
+let remove_video = Caqti_request.exec Video_id.t {|
+DELETE FROM videos WHERE id = ?
+|}
+
+let strict_remove ((module Conn) : t) video_id =
+  let%map rows_affected =
+    Conn.exec_with_affected_count remove_video video_id |> convert_error
+  in
+  if rows_affected = 1 then `Ok else `Missing
+;;
