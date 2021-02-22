@@ -1,82 +1,8 @@
 open! Core
 open! Async
 open! Import
-
-module Caqti_type = struct
-  include Caqti_type
-
-  let stringable (type a) (module M : Stringable with type t = a) : a t =
-    let open M in
-    custom
-      string
-      ~encode:(fun t -> Ok (to_string t))
-      ~decode:(fun s ->
-        Or_error.try_with (fun () -> of_string s)
-        |> Result.map_error ~f:Error.to_string_hum)
-  ;;
-
-  let video_id = stringable (module Video_id)
-
-  module Fields = struct
-    type 'a caqti_type = 'a t
-
-    (* Difference list encoding of serialization functions for each field.
-
-       [fields_rest] represents the fields that have not yet been folded over. *)
-    type ('fields, 'fields_rest, 'a) t_ =
-      { unwrap : 'fields -> 'fields_rest
-      ; encode : ('a -> 'fields_rest) -> 'a -> 'fields
-      ; caqti_type : 'fields_rest caqti_type -> 'fields caqti_type
-      }
-
-    type ('fields, 'a) t = ('fields, unit, 'a) t_
-
-    let of_make_creator
-          (type a fields)
-          ((decode : fields -> a), ({ unwrap = _; encode; caqti_type } : (fields, a) t))
-      : a caqti_type
-      =
-      let encode = encode (Fn.const ()) in
-      let caqti_type = caqti_type unit in
-      custom caqti_type ~encode:(fun x -> Ok (encode x)) ~decode:(fun x -> Ok (decode x))
-    ;;
-
-    let init (type fields) : (fields, fields, _) t_ =
-      { unwrap = Fn.id; encode = Fn.id; caqti_type = Fn.id }
-    ;;
-
-    let folder
-          (type fields fields_rest a this_field)
-          (type_ : this_field caqti_type)
-          (field : (a, this_field) Fieldslib.Field.t)
-          ({ unwrap; encode; caqti_type } : (fields, this_field * fields_rest, a) t_)
-      : (fields -> this_field) * (fields, fields_rest, a) t_
-      =
-      let encode encode_rest =
-        encode (fun record -> Fieldslib.Field.get field record, encode_rest record)
-      in
-      let caqti_type rest = caqti_type (tup2 type_ rest) in
-      fst << unwrap, { unwrap = snd << unwrap; encode; caqti_type }
-    ;;
-  end
-
-  let video_info =
-    Youtube_api.Video_info.Fields.make_creator
-      Fields.init
-      ~channel_id:(Fields.folder string)
-      ~channel_title:(Fields.folder string)
-      ~video_id:(Fields.folder video_id)
-      ~video_title:(Fields.folder string)
-    |> Fields.of_make_creator
-  ;;
-
-  module Std = struct
-    include Std
-
-    let video_id = video_id
-    let _video_info = video_info
-  end
-end
+module Caqti_type = Db_type
+open Caqti_type.Std
 
 module Filter = struct
   type t =
@@ -107,15 +33,14 @@ module Filter = struct
   ;;
 
   let t : t Caqti_type.t =
-    let open Caqti_type.Std in
-    let f = Caqti_type.Fields.folder in
+    let f = Caqti_type.Record.step in
     Fields.make_creator
-      Caqti_type.Fields.init
+      Caqti_type.Record.init
       ~channel_id:(f (option string))
       ~channel_title:(f (option string))
-      ~video_id:(f (option video_id))
+      ~video_id:(f (option Caqti_type.Std.video_id))
       ~video_title:(f (option string))
-    |> Caqti_type.Fields.of_make_creator
+    |> Caqti_type.Record.finish
   ;;
 end
 
@@ -140,15 +65,10 @@ let with_txn ((module Conn) : t) ~f =
 ;;
 
 module Migrate = struct
-  let get_user_version =
-    Caqti_request.find Caqti_type.unit Caqti_type.int "PRAGMA user_version"
-  ;;
+  let get_user_version = Caqti_request.find unit int "PRAGMA user_version"
 
   let set_user_version n =
-    Caqti_request.exec
-      ~oneshot:true
-      Caqti_type.unit
-      (sprintf "PRAGMA user_version = %d" n)
+    Caqti_request.exec ~oneshot:true unit (sprintf "PRAGMA user_version = %d" n)
   ;;
 
   let disable_foreign_keys = "PRAGMA foreign_keys = OFF"
@@ -295,11 +215,11 @@ CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
     let all = [ create_videos_index_on_title; create_channels_index_on_title ]
   end
 
-  let vacuum = Caqti_request.exec Caqti_type.unit "VACUUM"
+  let vacuum = Caqti_request.exec unit "VACUUM"
 
   let migrations =
     [| V1.all; V2.all; V3.all |]
-    |> Array.map ~f:(List.map ~f:(Caqti_request.exec ~oneshot:true Caqti_type.unit))
+    |> Array.map ~f:(List.map ~f:(Caqti_request.exec ~oneshot:true unit))
   ;;
 
   let desired_user_version = Array.length migrations
@@ -366,13 +286,12 @@ CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
 end
 
 let exec_oneshot ((module Conn) : t) sql =
-  Conn.exec (Caqti_request.exec ~oneshot:true Caqti_type.unit sql) () |> convert_error
+  Conn.exec (Caqti_request.exec ~oneshot:true unit sql) () |> convert_error
 ;;
 
 let find_and_check ((module Conn) : t) type_ test ?here ?message ?equal ~expect sql =
   let%bind actual =
-    Conn.find (Caqti_request.find ~oneshot:true Caqti_type.unit type_ sql) ()
-    |> convert_error
+    Conn.find (Caqti_request.find ~oneshot:true unit type_ sql) () |> convert_error
   in
   test ?here ?message ?equal ~expect actual;
   return ()
@@ -385,7 +304,7 @@ let setup_connection ((module Conn) as db : t) =
   let%bind () =
     find_and_check
       db
-      Caqti_type.string
+      string
       [%test_result: String.Caseless.t]
       ~here:[ [%here] ]
       ~expect:"WAL"
@@ -419,16 +338,13 @@ let with_file_and_txn dbpath ~f =
 ;;
 
 let select_count_total_videos =
-  Caqti_request.find Caqti_type.unit Caqti_type.int {|
+  Caqti_request.find unit int {|
 SELECT COUNT(*) FROM videos
 |}
 ;;
 
 let select_count_watched_videos =
-  Caqti_request.find
-    Caqti_type.unit
-    Caqti_type.int
-    {|
+  Caqti_request.find unit int {|
 SELECT COUNT(*) FROM videos
 WHERE watched
 |}
@@ -445,9 +361,7 @@ let video_stats ((module Conn) : t) =
 ;;
 
 let mark_watched =
-  Caqti_request.exec
-    Caqti_type.(tup2 bool video_id)
-    {|
+  Caqti_request.exec (tup2 bool video_id) {|
 UPDATE videos SET watched = ?
 WHERE id = ?
 |}
@@ -469,7 +383,7 @@ DO UPDATE SET title = excluded.title
 |}
        else "")
   in
-  Caqti_request.exec Caqti_type.(tup2 string string) sql
+  Caqti_request.exec (tup2 string string) sql
 ;;
 
 let add_channel_overwrite = add_channel ~overwrite:true
@@ -494,7 +408,7 @@ DO UPDATE SET title = excluded.title,
 |}
        else "")
   in
-  Caqti_request.exec Caqti_type.(tup3 video_id string string) sql
+  Caqti_request.exec (tup3 video_id string string) sql
 ;;
 
 let add_video_overwrite = add_video ~overwrite:true
@@ -539,8 +453,8 @@ let add_video
 
 let select_video_by_id =
   Caqti_request.find_opt
-    Caqti_type.video_id
-    Caqti_type.(tup2 video_info bool)
+    video_id
+    (tup2 video_info bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched
 FROM videos_all
@@ -582,7 +496,7 @@ let mark_watched ((module Conn) : t) video_id state =
 let get_random_unwatched_video =
   Caqti_request.find_opt
     Filter.t
-    Caqti_type.video_id
+    video_id
     {|
 SELECT video_id FROM videos_all
 WHERE NOT watched
@@ -603,8 +517,8 @@ let get_random_unwatched_video ((module Conn) : t) filter =
 
 let get_videos =
   Caqti_request.collect
-    Caqti_type.(tup2 (option bool) Filter.t)
-    Caqti_type.(tup2 video_info bool)
+    (tup2 (option bool) Filter.t)
+    (tup2 video_info bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched FROM videos_all
 WHERE ($1 IS NULL OR watched IS TRUE = $1 IS TRUE)
@@ -625,11 +539,9 @@ let get_videos ((module Conn) : t) filter ~watched =
     |> Deferred.Or_error.ok_exn)
 ;;
 
-let remove_video =
-  Caqti_request.exec Caqti_type.video_id {|
+let remove_video = Caqti_request.exec video_id {|
 DELETE FROM videos WHERE id = ?
 |}
-;;
 
 let strict_remove ((module Conn) : t) video_id =
   let%map rows_affected =
