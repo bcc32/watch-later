@@ -7,7 +7,7 @@ Manage YouTube queue
   add                             Add video(s) to queue
   . [-- VIDEO]                    escape videos whose IDs may start with [-]
   . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later.db)
+                                  $XDG_DATA_HOME/watch-later/watch-later.db)
   . [-log-level LEVEL]            The log level
   . [-mark-watched (true|false)]  mark video as watched (default do nothing)
   . [-overwrite]                  overwrite existing entries (default skip)
@@ -16,12 +16,12 @@ Manage YouTube queue
   . db                            Database debugging commands
   . . path                        Print file path to database
   . . . [-dbpath FILE]            path to database file (default is
-                                  $XDG_DATA_HOME/watch-later.db)
+                                  $XDG_DATA_HOME/watch-later/watch-later.db)
   . . query                       Run an arbitrary SQL query on stdin against
                                   the database
   . . . [-- ARG]                  command-line arguments to pass to sqlite3
   . . . [-dbpath FILE]            path to database file (default is
-                                  $XDG_DATA_HOME/watch-later.db)
+                                  $XDG_DATA_HOME/watch-later/watch-later.db)
   . get-video                     Debug YouTube API calls
   . . [-- VIDEO]                  escape videos whose IDs may start with [-]
   . . [-json]                     Display raw JSON API response
@@ -34,7 +34,7 @@ Manage YouTube queue
   . [-channel-id ID]              channel ID
   . [-channel-title TITLE]        channel TITLE
   . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later.db)
+                                  $XDG_DATA_HOME/watch-later/watch-later.db)
   . [-id]                         If passed, print just the video ID rather than
                                   all the video info
   . [-video-id ID]                video ID
@@ -43,7 +43,7 @@ Manage YouTube queue
   mark-watched                    Mark video(s) as watched
   . [-- VIDEO]                    escape videos whose IDs may start with [-]
   . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later.db)
+                                  $XDG_DATA_HOME/watch-later/watch-later.db)
   . [-undo]                       mark as unwatched instead
   oauth                           Manage OAuth 2.0 credentials for YouTube Data
                                   API
@@ -69,19 +69,19 @@ Manage YouTube queue
   remove                          Remove videos from queue
   . [-- VIDEO]                    escape videos whose IDs may start with [-]
   . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later.db)
+                                  $XDG_DATA_HOME/watch-later/watch-later.db)
   . [-ignore-missing]             Silence errors about removing videos not in
                                   database
                                   (alias: -f)
   stats                           Show stats about the YouTube queue
   . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later.db)
+                                  $XDG_DATA_HOME/watch-later/watch-later.db)
   watch                           Open a video in $BROWSER and mark it watched.
   . [-- VIDEO]                    escape videos whose IDs may start with [-]
   . [-channel-id ID]              channel ID
   . [-channel-title TITLE]        channel TITLE
   . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later.db)
+                                  $XDG_DATA_HOME/watch-later/watch-later.db)
   . [-mark-watched (true|false)]  mark video as watched (default true) (default:
                                   true)
   . [-video-id ID]                video ID

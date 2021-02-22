@@ -1,0 +1,5 @@
+(library
+ (name watch_later_directories)
+ (libraries base directories)
+ (preprocess
+  (pps ppx_base)))

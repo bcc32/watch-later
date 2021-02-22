@@ -3,22 +3,13 @@ open! Async
 open! Import
 
 let dbpath =
-  let%map_open.Command () = return ()
-  and path =
-    flag
-      "-dbpath"
-      (optional Filename.arg_type)
-      ~doc:"FILE path to database file (default is $XDG_DATA_HOME/watch-later.db)"
-  in
-  match path with
-  | Some path -> path
-  | None ->
-    let basedir =
-      match Sys.getenv "XDG_DATA_HOME" with
-      | Some path -> path
-      | None -> Sys.getenv_exn "HOME" ^/ ".local" ^/ "share"
-    in
-    basedir ^/ "watch-later.db"
+  let default_db_path = Watch_later_directories.default_db_path in
+  let open Command.Param in
+  flag
+    "-dbpath"
+    (optional_with_default default_db_path Filename.arg_type)
+    ~doc:
+      "FILE path to database file (default is $XDG_DATA_HOME/watch-later/watch-later.db)"
 ;;
 
 let video =
