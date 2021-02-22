@@ -17,16 +17,65 @@ module Caqti_type = struct
 
   let video_id = stringable (module Video_id)
 
-  let video_info : Youtube_api.Video_info.t t =
-    custom
-      (tup4 string string video_id string)
-      ~encode:
-        (fun ({ channel_id; channel_title; video_id; video_title } :
-                Youtube_api.Video_info.t) ->
-          Ok (channel_id, channel_title, video_id, video_title))
-      ~decode:(fun (channel_id, channel_title, video_id, video_title) ->
-        Ok { channel_id; channel_title; video_id; video_title })
+  module Fields = struct
+    type 'a caqti_type = 'a t
+
+    (* Difference list encoding of serialization functions for each field.
+
+       [fields_rest] represents the fields that have not yet been folded over. *)
+    type ('fields, 'fields_rest, 'a) t_ =
+      { unwrap : 'fields -> 'fields_rest
+      ; encode : ('a -> 'fields_rest) -> 'a -> 'fields
+      ; caqti_type : 'fields_rest caqti_type -> 'fields caqti_type
+      }
+
+    type ('fields, 'a) t = ('fields, unit, 'a) t_
+
+    let of_make_creator
+          (type a fields)
+          ((decode : fields -> a), ({ unwrap = _; encode; caqti_type } : (fields, a) t))
+      : a caqti_type
+      =
+      let encode = encode (Fn.const ()) in
+      let caqti_type = caqti_type unit in
+      custom caqti_type ~encode:(fun x -> Ok (encode x)) ~decode:(fun x -> Ok (decode x))
+    ;;
+
+    let init (type fields) : (fields, fields, _) t_ =
+      { unwrap = Fn.id; encode = Fn.id; caqti_type = Fn.id }
+    ;;
+
+    let folder
+          (type fields fields_rest a this_field)
+          (type_ : this_field caqti_type)
+          (field : (a, this_field) Fieldslib.Field.t)
+          ({ unwrap; encode; caqti_type } : (fields, this_field * fields_rest, a) t_)
+      : (fields -> this_field) * (fields, fields_rest, a) t_
+      =
+      let encode encode_rest =
+        encode (fun record -> Fieldslib.Field.get field record, encode_rest record)
+      in
+      let caqti_type rest = caqti_type (tup2 type_ rest) in
+      fst << unwrap, { unwrap = snd << unwrap; encode; caqti_type }
+    ;;
+  end
+
+  let video_info =
+    Youtube_api.Video_info.Fields.make_creator
+      Fields.init
+      ~channel_id:(Fields.folder string)
+      ~channel_title:(Fields.folder string)
+      ~video_id:(Fields.folder video_id)
+      ~video_title:(Fields.folder string)
+    |> Fields.of_make_creator
   ;;
+
+  module Std = struct
+    include Std
+
+    let video_id = video_id
+    let _video_info = video_info
+  end
 end
 
 module Filter = struct
@@ -58,12 +107,15 @@ module Filter = struct
   ;;
 
   let t : t Caqti_type.t =
-    Caqti_type.custom
-      Caqti_type.(tup4 (option string) (option string) (option video_id) (option string))
-      ~encode:(fun { channel_id; channel_title; video_id; video_title } ->
-        Ok (channel_id, channel_title, video_id, video_title))
-      ~decode:(fun (channel_id, channel_title, video_id, video_title) ->
-        Ok { channel_id; channel_title; video_id; video_title })
+    let open Caqti_type.Std in
+    let f = Caqti_type.Fields.folder in
+    Fields.make_creator
+      Caqti_type.Fields.init
+      ~channel_id:(f (option string))
+      ~channel_title:(f (option string))
+      ~video_id:(f (option video_id))
+      ~video_title:(f (option string))
+    |> Caqti_type.Fields.of_make_creator
   ;;
 end
 
