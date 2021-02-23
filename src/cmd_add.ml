@@ -2,38 +2,53 @@ open! Core
 open! Async
 open! Import
 
-let main ~api ~dbpath ~mark_watched ~overwrite ~video_ids =
+let main ~api ~dbpath ~mark_watched ~overwrite ~videos_or_playlist =
   Video_db.with_file_and_txn dbpath ~f:(fun db ->
-    let video_ids_to_lookup = video_ids |> Pipe.of_list in
-    let video_ids_to_lookup =
-      if overwrite
-      then video_ids_to_lookup
-      else
-        video_ids_to_lookup
-        |> Pipe.filter_map' ~f:(fun video_id ->
-          if%map.Deferred Video_db.mem db video_id |> Deferred.Or_error.ok_exn
-          then None
-          else Some video_id)
+    let%bind video_infos =
+      match videos_or_playlist with
+      | `Videos video_ids ->
+        let video_ids_to_lookup = video_ids |> Pipe.of_list in
+        let video_ids_to_lookup =
+          if overwrite
+          then video_ids_to_lookup
+          else
+            video_ids_to_lookup
+            |> Pipe.filter_map' ~f:(fun video_id ->
+              if%map.Deferred Video_db.mem db video_id |> Deferred.Or_error.ok_exn
+              then None
+              else Some video_id)
+        in
+        video_ids_to_lookup |> Youtube_api.get_video_info' api |> return
+      | `Playlist playlist_id ->
+        (* FIXME: Make playlist item API more consistent with video info API (using
+           Pipes). *)
+        Youtube_api.get_playlist_items api playlist_id
+        >>| List.map ~f:(fun item -> Ok (Playlist_item.video_info item))
+        >>| Pipe.of_list
+    in
+    let process_video_info =
+      match mark_watched with
+      | None -> fun video_info -> Video_db.add_video db video_info ~overwrite
+      | Some state ->
+        fun video_info ->
+          let%bind () = Video_db.add_video db video_info ~overwrite in
+          let%bind () = Video_db.mark_watched db video_info.video_id state in
+          return ()
     in
     let%bind () =
       match%map.Deferred
-        video_ids_to_lookup
-        |> Youtube_api.get_video_info' api
+        video_infos
         |> Pipe.filter_map' ~f:(fun video_info ->
           Deferred.map
             ~f:Result.error
             (let%bind video_info = Deferred.return video_info in
-             Video_db.add_video db video_info ~overwrite))
+             process_video_info video_info))
         |> Pipe.to_list
       with
       | [] -> Ok ()
       | _ :: _ as errors -> Error (Error.of_list errors)
     in
-    match mark_watched with
-    | None -> return ()
-    | Some state ->
-      Deferred.Or_error.List.iter video_ids ~f:(fun video_id ->
-        Video_db.mark_watched db video_id state))
+    return ())
 ;;
 
 let command =
@@ -55,6 +70,6 @@ let command =
          no_arg
          ~doc:" overwrite existing entries (default skip)"
          ~aliases:[ "-f" ]
-     and video_ids = Params.nonempty_videos in
-     fun api -> main ~api ~dbpath ~mark_watched ~overwrite ~video_ids)
+     and videos_or_playlist = Params.nonempty_videos_or_playlist in
+     fun api -> main ~api ~dbpath ~mark_watched ~overwrite ~videos_or_playlist)
 ;;

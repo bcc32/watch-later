@@ -43,3 +43,22 @@ let nonempty_videos =
   | [] -> raise_s [%message "expected at least one video"]
   | _ :: _ as specs -> specs
 ;;
+
+let nonempty_videos_or_playlist =
+  let open Command.Param in
+  let playlist =
+    flag
+      "-playlist"
+      (optional Playlist_id.Plain_or_in_url.arg_type)
+      ~doc:
+        "PLAYLIST specify videos in PLAYLIST rather than individual command-line \
+         arguments"
+  in
+  let%map.Command videos = videos
+  and playlist = playlist in
+  match videos, playlist with
+  | (_ :: _ as videos), None -> `Videos videos
+  | [], Some playlist_id -> `Playlist playlist_id
+  | [], None -> raise_s [%message "Neither videos nor playlist specified"]
+  | _ :: _, Some _ -> raise_s [%message "Videos and playlist may not both be specified"]
+;;

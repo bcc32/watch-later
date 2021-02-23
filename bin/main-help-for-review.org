@@ -12,6 +12,8 @@ Manage YouTube queue
   . [-mark-watched (true|false)]  mark video as watched (default do nothing)
   . [-overwrite]                  overwrite existing entries (default skip)
                                   (alias: -f)
+  . [-playlist PLAYLIST]          specify videos in PLAYLIST rather than
+                                  individual command-line arguments
   debug                           Debugging tools
   . db                            Database debugging commands
   . . path                        Print file path to database

@@ -12,3 +12,7 @@ val videos : Video_id.t list Command.Param.t
 
 (** Non-empty list of video IDs. *)
 val nonempty_videos : Video_id.t list Command.Param.t
+
+(** Non-empty list of video IDs, or a playlist containing videos. *)
+val nonempty_videos_or_playlist
+  : [ `Videos of Video_id.t list | `Playlist of Playlist_id.t ] Command.Param.t
