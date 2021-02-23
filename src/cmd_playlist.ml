@@ -62,10 +62,12 @@ module Remove_video = struct
        and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type)
        and videos = Params.nonempty_videos in
        fun api ->
-         Deferred.Or_error.List.iter videos ~f:(fun video_id ->
-           let%bind items = Youtube_api.get_playlist_items api playlist_id ~video_id in
-           Deferred.Or_error.List.iter items ~f:(fun item ->
-             Youtube_api.delete_playlist_item api item.id)))
+         let videos = Set.of_list (module Video_id) videos in
+         let%bind items = Youtube_api.get_playlist_items api playlist_id in
+         Deferred.Or_error.List.iter items ~f:(fun item ->
+           if Set.mem videos item.video_id
+           then Youtube_api.delete_playlist_item api item.id
+           else return ()))
   ;;
 end
 

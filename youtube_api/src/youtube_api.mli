@@ -36,12 +36,7 @@ val get_video_json'
   -> parts:string list
   -> Yojson.Basic.t Or_error.t Pipe.Reader.t
 
-val get_playlist_items
-  :  ?video_id:Video_id.t
-  -> t
-  -> Playlist_id.t
-  -> Playlist_item.t list Or_error.t Deferred.t
-
+val get_playlist_items : t -> Playlist_id.t -> Playlist_item.t list Or_error.t Deferred.t
 val delete_playlist_item : t -> Playlist_item.Id.t -> unit Or_error.t Deferred.t
 
 val append_video_to_playlist

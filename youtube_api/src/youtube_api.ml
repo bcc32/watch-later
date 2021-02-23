@@ -155,7 +155,7 @@ let get_video_info t video_id =
 ;;
 
 (* TODO: Generalize pagination logic *)
-let get_playlist_items ?video_id t playlist_id =
+let get_playlist_items t playlist_id =
   let rec loop page_token rev_items =
     let%bind json =
       call
@@ -167,13 +167,10 @@ let get_playlist_items ?video_id t playlist_id =
            ; "playlistId", Playlist_id.to_string playlist_id
            ; "maxResults", Int.to_string max_batch_size
            ]
-           @ (match page_token with
-             | None -> []
-             | Some page_token -> [ "pageToken", page_token ])
            @
-           match video_id with
+           match page_token with
            | None -> []
-           | Some video_id -> [ "videoId", Video_id.to_string video_id ])
+           | Some page_token -> [ "pageToken", page_token ])
       >>| Yojson.Basic.from_string
     in
     let%bind page_items, next_page_token =
