@@ -148,12 +148,6 @@ let get_video_info' t video_ids =
               { Video_info.channel_id; channel_title; video_id; video_title })))
 ;;
 
-let get_video_info t video_id =
-  get_video_info' t (Pipe.singleton video_id)
-  |> Pipe.read_all
-  |> Deferred.map ~f:(Fn.flip Queue.get 0)
-;;
-
 (* TODO: Generalize pagination logic *)
 let get_playlist_items t playlist_id =
   let rec loop page_token rev_items =
