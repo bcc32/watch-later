@@ -4,30 +4,36 @@ open! Import
 
 let main ~api ~dbpath ~mark_watched ~overwrite ~video_ids =
   Video_db.with_file_and_txn dbpath ~f:(fun db ->
-    match%map.Deferred
-      video_ids
-      |> Pipe.of_list
-      |> Youtube_api.get_video_info' api
-      |> Pipe.filter_map' ~f:(fun video_info ->
-        let result =
-          let%bind video_info = Deferred.return video_info in
-          let%bind already_present = Video_db.mem db video_info.video_id in
-          if already_present && not overwrite
-          then (
-            match mark_watched with
-            | None -> return ()
-            | Some state -> Video_db.mark_watched db video_info.video_id state)
-          else (
-            let%bind video_info =
-              Youtube_api.get_video_info api video_info.video_id
-            in
-            Video_db.add_video db video_info ~mark_watched ~overwrite)
-        in
-        result |> Deferred.map ~f:Result.error)
-      |> Pipe.to_list
-    with
-    | [] -> Ok ()
-    | _ :: _ as errors -> Error (Error.of_list errors))
+    let video_ids_to_lookup = video_ids |> Pipe.of_list in
+    let video_ids_to_lookup =
+      if overwrite
+      then video_ids_to_lookup
+      else
+        video_ids_to_lookup
+        |> Pipe.filter_map' ~f:(fun video_id ->
+          if%map.Deferred Video_db.mem db video_id |> Deferred.Or_error.ok_exn
+          then None
+          else Some video_id)
+    in
+    let%bind () =
+      match%map.Deferred
+        video_ids_to_lookup
+        |> Youtube_api.get_video_info' api
+        |> Pipe.filter_map' ~f:(fun video_info ->
+          Deferred.map
+            ~f:Result.error
+            (let%bind video_info = Deferred.return video_info in
+             Video_db.add_video db video_info ~overwrite))
+        |> Pipe.to_list
+      with
+      | [] -> Ok ()
+      | _ :: _ as errors -> Error (Error.of_list errors)
+    in
+    match mark_watched with
+    | None -> return ()
+    | Some state ->
+      Deferred.Or_error.List.iter video_ids ~f:(fun video_id ->
+        Video_db.mark_watched db video_id state))
 ;;
 
 let command =

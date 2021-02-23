@@ -14,7 +14,6 @@ val video_stats : t -> Stats.t Or_error.t Deferred.t
 val add_video
   :  t
   -> Youtube_api.Video_info.t
-  -> mark_watched:[ `Watched | `Unwatched ] option
   -> overwrite:bool
   -> unit Or_error.t Deferred.t
 

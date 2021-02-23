@@ -414,12 +414,7 @@ DO UPDATE SET title = excluded.title,
 let add_video_overwrite = add_video ~overwrite:true
 let add_video_no_overwrite = add_video ~overwrite:false
 
-let add_video
-      ((module Conn) : t)
-      (video_info : Youtube_api.Video_info.t)
-      ~mark_watched:should_mark_watched
-      ~overwrite
-  =
+let add_video ((module Conn) : t) (video_info : Youtube_api.Video_info.t) ~overwrite =
   let%bind () =
     Conn.exec
       (if overwrite then add_channel_overwrite else add_channel_no_overwrite)
@@ -432,23 +427,7 @@ let add_video
       (video_info.video_id, video_info.video_title, video_info.channel_id)
     |> convert_error
   in
-  match should_mark_watched with
-  | None -> return ()
-  | Some state ->
-    let watched =
-      match state with
-      | `Watched -> true
-      | `Unwatched -> false
-    in
-    let%bind rows_affected =
-      Conn.exec_with_affected_count mark_watched (watched, video_info.video_id)
-      |> convert_error
-    in
-    if rows_affected <> 1
-    then
-      Deferred.Or_error.error_s
-        [%message "Failed to mark watched" ~video_id:(video_info.video_id : Video_id.t)]
-    else return ()
+  return ()
 ;;
 
 let select_video_by_id =
@@ -466,12 +445,9 @@ let get ((module Conn) : t) video_id =
   Conn.find_opt select_video_by_id video_id |> convert_error
 ;;
 
-let mem ((module Conn) : t) video_id =
-  Conn.find_opt select_video_by_id video_id |> convert_error >>| Option.is_some
-;;
+let mem t video_id = get t video_id >>| Option.is_some
 
 let mark_watched ((module Conn) : t) video_id state =
-  (* TODO: Deduplicate this code *)
   let watched =
     match state with
     | `Watched -> true
