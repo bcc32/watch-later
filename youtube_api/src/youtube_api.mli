@@ -1,7 +1,6 @@
 open! Core
 open! Async
 open! Import
-module Video_info = Video_info
 
 type t
 
