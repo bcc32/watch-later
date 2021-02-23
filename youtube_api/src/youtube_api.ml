@@ -122,7 +122,7 @@ let get_video_json_batch t (video_id_batch : Video_id_batch.t) ~parts =
          | None -> Or_error.error_s [%message "No such video" (video_id : Video_id.t)]))
 ;;
 
-let get_video_json' t video_ids ~parts =
+let get_video_json t video_ids ~parts =
   video_ids
   |> Pipe.map' ~max_queue_length:max_batch_size ~f:(fun video_ids ->
     let batch = Video_id_batch.of_queue_exn video_ids in
@@ -131,9 +131,9 @@ let get_video_json' t video_ids ~parts =
     | Ok results -> results)
 ;;
 
-let get_video_info' t video_ids =
+let get_video_info t video_ids =
   video_ids
-  |> get_video_json' t ~parts:[ "snippet" ]
+  |> get_video_json t ~parts:[ "snippet" ]
   |> Pipe.map
        ~f:
          (Or_error.bind ~f:(fun json ->
@@ -147,11 +147,13 @@ let get_video_info' t video_ids =
               { Video_info.channel_id; channel_title; video_id; video_title })))
 ;;
 
+(* FIXME: [Yojson.Basic.from_string] raises.  We must be careful to avoid raising to
+   consumers of this module. *)
 (* TODO: Continue to factor out [of_json] functions into each type's module *)
 
 (* TODO: Generalize pagination logic *)
 let get_playlist_items t playlist_id =
-  let rec loop page_token rev_items =
+  let get_playlist_page page_token =
     let%bind json =
       call
         t
@@ -183,12 +185,23 @@ let get_playlist_items t playlist_id =
               (e : exn)
               ~json:(Yojson.Basic.to_string json : string)]
     in
-    let rev_items = List.rev_append page_items rev_items in
-    match next_page_token with
-    | None -> return (List.rev rev_items)
-    | Some page_token -> loop (Some page_token) rev_items
+    return (page_items, next_page_token)
   in
-  loop None []
+  Pipe.create_reader ~close_on_exception:false (fun writer ->
+    let rec loop page_token =
+      match%bind.Deferred get_playlist_page page_token with
+      | Ok (page_items, next_page_token) ->
+        let%bind.Deferred () =
+          Pipe.transfer_in
+            writer
+            ~from:(page_items |> List.map ~f:Or_error.return |> Queue.of_list)
+        in
+        (match next_page_token with
+         | None -> Deferred.return ()
+         | Some page_token -> loop (Some page_token))
+      | Error _ as result -> Pipe.write writer result
+    in
+    loop None)
 ;;
 
 let delete_playlist_item t playlist_item_id =

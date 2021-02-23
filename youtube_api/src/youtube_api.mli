@@ -20,20 +20,20 @@ val call
   -> params:(string, string) List.Assoc.t
   -> string Or_error.t Deferred.t
 
-val get_video_info'
+val get_video_info
   :  t
   -> Video_id.t Pipe.Reader.t
   -> Video_info.t Or_error.t Pipe.Reader.t
 
 (** See https://developers.google.com/youtube/v3/docs/videos/list for the
     documentation of [parts]. *)
-val get_video_json'
+val get_video_json
   :  t
   -> Video_id.t Pipe.Reader.t
   -> parts:string list
   -> Yojson.Basic.t Or_error.t Pipe.Reader.t
 
-val get_playlist_items : t -> Playlist_id.t -> Playlist_item.t list Or_error.t Deferred.t
+val get_playlist_items : t -> Playlist_id.t -> Playlist_item.t Or_error.t Pipe.Reader.t
 val delete_playlist_item : t -> Playlist_item.Id.t -> unit Or_error.t Deferred.t
 
 val append_video_to_playlist

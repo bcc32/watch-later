@@ -4,7 +4,7 @@ open! Import
 
 let main ~api ~dbpath ~mark_watched ~overwrite ~videos_or_playlist =
   Video_db.with_file_and_txn dbpath ~f:(fun db ->
-    let%bind video_infos =
+    let video_infos =
       match videos_or_playlist with
       | `Videos video_ids ->
         let video_ids_to_lookup = video_ids |> Pipe.of_list in
@@ -18,13 +18,10 @@ let main ~api ~dbpath ~mark_watched ~overwrite ~videos_or_playlist =
               then None
               else Some video_id)
         in
-        video_ids_to_lookup |> Youtube_api.get_video_info' api |> return
+        video_ids_to_lookup |> Youtube_api.get_video_info api
       | `Playlist playlist_id ->
-        (* FIXME: Make playlist item API more consistent with video info API (using
-           Pipes). *)
         Youtube_api.get_playlist_items api playlist_id
-        >>| List.map ~f:(fun item -> Ok (Playlist_item.video_info item))
-        >>| Pipe.of_list
+        |> Pipe.map ~f:(Or_error.map ~f:Playlist_item.video_info)
     in
     let process_video_info =
       match mark_watched with

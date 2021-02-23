@@ -23,7 +23,11 @@ module Dedup = struct
       (let%map_open.Command () = return ()
        and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type) in
        fun api ->
-         let%bind items = Youtube_api.get_playlist_items api playlist_id in
+         let%bind items =
+           Youtube_api.get_playlist_items api playlist_id
+           |> Pipe.to_list
+           |> Deferred.map ~f:Or_error.combine_errors
+         in
          let _, duplicate_video_items =
            List.fold
              items
@@ -50,10 +54,11 @@ module List = struct
       (let%map_open.Command () = return ()
        and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type) in
        fun api ->
-         let%bind items = Youtube_api.get_playlist_items api playlist_id in
-         List.iter items ~f:(fun item ->
-           printf !"%{Video_id}\n" (Playlist_item.video_id item));
-         return ())
+         Youtube_api.get_playlist_items api playlist_id
+         |> Pipe.iter_without_pushback ~f:(function
+           | Ok item -> printf !"%{Video_id}\n" (Playlist_item.video_id item)
+           | Error e -> [%log.global.error "" ~_:(e : Error.t)])
+         |> Deferred.ok)
   ;;
 end
 
@@ -66,7 +71,11 @@ module Remove_video = struct
        and videos = Params.nonempty_videos in
        fun api ->
          let videos = Set.of_list (module Video_id) videos in
-         let%bind items = Youtube_api.get_playlist_items api playlist_id in
+         let%bind items =
+           Youtube_api.get_playlist_items api playlist_id
+           |> Pipe.to_list
+           |> Deferred.map ~f:Or_error.combine_errors
+         in
          Deferred.Or_error.List.iter items ~f:(fun item ->
            if Set.mem videos (Playlist_item.video_id item)
            then Youtube_api.delete_playlist_item api (Playlist_item.id item)
