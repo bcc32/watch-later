@@ -44,21 +44,38 @@ let nonempty_videos =
   | _ :: _ as specs -> specs
 ;;
 
+(* TODO: Define string constants for flag names *)
 let nonempty_videos_or_playlist =
   let open Command.Param in
-  let playlist =
-    flag
-      "-playlist"
-      (optional Playlist_id.Plain_or_in_url.arg_type)
-      ~doc:
-        "PLAYLIST specify videos in PLAYLIST rather than individual command-line \
-         arguments"
+  let nonempty_videos =
+    match%map.Command videos with
+    | [] -> None
+    | _ :: _ as videos -> Some (`Videos videos)
   in
-  let%map.Command videos = videos
-  and playlist = playlist in
-  match videos, playlist with
-  | (_ :: _ as videos), None -> `Videos videos
-  | [], Some playlist_id -> `Playlist playlist_id
-  | [], None -> raise_s [%message "Neither videos nor playlist specified"]
-  | _ :: _, Some _ -> raise_s [%message "Videos and playlist may not both be specified"]
+  let playlist =
+    match%map.Command
+      flag
+        "-playlist"
+        (optional Playlist_id.Plain_or_in_url.arg_type)
+        ~doc:
+          "PLAYLIST specify videos in PLAYLIST rather than individual command-line \
+           arguments"
+    with
+    | None -> None
+    | Some playlist_id -> Some (`Playlist playlist_id)
+  in
+  let remove_from_playlist =
+    flag
+      "-remove-from-playlist"
+      no_arg
+      ~doc:" if reading videos from a playlist, remove videos from playlist when done"
+  in
+  let%map.Command which =
+    choose_one [ nonempty_videos; playlist ] ~if_nothing_chosen:Raise
+  and remove_from_playlist = remove_from_playlist in
+  match which, remove_from_playlist with
+  | `Videos _, true -> raise_s [%message [%string "VIDEO may not be used with -playlist"]]
+  | (`Videos _ as which), _ -> which
+  | `Playlist playlist_id, remove_from_playlist ->
+    `Playlist (playlist_id, remove_from_playlist)
 ;;

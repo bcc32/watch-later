@@ -14,6 +14,8 @@ Manage YouTube queue
                                   (alias: -f)
   . [-playlist PLAYLIST]          specify videos in PLAYLIST rather than
                                   individual command-line arguments
+  . [-remove-from-playlist]       if reading videos from a playlist, remove
+                                  videos from playlist when done
   debug                           Debugging tools
   . db                            Database debugging commands
   . . path                        Print file path to database
