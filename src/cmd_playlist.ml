@@ -27,7 +27,8 @@ module Dedup = struct
            List.fold
              items
              ~init:(Set.empty (module Video_id), [])
-             ~f:(fun (seen_video_ids, duplicates) ({ id = _; video_id } as item) ->
+             ~f:(fun (seen_video_ids, duplicates) item ->
+               let video_id = Playlist_item.video_id item in
                if Set.mem seen_video_ids video_id
                then seen_video_ids, item :: duplicates
                else Set.add seen_video_ids video_id, duplicates)
@@ -35,7 +36,7 @@ module Dedup = struct
          let%bind () =
            Deferred.Or_error.List.iter duplicate_video_items ~f:(fun item ->
              [%log.global.info "Deleting playlist item" (item : Playlist_item.t)];
-             Youtube_api.delete_playlist_item api item.id)
+             Youtube_api.delete_playlist_item api (Playlist_item.id item))
          in
          return ())
   ;;
@@ -49,7 +50,8 @@ module List = struct
        and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type) in
        fun api ->
          let%bind items = Youtube_api.get_playlist_items api playlist_id in
-         List.iter items ~f:(fun item -> printf !"%{Video_id}\n" item.video_id);
+         List.iter items ~f:(fun item ->
+           printf !"%{Video_id}\n" (Playlist_item.video_id item));
          return ())
   ;;
 end
@@ -65,8 +67,8 @@ module Remove_video = struct
          let videos = Set.of_list (module Video_id) videos in
          let%bind items = Youtube_api.get_playlist_items api playlist_id in
          Deferred.Or_error.List.iter items ~f:(fun item ->
-           if Set.mem videos item.video_id
-           then Youtube_api.delete_playlist_item api item.id
+           if Set.mem videos (Playlist_item.video_id item)
+           then Youtube_api.delete_playlist_item api (Playlist_item.id item)
            else return ()))
   ;;
 end

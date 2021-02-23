@@ -9,10 +9,10 @@ module Which_videos = struct
 end
 
 let main ~dbpath ~id ~watched ~(which_videos : Which_videos.t) =
-  let print ((video_info : Youtube_api.Video_info.t), watched) =
+  let print ((video_info : Video_info.t), watched) =
     if id
     then printf !"%{Video_id}\n" video_info.video_id
-    else print_s [%message (video_info : Youtube_api.Video_info.t) (watched : bool)]
+    else print_s [%message (video_info : Video_info.t) (watched : bool)]
   in
   Video_db.with_file_and_txn dbpath ~f:(fun db ->
     match which_videos with

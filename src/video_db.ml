@@ -414,7 +414,7 @@ DO UPDATE SET title = excluded.title,
 let add_video_overwrite = add_video ~overwrite:true
 let add_video_no_overwrite = add_video ~overwrite:false
 
-let add_video ((module Conn) : t) (video_info : Youtube_api.Video_info.t) ~overwrite =
+let add_video ((module Conn) : t) (video_info : Video_info.t) ~overwrite =
   let%bind () =
     Conn.exec
       (if overwrite then add_channel_overwrite else add_channel_no_overwrite)

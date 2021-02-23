@@ -53,7 +53,7 @@ module Record = struct
 end
 
 let video_info =
-  Youtube_api.Video_info.Fields.make_creator
+  Video_info.Fields.make_creator
     Record.init
     ~channel_id:(Record.step string)
     ~channel_title:(Record.step string)

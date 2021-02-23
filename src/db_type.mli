@@ -55,5 +55,5 @@ module Std : sig
   end
 
   val video_id : Video_id.t t
-  val video_info : Youtube_api.Video_info.t t
+  val video_info : Video_info.t t
 end

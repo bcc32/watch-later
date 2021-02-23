@@ -148,6 +148,8 @@ let get_video_info' t video_ids =
               { Video_info.channel_id; channel_title; video_id; video_title })))
 ;;
 
+(* TODO: Continue to factor out [of_json] functions into each type's module *)
+
 (* TODO: Generalize pagination logic *)
 let get_playlist_items t playlist_id =
   let rec loop page_token rev_items =
@@ -157,7 +159,7 @@ let get_playlist_items t playlist_id =
         ~method_:`GET
         ~endpoint:"playlistItems"
         ~params:
-          ([ "part", "id,contentDetails"
+          ([ "part", "id,snippet"
            ; "playlistId", Playlist_id.to_string playlist_id
            ; "maxResults", Int.to_string max_batch_size
            ]
@@ -170,23 +172,7 @@ let get_playlist_items t playlist_id =
     let%bind page_items, next_page_token =
       try
         let open Yojson.Basic.Util in
-        (* TODO: [Playlist_item.of_json], etc. *)
-        let page_items =
-          json
-          |> member "items"
-          |> convert_each (fun item ->
-            let id =
-              item |> member "id" |> to_string |> Playlist_item.Id.of_string
-            in
-            let video_id =
-              item
-              |> member "contentDetails"
-              |> member "videoId"
-              |> to_string
-              |> Video_id.of_string
-            in
-            ({ id; video_id } : Playlist_item.t))
-        in
+        let page_items = json |> member "items" |> convert_each Playlist_item.of_json in
         let next_page_token = json |> member "nextPageToken" |> to_string_option in
         return (page_items, next_page_token)
       with
