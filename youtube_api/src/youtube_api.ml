@@ -3,27 +3,26 @@ open! Async
 open! Import
 module Video_info = Video_info
 
+let max_batch_size = 50
+
 module Video_id_batch : sig
   type t = private Video_id.t Queue.t [@@deriving sexp_of]
 
   include Invariant.S with type t := t
 
-  val max_queue_length : int
   val of_queue_exn : Video_id.t Queue.t -> t
 end = struct
   type t = Video_id.t Queue.t [@@deriving sexp_of]
 
-  let max_queue_length = 50
-
   let invariant t =
     Invariant.invariant [%here] t [%sexp_of: t] (fun () ->
-      if Queue.length t > max_queue_length
+      if Queue.length t > max_batch_size
       then
         raise_s
           [%message
             "Video ID batch too long"
               ~length:(Queue.length t : int)
-              (max_queue_length : int)])
+              (max_batch_size : int)])
   ;;
 
   let of_queue_exn t =
@@ -126,7 +125,7 @@ let get_video_json_batch t (video_id_batch : Video_id_batch.t) ~parts =
 
 let get_video_json' t video_ids ~parts =
   video_ids
-  |> Pipe.map' ~max_queue_length:Video_id_batch.max_queue_length ~f:(fun video_ids ->
+  |> Pipe.map' ~max_queue_length:max_batch_size ~f:(fun video_ids ->
     let batch = Video_id_batch.of_queue_exn video_ids in
     match%map.Deferred get_video_json_batch t batch ~parts with
     | Error _ as result -> Queue.singleton result
@@ -155,6 +154,7 @@ let get_video_info t video_id =
   |> Deferred.map ~f:(Fn.flip Queue.get 0)
 ;;
 
+(* TODO: Generalize pagination logic *)
 let get_playlist_items ?video_id t playlist_id =
   let rec loop page_token rev_items =
     let%bind json =
@@ -165,7 +165,7 @@ let get_playlist_items ?video_id t playlist_id =
         ~params:
           ([ "part", "id,contentDetails"
            ; "playlistId", Playlist_id.to_string playlist_id
-           ; "maxResults", "50"
+           ; "maxResults", Int.to_string max_batch_size
            ]
            @ (match page_token with
              | None -> []
