@@ -48,12 +48,15 @@ let get_video_json_batch t (video_id_batch : Video_id_batch.t) ~parts =
   in
   let%bind items_by_id =
     Deferred.return
-      (Or_error.try_with (fun () ->
-         let open Json.Util in
+      (Of_json.run
          json
-         |> member "items"
-         |> convert_each (fun json -> json |> member "id" |> Video_id.of_json, json)
-         |> Map.of_alist_exn (module Video_id)))
+         Of_json.(
+           "items"
+           @. list
+                (let%map_open.Of_json id = "id" @. Video_id.of_json
+                 and json = json in
+                 id, json)
+           >>| Map.of_alist_exn (module Video_id)))
   in
   return
     (Queue.map
@@ -79,19 +82,17 @@ let get_video_info t video_ids =
   |> Pipe.map
        ~f:
          (Or_error.bind ~f:(fun json ->
-            let open Json.Util in
-            Or_error.try_with (fun () ->
-              let snippet = json |> member "snippet" in
-              let channel_id = snippet |> member "channelId" |> to_string in
-              let channel_title = snippet |> member "channelTitle" |> to_string in
-              let video_id = json |> member "id" |> Video_id.of_json in
-              let video_title = snippet |> member "title" |> to_string in
-              { Video_info.channel_id; channel_title; video_id; video_title })))
+            Of_json.run
+              json
+              (let%map_open.Of_json channel_id, channel_title, video_title =
+                 "snippet"
+                 @. let%map_open.Of_json channel_id = "channelId" @. string
+                 and channel_title = "channelTitle" @. string
+                 and video_title = "title" @. string in
+                 channel_id, channel_title, video_title
+               and video_id = "id" @. Video_id.of_json in
+               { Video_info.channel_id; channel_title; video_id; video_title })))
 ;;
-
-(* FIXME: [Json.of_string] raises.  We must be careful to avoid raising to
-   consumers of this module. *)
-(* TODO: Continue to factor out [of_json] functions into each type's module *)
 
 (* TODO: Generalize pagination logic *)
 let get_playlist_items t playlist_id =
@@ -111,19 +112,13 @@ let get_playlist_items t playlist_id =
            | Some page_token -> [ "pageToken", page_token ])
     in
     let%bind page_items, next_page_token =
-      try
-        let open Json.Util in
-        let page_items = json |> member "items" |> convert_each Playlist_item.of_json in
-        let next_page_token = json |> member "nextPageToken" |> to_string_option in
-        return (page_items, next_page_token)
-      with
-      | e ->
-        Deferred.Or_error.error_s
-          [%message
-            "Failed to read playlist item IDs"
-              (playlist_id : Playlist_id.t)
-              (e : exn)
-              ~json:(Json.to_string json : string)]
+      Of_json.run
+        json
+        (let%map_open.Of_json () = return ()
+         and page_items = "items" @. list Playlist_item.of_json
+         and next_page_token = "nextPageToken" @.? string in
+         page_items, next_page_token)
+      |> Deferred.return
     in
     return (page_items, next_page_token)
   in

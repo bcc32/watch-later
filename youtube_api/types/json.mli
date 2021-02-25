@@ -1,20 +1,12 @@
 open! Core_kernel
 open! Import
 
-type t =
-  [ `Assoc of (string * t) list
-  | `Bool of bool
-  | `Float of float
-  | `Int of int
-  | `List of t list
-  | `Null
-  | `String of string
-  ]
-[@@deriving sexp_of]
+(** JSON values.
+
+    [sexp_of_t] is just an atom of the JSON string. *)
+type t = Yojson.Basic.t [@@deriving sexp_of]
 
 include Stringable with type t := t
+include Pretty_printer.S with type t := t
 
-include module type of struct
-  include Yojson.Basic
-end
-with type t := t
+val to_string_pretty : t -> string

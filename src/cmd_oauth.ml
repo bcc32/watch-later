@@ -107,14 +107,13 @@ let obtain_access_token ~client_id ~client_secret =
       Or_error.try_with (fun () -> Json.of_string body) |> Deferred.return
     in
     let%bind access_token, refresh_token, expiry =
-      Or_error.try_with (fun () ->
-        let open Json.Util in
-        let access_token = json |> member "access_token" |> to_string in
-        let refresh_token = json |> member "refresh_token" |> to_string in
-        let expires_in = json |> member "expires_in" |> to_int in
-        ( access_token
-        , refresh_token
-        , Time_ns.add (Time_ns.now ()) (Time_ns.Span.of_int_sec expires_in) ))
+      Of_json.run
+        json
+        (let%map_open.Of_json () = return ()
+         and access_token = "access_token" @. string
+         and refresh_token = "refresh_token" @. string
+         and expires_in = "expires_in" @. (int >>| Time_ns.Span.of_int_sec) in
+         access_token, refresh_token, Time_ns.add (Time_ns.now ()) expires_in)
       |> Deferred.return
     in
     return

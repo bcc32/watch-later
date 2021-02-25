@@ -14,17 +14,15 @@ type t =
   }
 [@@deriving fields, sexp_of]
 
-let of_json json =
-  let open Json.Util in
-  let id = json |> member "id" |> to_string |> Id.of_string in
-  let video_info =
-    let snippet = json |> member "snippet" in
-    let channel_id = snippet |> member "videoOwnerChannelId" |> to_string in
-    let channel_title = snippet |> member "videoOwnerChannelTitle" |> to_string in
-    let video_id =
-      snippet |> member "resourceId" |> member "videoId" |> Video_id.of_json
-    in
-    let video_title = snippet |> member "title" |> to_string in
+let of_json =
+  let open Of_json.Let_syntax in
+  let%map id = "id" @. string >>| Id.of_string
+  and video_info =
+    "snippet"
+    @. let%map channel_id = "videoOwnerChannelId" @. string
+    and channel_title = "videoOwnerChannelTitle" @. string
+    and video_id = "resourceId" @. "videoId" @. Video_id.of_json
+    and video_title = "title" @. string in
     ({ channel_id; channel_title; video_id; video_title } : Video_info.t)
   in
   { id; video_info }

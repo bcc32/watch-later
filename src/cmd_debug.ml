@@ -39,7 +39,7 @@ module Get_video = struct
     | Json { extra_parts } ->
       Youtube_api.get_video_json api video_ids ~parts:("snippet" :: extra_parts)
       |> Pipe.iter_without_pushback ~f:(fun json ->
-        print_endline (Json.pretty_to_string (ok_exn json)))
+        print_endline (Json.to_string_pretty (ok_exn json)))
       |> Deferred.ok
   ;;
 

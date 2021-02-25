@@ -42,14 +42,15 @@ let refresh { client_id; client_secret; access_token = _; refresh_token; expiry 
   in
   if response.status |> Cohttp.Code.code_of_status |> Cohttp.Code.is_success
   then (
-    let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
+    let%bind json = Cohttp_async.Body.to_string body |> Deferred.ok in
+    let%bind json = Deferred.return (Or_error.try_with (fun () -> Json.of_string json)) in
     let%bind access_token, expiry =
-      Or_error.try_with (fun () ->
-        let json = Json.of_string body in
-        let open Json.Util in
-        let access_token = json |> member "access_token" |> to_string in
-        let expires_in = json |> member "expires_in" |> to_int in
-        access_token, Time_ns.add (Time_ns.now ()) (Time_ns.Span.of_int_sec expires_in))
+      (* FIXME: This code is similar to [cmd_oauth]. *)
+      Of_json.run
+        json
+        (let%map_open.Of_json access_token = "access_token" @. string
+         and expires_in = "expires_in" @. int >>| Time_ns.Span.of_int_sec in
+         access_token, Time_ns.add (Time_ns.now ()) expires_in)
       |> Deferred.return
     in
     return { client_id; client_secret; access_token; refresh_token; expiry })
