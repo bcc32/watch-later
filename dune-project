@@ -11,7 +11,7 @@
  (name watch-later)
  (synopsis "Utility for managing a queue of YouTube content")
  (description "")
- (depends (dune (>= 2.0))
+ (depends
   (async (and (>= v0.14.0) (< v0.15.0)))
   (async_interactive (and (>= v0.14.0) (< v0.15.0)))
   (async_ssl (and (>= v0.14.0) (< v0.15.0)))
