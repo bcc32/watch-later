@@ -2,11 +2,16 @@ open! Core
 open! Async
 open! Import
 
-type t = { access_token : string }
+type t = { mutable access_token : string }
 
 let create () =
   let%map creds = Youtube_api_oauth.Oauth.load_fresh () in
   { access_token = creds.access_token }
+;;
+
+let refresh t =
+  let%map creds = Youtube_api_oauth.Oauth.load_fresh ~force_refresh:true () in
+  t.access_token <- creds.access_token
 ;;
 
 let command ?extract_exn ~summary ?readme param =
@@ -22,12 +27,26 @@ let command ?extract_exn ~summary ?readme param =
        main api)
 ;;
 
+let http_call_internal t ?body method_ uri ~headers =
+  let rec loop tries_remaining =
+    let%bind response, body =
+      Monitor.try_with_or_error (fun () ->
+        Cohttp_async.Client.call ?body method_ uri ~headers)
+    in
+    if Poly.equal `Unauthorized response.status
+    then (
+      let%bind () = refresh t in
+      loop (tries_remaining - 1))
+    else return (response, body)
+  in
+  loop 2
+;;
+
 let only_accept_ok : Cohttp.Code.status_code -> bool = function
   | #Cohttp.Code.success_status -> true
   | _ -> false
 ;;
 
-(* FIXME: If 401, retry once with refresh *)
 let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
   let uri =
     let path = "youtube/v3" ^/ endpoint in
@@ -43,10 +62,7 @@ let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
       (uri : Uri_sexp.t)
       (headers : Cohttp.Header.t)
       (body : (Cohttp.Body.t option[@sexp.option]))];
-  let%bind response, body =
-    Monitor.try_with_or_error (fun () ->
-      Cohttp_async.Client.call ?body method_ uri ~headers)
-  in
+  let%bind response, body = http_call_internal t ?body method_ uri ~headers in
   let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
   let%bind body = Deferred.return (Or_error.try_with (fun () -> Json.of_string body)) in
   [%log.global.debug "Received response" (response : Cohttp.Response.t) (body : Json.t)];

@@ -75,4 +75,7 @@ let refresh_and_save t when_ =
     else perform_refresh_and_save t
 ;;
 
-let load_fresh () = load () >>= Fn.flip refresh_and_save `If_expired
+let load_fresh ?(force_refresh = false) () =
+  let when_ = if force_refresh then `Force else `If_expired in
+  load () >>= Fn.flip refresh_and_save when_
+;;
