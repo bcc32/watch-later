@@ -104,11 +104,11 @@ let obtain_access_token ~client_id ~client_secret =
   then (
     let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
     let%bind json =
-      Or_error.try_with (fun () -> Yojson.Basic.from_string body) |> Deferred.return
+      Or_error.try_with (fun () -> Json.of_string body) |> Deferred.return
     in
     let%bind access_token, refresh_token, expiry =
       Or_error.try_with (fun () ->
-        let open Yojson.Basic.Util in
+        let open Json.Util in
         let access_token = json |> member "access_token" |> to_string in
         let refresh_token = json |> member "refresh_token" |> to_string in
         let expires_in = json |> member "expires_in" |> to_int in

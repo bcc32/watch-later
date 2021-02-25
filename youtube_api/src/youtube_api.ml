@@ -30,61 +30,7 @@ end = struct
   ;;
 end
 
-type t = { access_token : string }
-
-let create () =
-  let%map creds = Youtube_api_oauth.Oauth.load_fresh () in
-  { access_token = creds.access_token }
-;;
-
-let command ?extract_exn ~summary ?readme param =
-  Command.async_or_error
-    ?extract_exn
-    ~summary
-    ?readme
-    (let%map_open.Command () = return ()
-     and () = Log.Global.set_level_via_param ()
-     and main = param in
-     fun () ->
-       let%bind api = create () in
-       main api)
-;;
-
-let only_accept_ok : Cohttp.Code.status_code -> bool = function
-  | #Cohttp.Code.success_status -> true
-  | _ -> false
-;;
-
-let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
-  let uri =
-    let path = "youtube/v3" ^/ endpoint in
-    Uri.with_query' (Uri.make () ~scheme:"https" ~host:"www.googleapis.com" ~path) params
-  in
-  let headers, uri =
-    Cohttp.Header.init_with "Authorization" ("Bearer " ^ t.access_token), uri
-  in
-  let body = Option.map body ~f:(fun json -> `String (Yojson.Basic.to_string json)) in
-  [%log.global.debug
-    "Making YouTube API request"
-      (method_ : Cohttp.Code.meth)
-      (uri : Uri_sexp.t)
-      (headers : Cohttp.Header.t)
-      (body : (Cohttp.Body.t option[@sexp.option]))];
-  let%bind response, body =
-    Monitor.try_with_or_error (fun () ->
-      Cohttp_async.Client.call ?body method_ uri ~headers)
-  in
-  let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
-  [%log.global.debug "Received response" (response : Cohttp.Response.t) (body : string)];
-  if accept_status response.status
-  then return body
-  else
-    Deferred.Or_error.error_s
-      [%message
-        "unacceptable status code"
-          ~_:(response.status : Cohttp.Code.status_code)
-          (body : string)]
-;;
+include Raw
 
 let get_video_json_batch t (video_id_batch : Video_id_batch.t) ~parts =
   let video_ids =
@@ -101,13 +47,10 @@ let get_video_json_batch t (video_id_batch : Video_id_batch.t) ~parts =
       ~params:
         [ "id", String.concat ~sep:"," video_ids; "part", String.concat ~sep:"," parts ]
   in
-  let%bind json =
-    Deferred.return (Or_error.try_with (fun () -> Yojson.Basic.from_string json))
-  in
   let%bind items_by_id =
     Deferred.return
       (Or_error.try_with (fun () ->
-         let open Yojson.Basic.Util in
+         let open Json.Util in
          json
          |> member "items"
          |> convert_each (fun json ->
@@ -138,7 +81,7 @@ let get_video_info t video_ids =
   |> Pipe.map
        ~f:
          (Or_error.bind ~f:(fun json ->
-            let open Yojson.Basic.Util in
+            let open Json.Util in
             Or_error.try_with (fun () ->
               let snippet = json |> member "snippet" in
               let channel_id = snippet |> member "channelId" |> to_string in
@@ -148,7 +91,7 @@ let get_video_info t video_ids =
               { Video_info.channel_id; channel_title; video_id; video_title })))
 ;;
 
-(* FIXME: [Yojson.Basic.from_string] raises.  We must be careful to avoid raising to
+(* FIXME: [Json.of_string] raises.  We must be careful to avoid raising to
    consumers of this module. *)
 (* TODO: Continue to factor out [of_json] functions into each type's module *)
 
@@ -169,11 +112,10 @@ let get_playlist_items t playlist_id =
            match page_token with
            | None -> []
            | Some page_token -> [ "pageToken", page_token ])
-      >>| Yojson.Basic.from_string
     in
     let%bind page_items, next_page_token =
       try
-        let open Yojson.Basic.Util in
+        let open Json.Util in
         let page_items = json |> member "items" |> convert_each Playlist_item.of_json in
         let next_page_token = json |> member "nextPageToken" |> to_string_option in
         return (page_items, next_page_token)
@@ -184,7 +126,7 @@ let get_playlist_items t playlist_id =
             "Failed to read playlist item IDs"
               (playlist_id : Playlist_id.t)
               (e : exn)
-              ~json:(Yojson.Basic.to_string json : string)]
+              ~json:(Json.to_string json : string)]
     in
     return (page_items, next_page_token)
   in

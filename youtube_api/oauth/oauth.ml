@@ -45,8 +45,8 @@ let refresh { client_id; client_secret; access_token = _; refresh_token; expiry 
     let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
     let%bind access_token, expiry =
       Or_error.try_with (fun () ->
-        let json = Yojson.Basic.from_string body in
-        let open Yojson.Basic.Util in
+        let json = Json.of_string body in
+        let open Json.Util in
         let access_token = json |> member "access_token" |> to_string in
         let expires_in = json |> member "expires_in" |> to_int in
         access_token, Time_ns.add (Time_ns.now ()) (Time_ns.Span.of_int_sec expires_in))

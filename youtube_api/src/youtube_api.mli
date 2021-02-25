@@ -13,12 +13,12 @@ val command
 
 val call
   :  ?accept_status:(Cohttp.Code.status_code -> bool)
-  -> ?body:Yojson.Basic.t
+  -> ?body:Json.t
   -> t
   -> method_:Cohttp.Code.meth
   -> endpoint:string
   -> params:(string, string) List.Assoc.t
-  -> string Or_error.t Deferred.t
+  -> Json.t Or_error.t Deferred.t
 
 val get_video_info
   :  t
@@ -31,7 +31,7 @@ val get_video_json
   :  t
   -> Video_id.t Pipe.Reader.t
   -> parts:string list
-  -> Yojson.Basic.t Or_error.t Pipe.Reader.t
+  -> Json.t Or_error.t Pipe.Reader.t
 
 val get_playlist_items : t -> Playlist_id.t -> Playlist_item.t Or_error.t Pipe.Reader.t
 val delete_playlist_item : t -> Playlist_item.Id.t -> unit Or_error.t Deferred.t

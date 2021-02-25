@@ -15,7 +15,7 @@ type t =
 [@@deriving fields, sexp_of]
 
 let of_json json =
-  let open Yojson.Basic.Util in
+  let open Json.Util in
   let id = json |> member "id" |> to_string |> Id.of_string in
   let video_info =
     let snippet = json |> member "snippet" in
