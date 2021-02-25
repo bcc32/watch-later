@@ -11,15 +11,6 @@ val command
   -> (t -> unit Or_error.t Deferred.t) Command.Param.t
   -> Command.t
 
-val call
-  :  ?accept_status:(Cohttp.Code.status_code -> bool)
-  -> ?body:Json.t
-  -> t
-  -> method_:Cohttp.Code.meth
-  -> endpoint:string
-  -> params:(string, string) List.Assoc.t
-  -> Json.t Or_error.t Deferred.t
-
 val get_video_info
   :  t
   -> Video_id.t Pipe.Reader.t
