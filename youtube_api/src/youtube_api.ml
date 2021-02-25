@@ -71,7 +71,8 @@ let call ?(accept_status = only_accept_ok) ?body t ~method_ ~endpoint ~params =
       (headers : Cohttp.Header.t)
       (body : (Cohttp.Body.t option[@sexp.option]))];
   let%bind response, body =
-    Cohttp_async.Client.call ?body method_ uri ~headers |> Deferred.ok
+    Monitor.try_with_or_error (fun () ->
+      Cohttp_async.Client.call ?body method_ uri ~headers)
   in
   let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
   [%log.global.debug "Received response" (response : Cohttp.Response.t) (body : string)];
