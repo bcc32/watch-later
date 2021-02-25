@@ -40,10 +40,9 @@ let get_video_json_batch t (video_id_batch : Video_id_batch.t) ~parts =
      :> string list)
   in
   let%bind json =
-    call
+    get
       t
-      ~method_:`GET
-      ~endpoint:"videos"
+      "videos"
       ~params:
         [ "id", String.concat ~sep:"," video_ids; "part", String.concat ~sep:"," parts ]
   in
@@ -98,10 +97,9 @@ let get_video_info t video_ids =
 let get_playlist_items t playlist_id =
   let get_playlist_page page_token =
     let%bind json =
-      call
+      get
         t
-        ~method_:`GET
-        ~endpoint:"playlistItems"
+        "playlistItems"
         ~params:
           ([ "part", "id,snippet"
            ; "playlistId", Playlist_id.to_string playlist_id
@@ -147,19 +145,19 @@ let get_playlist_items t playlist_id =
 ;;
 
 let delete_playlist_item t playlist_item_id =
-  call
+  exec
     t
+    "playlistItems"
     ~method_:`DELETE
-    ~endpoint:"playlistItems"
     ~params:[ "id", Playlist_item.Id.to_string playlist_item_id ]
   |> Deferred.Or_error.ignore_m
 ;;
 
 let append_video_to_playlist t playlist_id video_id =
-  call
+  exec
     t
+    "playlistItems"
     ~method_:`POST
-    ~endpoint:"playlistItems"
     ~params:[ "part", "snippet" ]
     ~body:
       (`Assoc

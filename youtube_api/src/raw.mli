@@ -13,11 +13,19 @@ val command
   -> (t -> unit Or_error.t Deferred.t) Command.Param.t
   -> Command.t
 
-val call
+val get
   :  ?accept_status:(Cohttp.Code.status_code -> bool)
   -> ?body:Json.t
   -> t
-  -> method_:Cohttp.Code.meth
-  -> endpoint:string
+  -> string
   -> params:(string, string) List.Assoc.t
   -> Json.t Or_error.t Deferred.t
+
+val exec
+  :  ?accept_status:(Cohttp.Code.status_code -> bool)
+  -> ?body:Json.t
+  -> t
+  -> string
+  -> method_:Cohttp.Code.meth
+  -> params:(string, string) List.Assoc.t
+  -> unit Or_error.t Deferred.t
