@@ -8,7 +8,7 @@ module Id : String_id.S
 
 type t [@@deriving sexp_of]
 
-include From_json_intf.S with type t := t
+include Of_jsonable.S with type t := t
 
 (** Identifies an item within a playlist; different from the video ID. *)
 val id : t -> Id.t

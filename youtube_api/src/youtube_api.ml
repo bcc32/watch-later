@@ -53,8 +53,7 @@ let get_video_json_batch t (video_id_batch : Video_id_batch.t) ~parts =
          let open Json.Util in
          json
          |> member "items"
-         |> convert_each (fun json ->
-           json |> member "id" |> to_string |> Video_id.of_string, json)
+         |> convert_each (fun json -> json |> member "id" |> Video_id.of_json, json)
          |> Map.of_alist_exn (module Video_id)))
   in
   return
@@ -86,7 +85,7 @@ let get_video_info t video_ids =
               let snippet = json |> member "snippet" in
               let channel_id = snippet |> member "channelId" |> to_string in
               let channel_title = snippet |> member "channelTitle" |> to_string in
-              let video_id = json |> member "id" |> to_string |> Video_id.of_string in
+              let video_id = json |> member "id" |> Video_id.of_json in
               let video_title = snippet |> member "title" |> to_string in
               { Video_info.channel_id; channel_title; video_id; video_title })))
 ;;

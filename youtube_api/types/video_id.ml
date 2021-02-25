@@ -42,3 +42,5 @@ module Plain_or_in_url = struct
 
   let arg_type = Command.Arg_type.create of_string
 end
+
+let of_json json = json |> Json.Util.to_string |> of_string

@@ -22,11 +22,7 @@ let of_json json =
     let channel_id = snippet |> member "videoOwnerChannelId" |> to_string in
     let channel_title = snippet |> member "videoOwnerChannelTitle" |> to_string in
     let video_id =
-      snippet
-      |> member "resourceId"
-      |> member "videoId"
-      |> to_string
-      |> Video_id.of_string
+      snippet |> member "resourceId" |> member "videoId" |> Video_id.of_json
     in
     let video_title = snippet |> member "title" |> to_string in
     ({ channel_id; channel_title; video_id; video_title } : Video_info.t)
