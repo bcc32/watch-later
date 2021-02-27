@@ -90,6 +90,7 @@ Manage YouTube queue
                                   true)
   . [-video-id ID]                video ID
   . [-video-title TITLE]          video TITLE
+  . [-watched BOOL]               Restrict to videos with watched status BOOL
   version                         print version information
   . [-build-info]                 print build info for this build
   . [-version]                    print the version of this build

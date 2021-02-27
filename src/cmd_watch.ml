@@ -18,7 +18,7 @@ let main ~dbpath ~mark_watched ~(which_videos : Which_videos.t) =
       match which_videos with
       | These ids -> return ids
       | Filter filter ->
-        let%map video_id = Video_db.get_random_unwatched_video db filter in
+        let%map video_id = Video_db.get_random_video db filter in
         [ video_id ]
     in
     Deferred.Or_error.List.iter which_videos ~f:(fun video_id ->
@@ -29,6 +29,15 @@ let main ~dbpath ~mark_watched ~(which_videos : Which_videos.t) =
 let command =
   Command.async_or_error
     ~summary:"Open a video in $BROWSER and mark it watched."
+    ~readme:(fun () ->
+      {|
+If video IDs are specified, process each video in sequence.
+
+If a filter is specified, select one video matching the filter at random.
+
+If neither video IDs nor filter is specified, defaults to selecting a random unwatched
+video.
+|})
     (let%map_open.Command () = return ()
      and dbpath = Params.dbpath
      and mark_watched =
@@ -39,8 +48,9 @@ let command =
          ~default:true
          ~doc:"(true|false) mark video as watched (default true)"
      and video_ids = Params.videos
-     and filter = Video_db.Filter.param in
+     and filter = Video_db.Filter.param ~default_to_unwatched:true in
      fun () ->
+       (* TODO: Factor out this param. *)
        let which_videos : Which_videos.t =
          match video_ids, Video_db.Filter.is_empty filter with
          | _ :: _, false -> failwith "Cannot specify both video IDs and filter"

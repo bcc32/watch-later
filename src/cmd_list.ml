@@ -8,7 +8,7 @@ module Which_videos = struct
     | Filter of Video_db.Filter.t
 end
 
-let main ~dbpath ~id ~watched ~(which_videos : Which_videos.t) =
+let main ~dbpath ~id ~(which_videos : Which_videos.t) =
   let print ((video_info : Video_info.t), watched) =
     if id
     then printf !"%{Video_id}\n" video_info.video_id
@@ -29,7 +29,7 @@ let main ~dbpath ~id ~watched ~(which_videos : Which_videos.t) =
         return ())
     | Filter filter ->
       let%bind () =
-        Video_db.get_videos db filter ~watched
+        Video_db.get_videos db filter
         |> Pipe.iter_without_pushback ~f:print
         |> Deferred.ok
       in
@@ -42,17 +42,12 @@ let command =
     (let%map_open.Command () = return ()
      and dbpath = Params.dbpath
      and video_ids = Params.videos
-     and filter = Video_db.Filter.param
+     and filter = Video_db.Filter.param ~default_to_unwatched:false
      and id =
        flag
          "-id"
          no_arg
          ~doc:" If passed, print just the video ID rather than all the video info"
-     and watched =
-       flag
-         "-watched"
-         (optional bool)
-         ~doc:"BOOL Restrict to videos with watched status BOOL"
      in
      fun () ->
        Writer.behave_nicely_in_pipeline ();
@@ -62,5 +57,5 @@ let command =
          | _ :: _, true -> These video_ids
          | [], _ -> Filter filter
        in
-       main ~dbpath ~id ~watched ~which_videos)
+       main ~dbpath ~id ~which_videos)
 ;;

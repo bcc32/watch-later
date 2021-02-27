@@ -10,6 +10,7 @@ module Filter = struct
     ; channel_title : string option
     ; video_id : Video_id.t option
     ; video_title : string option
+    ; watched : bool option
     }
   [@@deriving fields]
 
@@ -20,16 +21,24 @@ module Filter = struct
       ~channel_title:is_none
       ~video_id:is_none
       ~video_title:is_none
+      ~watched:is_none
   ;;
 
-  let param =
+  let param ~default_to_unwatched =
     let%map_open.Command () = return ()
     and channel_id = flag "-channel-id" (optional string) ~doc:"ID channel ID"
     and channel_title = flag "-channel-title" (optional string) ~doc:"TITLE channel TITLE"
     and video_id =
       flag "-video-id" (optional Video_id.Plain_or_in_url.arg_type) ~doc:"ID video ID"
-    and video_title = flag "-video-title" (optional string) ~doc:"TITLE video TITLE" in
-    { channel_id; channel_title; video_id; video_title }
+    and video_title = flag "-video-title" (optional string) ~doc:"TITLE video TITLE"
+    and watched =
+      flag
+        "-watched"
+        (optional bool)
+        ~doc:"BOOL Restrict to videos with watched status BOOL"
+    in
+    let t = { channel_id; channel_title; video_id; video_title; watched } in
+    if default_to_unwatched && is_empty t then { t with watched = Some false } else t
   ;;
 
   let t : t Caqti_type.t =
@@ -40,6 +49,7 @@ module Filter = struct
       ~channel_title:(f (option string))
       ~video_id:(f (option Caqti_type.Std.video_id))
       ~video_title:(f (option string))
+      ~watched:(f (option bool))
     |> Caqti_type.Record.finish
   ;;
 end
@@ -469,48 +479,47 @@ let mark_watched ((module Conn) : t) video_id state =
    regexp.
 
    https://github.com/paurkedal/ocaml-caqti/issues/56 *)
-let get_random_unwatched_video =
+(* TODO: Optimize this query by only adding WHERE clauses for columns present in the
+   filter. *)
+let get_random_video =
   Caqti_request.find_opt
     Filter.t
     video_id
     {|
 SELECT video_id FROM videos_all
-WHERE NOT watched
-  AND ($1 IS NULL OR channel_id = $1)
+WHERE ($1 IS NULL OR channel_id = $1)
   AND ($2 IS NULL OR channel_title LIKE $2 ESCAPE '\')
   AND ($3 IS NULL OR video_id = $3)
   AND ($4 IS NULL OR video_title LIKE $4 ESCAPE '\')
+  AND ($5 IS NULL OR watched IS TRUE = $5 IS TRUE)
 ORDER BY RANDOM()
 LIMIT 1
 |}
 ;;
 
-let get_random_unwatched_video ((module Conn) : t) filter =
-  match%bind Conn.find_opt get_random_unwatched_video filter |> convert_error with
+let get_random_video ((module Conn) : t) filter =
+  match%bind Conn.find_opt get_random_video filter |> convert_error with
   | Some video_id -> return video_id
   | None -> Deferred.Or_error.error_s [%message "No unwatched videos matching filter"]
 ;;
 
 let get_videos =
   Caqti_request.collect
-    (tup2 (option bool) Filter.t)
+    Filter.t
     (tup2 video_info bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched FROM videos_all
-WHERE ($1 IS NULL OR watched IS TRUE = $1 IS TRUE)
-  AND ($2 IS NULL OR channel_id = $2)
-  AND ($3 IS NULL OR channel_title LIKE $3 ESCAPE '\')
-  AND ($4 IS NULL OR video_id = $4)
-  AND ($5 IS NULL OR video_title LIKE $5 ESCAPE '\')
+WHERE ($1 IS NULL OR channel_id = $1)
+  AND ($2 IS NULL OR channel_title LIKE $2 ESCAPE '\')
+  AND ($3 IS NULL OR video_id = $3)
+  AND ($4 IS NULL OR video_title LIKE $4 ESCAPE '\')
+  AND ($5 IS NULL OR watched IS TRUE = $5 IS TRUE)
 |}
 ;;
 
-let get_videos ((module Conn) : t) filter ~watched =
+let get_videos ((module Conn) : t) filter =
   Pipe.create_reader ~close_on_exception:false (fun writer ->
-    Conn.iter_s
-      get_videos
-      (fun elt -> Pipe.write writer elt |> Deferred.ok)
-      (watched, filter)
+    Conn.iter_s get_videos (fun elt -> Pipe.write writer elt |> Deferred.ok) filter
     |> convert_error
     |> Deferred.Or_error.ok_exn)
 ;;
