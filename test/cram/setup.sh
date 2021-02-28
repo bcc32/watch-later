@@ -14,3 +14,8 @@ reset_db
 dbpath() {
     watch-later debug db path
 }
+
+sqlite3() {
+    # Run sqlite3 with no init file
+    command sqlite3 -init /dev/null "$@"
+}
