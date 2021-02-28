@@ -140,12 +140,12 @@ let get_playlist_items t playlist_id =
 ;;
 
 let delete_playlist_item t playlist_item_id =
-  exec
+  exec_expect_empty_body
     t
     "playlistItems"
     ~method_:`DELETE
     ~params:[ "id", Playlist_item.Id.to_string playlist_item_id ]
-  |> Deferred.Or_error.ignore_m
+    ~expect_status:`No_content
 ;;
 
 let append_video_to_playlist t playlist_id video_id =
@@ -167,5 +167,6 @@ let append_video_to_playlist t playlist_id video_id =
                      ] )
                ] )
          ])
+    ~expect_status:`OK
   |> Deferred.Or_error.ignore_m
 ;;

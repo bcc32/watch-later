@@ -14,18 +14,26 @@ val command
   -> Command.t
 
 val get
-  :  ?accept_status:(Cohttp.Code.status_code -> bool)
-  -> ?body:Json.t
+  :  ?body:Json.t
   -> t
   -> string
   -> params:(string, string) List.Assoc.t
   -> Json.t Or_error.t Deferred.t
 
 val exec
-  :  ?accept_status:(Cohttp.Code.status_code -> bool)
-  -> ?body:Json.t
+  :  ?body:Json.t
   -> t
   -> string
   -> method_:Cohttp.Code.meth
   -> params:(string, string) List.Assoc.t
+  -> expect_status:Cohttp.Code.status_code
+  -> Json.t Or_error.t Deferred.t
+
+val exec_expect_empty_body
+  :  ?body:Json.t
+  -> t
+  -> string
+  -> method_:Cohttp.Code.meth
+  -> params:(string, string) List.Assoc.t
+  -> expect_status:Cohttp.Code.status_code
   -> unit Or_error.t Deferred.t
