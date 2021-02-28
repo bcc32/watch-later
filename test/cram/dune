@@ -1,2 +1,22 @@
 (cram
- (deps %{bin:watch-later} setup.sh))
+ (deps %{bin:watch-later} setup.sh example-db))
+
+(rule
+ (target example-db)
+ (deps
+  (:wl %{bin:watch-later}))
+ (action
+  (progn
+   (run
+    %{wl}
+    add
+    -dbpath
+    %{target}
+    "https://www.youtube.com/watch?v=-FlxM_0S2lA")
+   (run
+    %{wl}
+    add
+    -dbpath
+    %{target}
+    "https://www.youtube.com/watch?v=qvUWA45GOMg")
+   (run %{wl} mark-watched -dbpath %{target} -anon "-FlxM_0S2lA"))))
