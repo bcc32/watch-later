@@ -1,6 +1,7 @@
 (lang dune 2.8)
 (name watch-later)
 (generate_opam_files true)
+(cram enable)
 (license MIT)
 (authors "Aaron L. Zeng <me@bcc32.com>")
 (maintainers "Aaron L. Zeng <me@bcc32.com>")
