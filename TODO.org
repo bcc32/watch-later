@@ -1,4 +1,28 @@
-* TODO Integration tests
+* TODO [5/7] Integration tests
+:LOGBOOK:
+CLOCK: [2021-02-28 Sun 01:01]--[2021-02-28 Sun 01:06] =>  0:05
+CLOCK: [2021-02-27 Sat 23:09]--[2021-02-28 Sun 00:59] =>  1:50
+:END:
+- [-] add
+  - [X] normal
+  - [ ] add from playlist
+  - [ ] add from playlist, removing videos from playlist
+- [X] list
+- [X] mark-watched
+- [-] playlist
+  - [ ] append
+  - [ ] dedup
+  - [X] list
+  - [ ] remove
+- [X] remove
+- [X] stats
+- [X] watch
+
+Playlist-editing tests probably need to be based on creating a new
+playlist, editing it, and then deleting it.
+
+Or, perhaps, I should just log the requests and mock out the
+responses.  Seems less likely to make YouTube upset.
 * TODO Plain text format
 * DONE Batch YouTube API requests
 CLOSED: [2021-02-16 Tue 00:00]
