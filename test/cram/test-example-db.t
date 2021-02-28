@@ -16,7 +16,7 @@
       "Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN")))
    (watched false))
 
-  $ sqlite3 "$(watch-later debug db path)" .dump
+  $ sqlite3 "$(dbpath)" .dump
   PRAGMA foreign_keys=OFF;
   BEGIN TRANSACTION;
   CREATE TABLE channels (

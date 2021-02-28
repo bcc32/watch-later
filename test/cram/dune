@@ -2,21 +2,14 @@
  (deps %{bin:watch-later} setup.sh example-db))
 
 (rule
- (target example-db)
- (deps
-  (:wl %{bin:watch-later}))
+ (target example-db.sha3sum.gen)
+ (deps example-db)
  (action
-  (progn
-   (run
-    %{wl}
-    add
-    -dbpath
-    %{target}
-    "https://www.youtube.com/watch?v=-FlxM_0S2lA")
-   (run
-    %{wl}
-    add
-    -dbpath
-    %{target}
-    "https://www.youtube.com/watch?v=qvUWA45GOMg")
-   (run %{wl} mark-watched -dbpath %{target} -anon "-FlxM_0S2lA"))))
+  (with-stdout-to
+   %{target}
+   (run sqlite3 %{deps} .sha3sum))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff example-db.sha3sum example-db.sha3sum.gen)))
