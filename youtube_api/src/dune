@@ -1,6 +1,12 @@
 (library
  (name youtube_api)
- (libraries async caqti cohttp-async core uri youtube_api_oauth
-   youtube_api_types)
+ (libraries
+  async
+  caqti
+  cohttp-async
+  core
+  uri
+  youtube_api_oauth
+  youtube_api_types)
  (preprocess
   (pps ppx_jane ppx_log)))

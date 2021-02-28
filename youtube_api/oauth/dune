@@ -1,6 +1,11 @@
 (library
  (name youtube_api_oauth)
- (libraries async cohttp-async core core_kernel.composition_infix
-   watch_later_directories youtube_api_types)
+ (libraries
+  async
+  cohttp-async
+  core
+  core_kernel.composition_infix
+  watch_later_directories
+  youtube_api_types)
  (preprocess
   (pps ppx_jane ppx_log)))

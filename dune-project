@@ -1,4 +1,4 @@
-(lang dune 2.0)
+(lang dune 2.8)
 (name watch-later)
 (generate_opam_files true)
 (license MIT)
