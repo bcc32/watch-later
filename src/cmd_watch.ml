@@ -9,7 +9,7 @@ let browse_video video_id =
 module Which_videos = struct
   type t =
     | These of Video_id.t list
-    | Filter of Video_db.Filter.t
+    | Filter of Filter.t
 end
 
 let main ~dbpath ~mark_watched ~(which_videos : Which_videos.t) =
@@ -48,13 +48,13 @@ video.
          ~default:true
          ~doc:"(true|false) mark video as watched (default true)"
      and video_ids = Params.videos
-     and filter = Video_db.Filter.param ~default_to_unwatched:true in
+     and filter = Filter.param ~default_to_unwatched:true in
      fun () ->
        (* FIXME: Specifying video_ids doesn't work because the default [filter] is no
           longer [is_empty]. *)
        (* TODO: Factor out this param. *)
        let which_videos : Which_videos.t =
-         match video_ids, Video_db.Filter.is_empty filter with
+         match video_ids, Filter.is_empty filter with
          | _ :: _, false -> failwith "Cannot specify both video IDs and filter"
          | _ :: _, true -> These video_ids
          | [], _ -> Filter filter

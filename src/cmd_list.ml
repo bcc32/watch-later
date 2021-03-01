@@ -5,7 +5,7 @@ open! Import
 module Which_videos = struct
   type t =
     | These of Video_id.t list
-    | Filter of Video_db.Filter.t
+    | Filter of Filter.t
 end
 
 let main ~dbpath ~id ~(which_videos : Which_videos.t) =
@@ -42,7 +42,7 @@ let command =
     (let%map_open.Command () = return ()
      and dbpath = Params.dbpath
      and video_ids = Params.videos
-     and filter = Video_db.Filter.param ~default_to_unwatched:false
+     and filter = Filter.param ~default_to_unwatched:false
      and id =
        flag
          "-id"
@@ -52,7 +52,7 @@ let command =
      fun () ->
        Writer.behave_nicely_in_pipeline ();
        let which_videos : Which_videos.t =
-         match video_ids, Video_db.Filter.is_empty filter with
+         match video_ids, Filter.is_empty filter with
          | _ :: _, false -> failwith "Cannot specify both video IDs and filter"
          | _ :: _, true -> These video_ids
          | [], _ -> Filter filter

@@ -20,13 +20,6 @@ val mark_watched
   -> [ `Watched | `Unwatched ]
   -> unit Or_error.t Deferred.t
 
-module Filter : sig
-  type t
-
-  val param : default_to_unwatched:bool -> t Command.Param.t
-  val is_empty : t -> bool
-end
-
 val get_random_video : t -> Filter.t -> Video_id.t Or_error.t Deferred.t
 val get_videos : t -> Filter.t -> (Video_info.t * bool) Pipe.Reader.t
 val strict_remove : t -> Video_id.t -> [ `Ok | `Missing ] Or_error.t Deferred.t
