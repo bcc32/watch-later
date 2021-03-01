@@ -7,11 +7,15 @@ type t =
   | Filter of Filter.t
 
 let param ~default =
-  let%map_open.Command filter = Filter.param
-  and video_ids = Params.videos in
-  match video_ids, Filter.is_empty filter with
-  | _ :: _, false -> failwith "Cannot specify both video IDs and filter"
-  | _ :: _, true -> These video_ids
-  | [], false -> Filter filter
-  | [], true -> default
+  let open Command.Let_syntax in
+  let filter =
+    let%map filter = Filter.param in
+    if Filter.is_empty filter then None else Some (Filter filter)
+  in
+  let video_ids =
+    match%map Params.videos with
+    | [] -> None
+    | _ :: _ as nonempty_videos -> Some (These nonempty_videos)
+  in
+  Command.Param.choose_one [ filter; video_ids ] ~if_nothing_chosen:(Default_to default)
 ;;
