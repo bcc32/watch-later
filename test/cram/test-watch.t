@@ -12,12 +12,7 @@ are selectable.
 Specify video to watch by ID.
 
   $ watch-later watch -anon -FlxM_0S2lA
-  (monitor.ml.Error (Failure "Cannot specify both video IDs and filter")
-   ("Raised at Stdlib.failwith in file \"stdlib.ml\", line 29, characters 17-33"
-    "Called from Watch_later__Cmd_watch.command.(fun) in file \"src/cmd_watch.ml\", line 58, characters 28-79"
-    "Called from Async_kernel__Monitor.Exported_for_scheduler.schedule'.upon_work_fill_i in file \"src/monitor.ml\", line 295, characters 42-51"
-    "Called from Async_kernel__Job_queue.run_jobs in file \"src/job_queue.ml\", line 167, characters 6-47"))
-  [1]
+  https://youtu.be/-FlxM_0S2lA
 
   $ watch-later list -watched false
   ((video_info

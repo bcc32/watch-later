@@ -6,12 +6,6 @@ let browse_video video_id =
   Browse.url (Uri.of_string (sprintf !"https://youtu.be/%{Video_id}" video_id))
 ;;
 
-module Which_videos = struct
-  type t =
-    | These of Video_id.t list
-    | Filter of Filter.t
-end
-
 let main ~dbpath ~mark_watched ~(which_videos : Which_videos.t) =
   Video_db.with_file_and_txn dbpath ~f:(fun db ->
     let%bind which_videos =
@@ -47,17 +41,6 @@ video.
          [%sexp_of: bool]
          ~default:true
          ~doc:"(true|false) mark video as watched (default true)"
-     and video_ids = Params.videos
-     and filter = Filter.param ~default_to_unwatched:true in
-     fun () ->
-       (* FIXME: Specifying video_ids doesn't work because the default [filter] is no
-          longer [is_empty]. *)
-       (* TODO: Factor out this param. *)
-       let which_videos : Which_videos.t =
-         match video_ids, Filter.is_empty filter with
-         | _ :: _, false -> failwith "Cannot specify both video IDs and filter"
-         | _ :: _, true -> These video_ids
-         | [], _ -> Filter filter
-       in
-       main ~dbpath ~mark_watched ~which_videos)
+     and which_videos = Which_videos.param ~default:(Filter Filter.unwatched) in
+     fun () -> main ~dbpath ~mark_watched ~which_videos)
 ;;

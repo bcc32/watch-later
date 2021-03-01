@@ -23,7 +23,25 @@ let is_empty =
     ~watched:is_none
 ;;
 
-let param ~default_to_unwatched =
+let empty =
+  { channel_id = None
+  ; channel_title = None
+  ; video_id = None
+  ; video_title = None
+  ; watched = None
+  }
+;;
+
+let unwatched =
+  { channel_id = None
+  ; channel_title = None
+  ; video_id = None
+  ; video_title = None
+  ; watched = Some false
+  }
+;;
+
+let param =
   let%map_open.Command () = return ()
   and channel_id = flag "-channel-id" (optional string) ~doc:"ID channel ID"
   and channel_title = flag "-channel-title" (optional string) ~doc:"TITLE channel TITLE"
@@ -36,8 +54,7 @@ let param ~default_to_unwatched =
       (optional bool)
       ~doc:"BOOL Restrict to videos with watched status BOOL"
   in
-  let t = { channel_id; channel_title; video_id; video_title; watched } in
-  if default_to_unwatched && is_empty t then { t with watched = Some false } else t
+  { channel_id; channel_title; video_id; video_title; watched }
 ;;
 
 let t : t Caqti_type.t =

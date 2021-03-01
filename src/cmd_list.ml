@@ -2,12 +2,6 @@ open! Core
 open! Async
 open! Import
 
-module Which_videos = struct
-  type t =
-    | These of Video_id.t list
-    | Filter of Filter.t
-end
-
 let main ~dbpath ~id ~(which_videos : Which_videos.t) =
   let print ((video_info : Video_info.t), watched) =
     if id
@@ -41,8 +35,7 @@ let command =
     ~summary:"List videos according to filter."
     (let%map_open.Command () = return ()
      and dbpath = Params.dbpath
-     and video_ids = Params.videos
-     and filter = Filter.param ~default_to_unwatched:false
+     and which_videos = Which_videos.param ~default:(Filter Filter.empty)
      and id =
        flag
          "-id"
@@ -50,12 +43,7 @@ let command =
          ~doc:" If passed, print just the video ID rather than all the video info"
      in
      fun () ->
+       (* FIXME: Move this to bin/main.ml.  Ditto for Async log output setup. *)
        Writer.behave_nicely_in_pipeline ();
-       let which_videos : Which_videos.t =
-         match video_ids, Filter.is_empty filter with
-         | _ :: _, false -> failwith "Cannot specify both video IDs and filter"
-         | _ :: _, true -> These video_ids
-         | [], _ -> Filter filter
-       in
        main ~dbpath ~id ~which_videos)
 ;;
