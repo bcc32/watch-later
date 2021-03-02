@@ -1,7 +1,8 @@
 open! Core_kernel
 open! Import
 
-include String_id.Make
+include
+  String_id.Make
     (struct
       let module_name = "Watch_later.Playlist_id"
     end)

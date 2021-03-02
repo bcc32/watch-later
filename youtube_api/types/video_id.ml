@@ -17,7 +17,8 @@ let validate id =
     | Some char -> error_s [%message "Invalid character in video ID" (char : char)])
 ;;
 
-include String_id.Make_with_validate
+include
+  String_id.Make_with_validate
     (struct
       let module_name = "Watch_later.Video_id"
       let validate = validate
