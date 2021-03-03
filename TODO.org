@@ -53,3 +53,5 @@ CLOCK: [2021-02-17 Wed 23:41]--[2021-02-18 Thu 00:29] =>  0:48
 :END:
 * TODO ETag-based caching
 https://developers.google.com/youtube/v3/getting-started#etags
+* TODO Only fetch partial JSON resource
+https://developers.google.com/youtube/v3/getting-started#partial
