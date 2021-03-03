@@ -175,6 +175,7 @@ let list parse json =
 
 let list parse = with_empty_context (list parse)
 let json = Fn.id
+let lazy_ parse json = lazy (parse json)
 
 module Let_syntax = struct
   include Let_syntax
@@ -187,6 +188,7 @@ module Let_syntax = struct
   let list = list
   let ( @. ) = ( @. )
   let ( @.? ) = ( @.? )
+  let lazy_ = lazy_
 
   module Let_syntax = struct
     include Let_syntax
@@ -203,6 +205,7 @@ module Let_syntax = struct
       let list = list
       let ( @. ) = ( @. )
       let ( @.? ) = ( @.? )
+      let lazy_ = lazy_
     end
   end
 end

@@ -22,6 +22,7 @@ module Let_syntax : sig
   val list : 'a t -> 'a list t
   val ( @. ) : string -> 'a t -> 'a t
   val ( @.? ) : string -> 'a t -> 'a option t
+  val lazy_ : 'a t -> 'a Lazy.t t
 
   module Let_syntax : sig
     val return : 'a -> 'a t
@@ -42,6 +43,7 @@ module Let_syntax : sig
       val list : 'a t -> 'a list t
       val ( @. ) : string -> 'a t -> 'a t
       val ( @.? ) : string -> 'a t -> 'a option t
+      val lazy_ : 'a t -> 'a Lazy.t t
     end
   end
 end
@@ -67,6 +69,9 @@ val ( @. ) : string -> 'a t -> 'a t
 (** [(name @.? of_json) json] applies [of_json] to the member of JSON object [json] named
     [name].  Returns [None] if the field does not exist in the object. *)
 val ( @.? ) : string -> 'a t -> 'a option t
+
+(** [(lazy of_json) json] applies [of_json] lazily. *)
+val lazy_ : 'a t -> 'a Lazy.t t
 
 val run : Json.t -> 'a t -> 'a Or_error.t
 val run_exn : Json.t -> 'a t -> 'a
