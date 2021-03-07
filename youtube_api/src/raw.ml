@@ -28,6 +28,7 @@ let command ?extract_exn ~summary ?readme param =
 ;;
 
 let http_call_internal t ?body method_ uri ~headers =
+  let max_retries = 2 in
   let rec loop tries_remaining =
     let%bind response, body =
       Monitor.try_with_or_error (fun () ->
@@ -35,11 +36,21 @@ let http_call_internal t ?body method_ uri ~headers =
     in
     if Poly.equal `Unauthorized response.status
     then (
-      let%bind () = refresh t in
-      loop (tries_remaining - 1))
+      let tries_remaining = tries_remaining - 1 in
+      if tries_remaining > 0
+      then (
+        [%log.global.error
+          "Got HTTP 401 Unauthorized, refreshing credentials and retrying"
+            (tries_remaining : int)];
+        let%bind () = refresh t in
+        loop tries_remaining)
+      else
+        Deferred.Or_error.error_s
+          [%message
+            "Failed after retrying" (max_retries : int) (response : Cohttp.Response.t)])
     else return (response, body)
   in
-  loop 2
+  loop max_retries
 ;;
 
 let status_equal : Cohttp.Code.status_code Equal.t = Poly.equal
