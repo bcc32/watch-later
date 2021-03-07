@@ -2,30 +2,63 @@ open! Core
 open! Async
 open! Import
 
-type t =
+type contents =
   { client_id : string
   ; client_secret : string
-  ; access_token : string
+  ; mutable access_token : string
   ; refresh_token : string
-  ; expiry : Time_ns.t
+  ; mutable expiry : Time_ns.t
   }
 [@@deriving sexp]
 
-let cred_file = Watch_later_directories.oauth_credentials_path
-let load () = Reader.load_sexp cred_file [%of_sexp: t]
+type t =
+  { file : string
+  ; contents : contents
+  }
+
+let on_disk ?(file = Watch_later_directories.oauth_credentials_path) () =
+  let%map contents = Reader.load_sexp file [%of_sexp: contents] in
+  { file; contents }
+;;
 
 let save t =
   let%bind () =
-    Monitor.try_with_or_error (fun () -> Unix.mkdir ~p:() (Filename.dirname cred_file))
+    Monitor.try_with_or_error (fun () -> Unix.mkdir ~p:() (Filename.dirname t.file))
   in
   let%bind () =
     Monitor.try_with_or_error (fun () ->
-      Writer.save_sexp ~perm:0o600 cred_file [%sexp (t : t)])
+      Writer.save_sexp ~perm:0o600 t.file [%sexp (t.contents : contents)])
   in
   return ()
 ;;
 
-let refresh { client_id; client_secret; access_token = _; refresh_token; expiry = _ } =
+let of_json_save_to_disk
+      ?(file = Watch_later_directories.oauth_credentials_path)
+      json
+      ~client_id
+      ~client_secret
+  =
+  let%bind access_token, refresh_token, expiry =
+    Of_json.run
+      json
+      (let%map_open.Of_json () = return ()
+       and access_token = "access_token" @. string
+       and refresh_token = "refresh_token" @. string
+       and expires_in = "expires_in" @. (int >>| Time_ns.Span.of_int_sec) in
+       access_token, refresh_token, Time_ns.add (Time_ns.now ()) expires_in)
+    |> Deferred.return
+  in
+  let t =
+    { file; contents = { client_id; client_secret; access_token; refresh_token; expiry } }
+  in
+  let%bind () = save t in
+  return t
+;;
+
+let refresh_contents
+      ({ client_id; client_secret; access_token = _; refresh_token; expiry = _ } as
+       contents)
+  =
   let endpoint =
     Uri.make ~scheme:"https" ~host:"oauth2.googleapis.com" ~path:"/token" ()
   in
@@ -53,7 +86,9 @@ let refresh { client_id; client_secret; access_token = _; refresh_token; expiry 
          access_token, Time_ns.add (Time_ns.now ()) expires_in)
       |> Deferred.return
     in
-    return { client_id; client_secret; access_token; refresh_token; expiry })
+    contents.access_token <- access_token;
+    contents.expiry <- expiry;
+    return ())
   else
     Deferred.Or_error.error_s
       [%message
@@ -61,25 +96,19 @@ let refresh { client_id; client_secret; access_token = _; refresh_token; expiry 
           ~status:(Cohttp.Code.string_of_status response.status)]
 ;;
 
-let perform_refresh_and_save t =
-  let%bind t = refresh t in
+let refresh t =
+  let%bind () = refresh_contents t.contents in
   let%bind () = save t in
-  return t
+  return ()
 ;;
 
 let expiry_delta = Time_ns.Span.of_int_sec 10
 
 let is_expired t =
-  Time_ns.is_earlier (Time_ns.sub t.expiry expiry_delta) ~than:(Time_ns.now ())
+  Time_ns.is_earlier (Time_ns.sub t.contents.expiry expiry_delta) ~than:(Time_ns.now ())
 ;;
 
-let refresh_and_save t when_ =
-  match when_ with
-  | `Force -> perform_refresh_and_save t
-  | `If_expired -> if is_expired t then perform_refresh_and_save t else return t
-;;
-
-let load_fresh ?(force_refresh = false) () =
-  let when_ = if force_refresh then `Force else `If_expired in
-  load () >>= Fn.flip refresh_and_save when_
+let access_token t =
+  let%bind () = if is_expired t then refresh t else return () in
+  return t.contents.access_token
 ;;

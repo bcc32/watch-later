@@ -61,7 +61,7 @@ let generate_code_verifier_and_challenge =
 
 (* TODO: Move this logic into oauth.ml *)
 (* Based on https://developers.google.com/youtube/v3/guides/auth/installed-apps *)
-let obtain_access_token ~client_id ~client_secret =
+let obtain_access_token_and_save ~client_id ~client_secret =
   let code_verifier, code_challenge = generate_code_verifier_and_challenge () in
   let endpoint =
     Uri.make
@@ -106,19 +106,11 @@ let obtain_access_token ~client_id ~client_secret =
     let%bind json =
       Or_error.try_with (fun () -> Json.of_string body) |> Deferred.return
     in
-    let%bind access_token, refresh_token, expiry =
-      Of_json.run
-        json
-        (let%map_open.Of_json () = return ()
-         and access_token = "access_token" @. string
-         and refresh_token = "refresh_token" @. string
-         and expires_in = "expires_in" @. (int >>| Time_ns.Span.of_int_sec) in
-         access_token, refresh_token, Time_ns.add (Time_ns.now ()) expires_in)
-      |> Deferred.return
+    (* FIXME: Pass in [?file] arg. *)
+    let%bind (_ : Youtube_api_oauth.Oauth.t) =
+      Youtube_api_oauth.Oauth.of_json_save_to_disk json ~client_id ~client_secret
     in
-    return
-      ({ client_id; client_secret; access_token; refresh_token; expiry }
-       : Youtube_api_oauth.Oauth.t))
+    return ())
   else
     raise_s
       [%message
@@ -135,10 +127,7 @@ module Obtain = struct
        and client_secret =
          flag "-client-secret" (required string) ~doc:"STRING OAuth Client Secret"
        in
-       fun () ->
-         let%bind creds = obtain_access_token ~client_id ~client_secret in
-         let%bind () = Youtube_api_oauth.Oauth.save creds in
-         return ())
+       fun () -> obtain_access_token_and_save ~client_id ~client_secret)
   ;;
 end
 
@@ -154,11 +143,11 @@ module Refresh = struct
            ~doc:" Refresh access token even if it doesn't appear to have expired"
        in
        fun () ->
-         let%bind creds = Youtube_api_oauth.Oauth.load () in
-         Youtube_api_oauth.Oauth.refresh_and_save
-           creds
-           (if force then `Force else `If_expired)
-         |> Deferred.Or_error.ignore_m)
+         (* FIXME: [?file] arg *)
+         let%bind creds = Youtube_api_oauth.Oauth.on_disk () in
+         if force || Youtube_api_oauth.Oauth.is_expired creds
+         then Youtube_api_oauth.Oauth.refresh creds
+         else return ())
   ;;
 end
 
