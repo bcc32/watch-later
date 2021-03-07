@@ -67,13 +67,16 @@ let perform_refresh_and_save t =
   return t
 ;;
 
+let expiry_delta = Time_ns.Span.of_int_sec 10
+
+let is_expired t =
+  Time_ns.is_earlier (Time_ns.sub t.expiry expiry_delta) ~than:(Time_ns.now ())
+;;
+
 let refresh_and_save t when_ =
   match when_ with
   | `Force -> perform_refresh_and_save t
-  | `If_expired ->
-    if Time_ns.is_earlier (Time_ns.now ()) ~than:t.expiry
-    then return t
-    else perform_refresh_and_save t
+  | `If_expired -> if is_expired t then perform_refresh_and_save t else return t
 ;;
 
 let load_fresh ?(force_refresh = false) () =
