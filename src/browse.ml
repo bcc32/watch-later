@@ -3,11 +3,12 @@ open! Async
 open! Import
 
 let url url =
-  let browser =
+  let%bind browser =
     match Bos.OS.Env.(parse "BROWSER" (some cmd)) ~absent:None with
-    | Ok cmd -> cmd
+    | Ok cmd -> return cmd
     | Error (`Msg s) ->
-      raise_s [%message "Error parsing BROWSER environment variable" ~_:(s : string)]
+      Deferred.Or_error.error_s
+        [%message "Error parsing BROWSER environment variable" ~_:(s : string)]
   in
   Monitor.try_with_join_or_error
     ~name:"browse"
