@@ -40,7 +40,8 @@ module Dedup = struct
          in
          let%bind () =
            Deferred.Or_error.List.iter duplicate_video_items ~f:(fun item ->
-             [%log.global.info "Deleting playlist item" (item : Playlist_item.t)];
+             [%log.global.info
+               "Deleting duplicate playlist item" (item : Playlist_item.t)];
              Youtube_api.delete_playlist_item api (Playlist_item.id item))
          in
          return ())
