@@ -9,7 +9,6 @@ let main dbpath =
     return ())
 ;;
 
-(* TODO: Stats by channel *)
 let command =
   Command.async_or_error
     ~summary:"Show stats about the YouTube queue"
