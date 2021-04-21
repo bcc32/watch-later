@@ -2,7 +2,7 @@ open! Core
 open! Async
 open! Import
 
-(* FIXME: This type is not exposed, but [Video_db] depends on its field definitions. *)
+(* FIXME: This type is not exposed, but [Video_db] depends on its field order. *)
 type t
 
 val empty : t
