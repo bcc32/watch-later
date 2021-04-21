@@ -291,8 +291,9 @@ let with_file_and_txn dbpath ~f =
   let%bind () = setup_connection db in
   let (module Conn) = db in
   let%bind.Deferred result = with_txn (module Conn) ~f:(fun () -> f db) in
-  (* FIXME: Maybe don't bother optimizing if result is an error *)
-  let%bind () = exec_oneshot db "PRAGMA optimize" in
+  let%bind () =
+    if Result.is_ok result then exec_oneshot db "PRAGMA optimize" else return ()
+  in
   let%bind () = Conn.disconnect () |> Deferred.ok in
   Deferred.return result
 ;;
