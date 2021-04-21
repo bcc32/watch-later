@@ -44,7 +44,6 @@ let nonempty_videos =
   | _ :: _ as specs -> specs
 ;;
 
-(* TODO: Define string constants for flag names *)
 let nonempty_videos_or_playlist =
   let open Command.Param in
   let nonempty_videos =
@@ -52,10 +51,11 @@ let nonempty_videos_or_playlist =
     | [] -> None
     | _ :: _ as videos -> Some (`Videos videos)
   in
+  let playlist_flag_name = "-playlist" in
   let playlist =
     match%map.Command
       flag
-        "-playlist"
+        playlist_flag_name
         (optional Playlist_id.Plain_or_in_url.arg_type)
         ~doc:
           "PLAYLIST specify videos in PLAYLIST rather than individual command-line \
@@ -74,7 +74,8 @@ let nonempty_videos_or_playlist =
     choose_one [ nonempty_videos; playlist ] ~if_nothing_chosen:Raise
   and remove_from_playlist = remove_from_playlist in
   match which, remove_from_playlist with
-  | `Videos _, true -> raise_s [%message [%string "VIDEO may not be used with -playlist"]]
+  | `Videos _, true ->
+    raise_s [%message [%string "VIDEO may not be used with %{playlist_flag_name}"]]
   | (`Videos _ as which), _ -> which
   | `Playlist playlist_id, remove_from_playlist ->
     `Playlist (playlist_id, remove_from_playlist)
