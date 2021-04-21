@@ -5,7 +5,6 @@ open! Import
 (** [t] is an on-disk token source. *)
 type t
 
-(* FIXME: [token] to load fresh token. *)
 val on_disk
   :  ?file:string (** Defaults to [Watch_later_directories.oauth_credentials_path] *)
   -> unit
