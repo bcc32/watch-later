@@ -57,7 +57,7 @@ let main ~api ~dbpath ~mark_watched ~overwrite ~videos_or_playlist =
                 r1, r2 |> Pipe.to_list |> Deferred.map ~f:Or_error.combine_errors)
               else pipe, return []
             in
-            ( Pipe.map playlist_items ~f:(Or_error.map ~f:Playlist_item.video_info)
+            ( Pipe.map playlist_items ~f:(Or_error.bind ~f:Playlist_item.video_info)
             , playlist_items_to_delete )
           in
           let%bind () = process_video_infos video_infos in

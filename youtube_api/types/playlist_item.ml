@@ -31,4 +31,4 @@ let of_json =
   { id; video_id; video_info }
 ;;
 
-let video_info t = force t.video_info
+let video_info t = Or_error.try_with (fun () -> force t.video_info)
