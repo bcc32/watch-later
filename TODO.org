@@ -34,6 +34,7 @@ CLOCK: [2021-02-09 Tue 22:05]--[2021-02-09 Tue 23:00] =>  0:55
 CLOSED: [2021-01-24 Sun 16:30]
 * TODO Store JSON as blob for easy migrations and extensions
 * TODO Record timestamp when video is added/watched
+- https://changelog.com/posts/you-might-as-well-timestamp-it
 * DONE Use Caqti_async as database library
 CLOSED: [2021-01-24 Sun 02:49]
 :LOGBOOK:
