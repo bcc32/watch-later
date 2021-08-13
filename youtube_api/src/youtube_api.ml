@@ -110,6 +110,21 @@ let get_playlist_items t playlist_id =
            match page_token with
            | None -> []
            | Some page_token -> [ "pageToken", page_token ])
+        ~should_retry:(fun response ~body:json ->
+          Poly.equal `Bad_request response.status
+          &&
+          match
+            Of_json.run
+              (Option.value_exn json)
+              (let%map_open.Of_json () = return ()
+               and reasons = "error" @. "errors" @. list ("reason" @. string) in
+               reasons)
+          with
+          | Ok [ "invalidPageToken" ] -> true
+          | Ok reasons ->
+            Debug.eprint_s [%message (reasons : string list)];
+            false
+          | _ | (exception _) -> false)
     in
     let%bind page_items, next_page_token =
       Of_json.run

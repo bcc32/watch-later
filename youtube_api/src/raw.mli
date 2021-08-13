@@ -15,6 +15,7 @@ val command
 
 val get
   :  ?body:Json.t
+  -> ?should_retry:(Cohttp.Response.t -> body:Json.t option -> bool)
   -> t
   -> string
   -> params:(string, string) List.Assoc.t
@@ -22,6 +23,7 @@ val get
 
 val exec
   :  ?body:Json.t
+  -> ?should_retry:(Cohttp.Response.t -> body:Json.t option -> bool)
   -> t
   -> string
   -> method_:Cohttp.Code.meth
@@ -31,6 +33,7 @@ val exec
 
 val exec_expect_empty_body
   :  ?body:Json.t
+  -> ?should_retry:(Cohttp.Response.t -> body:Json.t option -> bool)
   -> t
   -> string
   -> method_:Cohttp.Code.meth

@@ -49,7 +49,15 @@ let http_call_internal t ?body method_ uri ~headers =
 
 let status_equal : Cohttp.Code.status_code Equal.t = Poly.equal
 
-let call ?body t endpoint ~method_ ~params ~expect_status =
+let rec call
+          ?body
+          ?(should_retry = fun _ ~body:_ -> false)
+          t
+          endpoint
+          ~method_
+          ~params
+          ~expect_status
+  =
   let uri =
     let path = "youtube/v3" ^/ endpoint in
     Uri.with_query' (Uri.make () ~scheme:"https" ~host:"www.googleapis.com" ~path) params
@@ -67,8 +75,23 @@ let call ?body t endpoint ~method_ ~params ~expect_status =
       (body : (Cohttp.Body.t option[@sexp.option]))];
   let%bind response, body = http_call_internal t ?body method_ uri ~headers in
   let%bind body = Cohttp_async.Body.to_string body |> Deferred.ok in
-  [%log.global.debug "Received response" (response : Cohttp.Response.t) (body : string)];
-  if status_equal response.status expect_status
+  let%bind body =
+    match body with
+    | "" -> return None
+    | body -> Deferred.return (Or_error.try_with (fun () -> Some (Json.of_string body)))
+  in
+  [%log.global.debug
+    "Received response"
+      (response : Cohttp.Response.t)
+      (body : (Json.t option[@sexp.option]))];
+  if should_retry response ~body
+  then (
+    let delay = Time_ns.Span.of_ms 100. in
+    [%log.global.debug
+      "Error response from YouTube.  Retrying after delay." (delay : Time_ns.Span.t)];
+    let%bind () = Clock_ns.after delay |> Deferred.ok in
+    call ?body ~should_retry t endpoint ~method_ ~params ~expect_status)
+  else if status_equal response.status expect_status
   then return (response, body)
   else
     Deferred.Or_error.error_s
@@ -76,26 +99,35 @@ let call ?body t endpoint ~method_ ~params ~expect_status =
         "unacceptable status code"
           ~status:(response.status : Cohttp.Code.status_code)
           ~expected:(expect_status : Cohttp.Code.status_code)
-          (body : string)]
+          (body : (Json.t option[@sexp.option]))]
 ;;
 
-let get ?body t endpoint ~params =
-  let%bind _response, body =
-    call ?body t endpoint ~method_:`GET ~expect_status:`OK ~params
-  in
-  let%bind json = Deferred.return (Or_error.try_with (fun () -> Json.of_string body)) in
-  return json
+let expect_json (response, body) =
+  match body with
+  | None ->
+    Deferred.Or_error.error_s
+      [%message "Expected non-empty response body" (response : Cohttp.Response.t)]
+  | Some body -> return body
 ;;
 
-let exec ?body t endpoint ~method_ ~params ~expect_status =
-  let%bind _response, body = call ?body t endpoint ~method_ ~expect_status ~params in
-  let%bind json = Deferred.return (Or_error.try_with (fun () -> Json.of_string body)) in
-  return json
+let expect_no_json (response, body) =
+  match body with
+  | None -> return ()
+  | Some body ->
+    Deferred.Or_error.error_s
+      [%message
+        "Expected empty response body" (response : Cohttp.Response.t) (body : Json.t)]
 ;;
 
-let exec_expect_empty_body ?body t endpoint ~method_ ~params ~expect_status =
-  let%bind _response, body = call ?body t endpoint ~method_ ~expect_status ~params in
-  if String.is_empty body
-  then return ()
-  else Deferred.Or_error.error_s [%message "Expected empty response body" (body : string)]
+let get ?body ?should_retry t endpoint ~params =
+  call ?body ?should_retry t endpoint ~method_:`GET ~expect_status:`OK ~params
+  >>= expect_json
+;;
+
+let exec ?body ?should_retry t endpoint ~method_ ~params ~expect_status =
+  call ?body ?should_retry t endpoint ~method_ ~expect_status ~params >>= expect_json
+;;
+
+let exec_expect_empty_body ?body ?should_retry t endpoint ~method_ ~params ~expect_status =
+  call ?body ?should_retry t endpoint ~method_ ~expect_status ~params >>= expect_no_json
 ;;
