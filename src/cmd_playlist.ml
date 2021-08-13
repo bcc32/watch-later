@@ -28,6 +28,11 @@ module Dedup = struct
            |> Pipe.to_list
            |> Deferred.map ~f:Or_error.combine_errors
          in
+         let items =
+           List.dedup_and_sort
+             items
+             ~compare:(Comparable.lift ~f:Playlist_item.id [%compare: Playlist_item.Id.t])
+         in
          let _, duplicate_video_items =
            List.fold
              items
