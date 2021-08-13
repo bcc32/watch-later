@@ -7,4 +7,4 @@ module Plain_or_in_url : sig
   val arg_type : t Command.Arg_type.t
 end
 
-include Of_jsonable.S with type t := t
+val of_json : t Of_json.t

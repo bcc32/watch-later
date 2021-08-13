@@ -1,7 +1,7 @@
 { pkgs ? import <nixpkgs> { } }:
 
 with pkgs;
-let pkg = ocamlPackages.callPackage ./. { };
+let pkg = import ./release.nix { };
 in mkShell {
   inputsFrom = [ pkg ];
   buildInputs = pkg.checkInputs ++ [

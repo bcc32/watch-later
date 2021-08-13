@@ -1,5 +1,5 @@
 (library
  (name youtube_api_types)
- (libraries core_kernel core_kernel.composition_infix uri yojson)
+ (libraries core_kernel core_kernel.composition_infix jsonaf jsonaf.of_json uri)
  (preprocess
   (pps ppx_jane)))
