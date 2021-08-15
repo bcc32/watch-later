@@ -23,7 +23,8 @@ playlist, editing it, and then deleting it.
 
 Or, perhaps, I should just log the requests and mock out the
 responses.  Seems less likely to make YouTube upset.
-* TODO Plain text format
+* NOTDONE Plain text format
+CLOSED: [2021-08-15 Sun 17:15]
 * DONE Batch YouTube API requests
 CLOSED: [2021-02-16 Tue 00:00]
 :LOGBOOK:
