@@ -1,6 +1,6 @@
 (executables
  (names main)
- (public_names watch-later)
+ (public_names wl)
  (libraries core async watch_later)
  (preprocess
   (pps ppx_jane)))
