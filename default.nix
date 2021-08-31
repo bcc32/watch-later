@@ -27,7 +27,7 @@ buildDunePackage rec {
 
   nativeBuildInputs = [ installShellFiles ];
   postInstall = ''
-    installShellCompletion share/completions/watch-later.bash
+    installShellCompletion share/completions/wl.bash
   '';
 
   meta = { homepage = "https://github.com/bcc32/watch-later"; };
