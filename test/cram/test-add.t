@@ -2,9 +2,9 @@
 
 Add a new video to the database.
 
-  $ watch-later add 'https://www.youtube.com/watch?v=sjkrrmBnpGE'
+  $ wl add 'https://www.youtube.com/watch?v=sjkrrmBnpGE'
 
-  $ watch-later list -video-id sjkrrmBnpGE
+  $ wl list -video-id sjkrrmBnpGE
   ((video_info
     ((channel_id UC1dVfl5-I98WX3yCy8IJQMg)
      (channel_title "Quiet Quest - Study Music") (video_id sjkrrmBnpGE)

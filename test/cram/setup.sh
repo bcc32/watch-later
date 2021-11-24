@@ -12,7 +12,7 @@ reset_db() {
 reset_db
 
 dbpath() {
-    watch-later debug db path
+    wl debug db path
 }
 
 sqlite3() {

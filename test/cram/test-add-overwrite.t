@@ -9,7 +9,7 @@ Insert bogus information for a video.
   >   ('sjkrrmBnpGE', 'REPLACE ME', 'UC1dVfl5-I98WX3yCy8IJQMg', 0);
   > SQL
 
-  $ watch-later list
+  $ wl list
   ((video_info
     ((channel_id UCSJ4gkVC6NrvII8umztf0Ow) (channel_title ChilledCow)
      (video_id -FlxM_0S2lA)
@@ -29,8 +29,8 @@ Insert bogus information for a video.
 Add an existing video to the database, not overwriting any information.  `-mark`
 has no effect.
 
-  $ watch-later add sjkrrmBnpGE -mark true
-  $ watch-later list -video-id sjkrrmBnpGE
+  $ wl add sjkrrmBnpGE -mark true
+  $ wl list -video-id sjkrrmBnpGE
   ((video_info
     ((channel_id UC1dVfl5-I98WX3yCy8IJQMg) (channel_title "REPLACE ME")
      (video_id sjkrrmBnpGE) (video_title "REPLACE ME")))
@@ -38,8 +38,8 @@ has no effect.
 
 Add an existing video to the database, re-fetching information from YouTube.
 
-  $ watch-later add -overwrite sjkrrmBnpGE -mark true
-  $ watch-later list -video-id sjkrrmBnpGE
+  $ wl add -overwrite sjkrrmBnpGE -mark true
+  $ wl list -video-id sjkrrmBnpGE
   ((video_info
     ((channel_id UC1dVfl5-I98WX3yCy8IJQMg)
      (channel_title "Quiet Quest - Study Music") (video_id sjkrrmBnpGE)

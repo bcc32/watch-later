@@ -1,5 +1,5 @@
 (cram
- (deps %{bin:watch-later} setup.sh example-db))
+ (deps %{bin:wl} setup.sh example-db))
 
 (rule
  (target example-db.sha3sum.gen)

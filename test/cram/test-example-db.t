@@ -1,9 +1,9 @@
   $ source ./setup.sh
 
-  $ watch-later debug db path
+  $ wl debug db path
   XDG_DATA_DIR/watch-later/watch-later.db
 
-  $ watch-later list
+  $ wl list
   ((video_info
     ((channel_id UCSJ4gkVC6NrvII8umztf0Ow) (channel_title ChilledCow)
      (video_id -FlxM_0S2lA)
