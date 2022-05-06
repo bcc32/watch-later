@@ -60,9 +60,49 @@ let generate_code_verifier_and_challenge =
 ;;
 
 (* TODO: Move this logic into oauth.ml *)
-(* Based on https://developers.google.com/youtube/v3/guides/auth/installed-apps *)
+
+let listen_for_authorization_code_response () =
+  let authorization_code = Ivar.create () in
+  let%map server =
+    Monitor.try_with_or_error (fun () ->
+      Cohttp_async.Server.create
+        ~on_handler_error:`Raise
+        Tcp.Where_to_listen.of_port_chosen_by_os
+        (fun ~body:_ _addr request ->
+           let uri = Cohttp.Request.uri request in
+           let result =
+             match Uri.get_query_param uri "error" with
+             | Some error ->
+               Or_error.error_s [%message "Failed to get access token" (error : string)]
+             | None ->
+               (match Uri.get_query_param uri "code" with
+                | Some code -> Ok code
+                | None -> raise_s [%message "Response contained neither error nor code"])
+           in
+           Ivar.fill authorization_code result;
+           match result with
+           | Ok _ ->
+             Cohttp_async.Server.respond_string
+               "Successfully authorized.  You can now close this tab and return to the \
+                command line."
+           | Error error ->
+             Cohttp_async.Server.respond_string
+               ~status:`Unauthorized
+               (Error.to_string_hum
+                  (Error.tag ~tag:"Failed to authorize with YouTube API." error))))
+  in
+  let port = Cohttp_async.Server.listening_on server in
+  port, Ivar.read authorization_code
+;;
+
+(* Based on
+   https://developers.google.com/youtube/v3/guides/auth/installed-apps *)
 let obtain_access_token_and_save ~client_id ~client_secret =
   let code_verifier, code_challenge = generate_code_verifier_and_challenge () in
+  let%bind listening_port, authorization_code_deferred =
+    listen_for_authorization_code_response ()
+  in
+  let redirect_uri = sprintf "http://127.0.0.1:%d" listening_port in
   let endpoint =
     Uri.make
       ~scheme:"https"
@@ -70,7 +110,7 @@ let obtain_access_token_and_save ~client_id ~client_secret =
       ~path:"/o/oauth2/v2/auth"
       ~query:
         [ "client_id", [ client_id ]
-        ; "redirect_uri", [ "urn:ietf:wg:oauth:2.0:oob" ] (* Manual copy/paste *)
+        ; "redirect_uri", [ redirect_uri ]
         ; "response_type", [ "code" ]
         ; "scope", [ "https://www.googleapis.com/auth/youtube.force-ssl" ]
         ; "code_challenge", [ code_challenge ]
@@ -78,12 +118,21 @@ let obtain_access_token_and_save ~client_id ~client_secret =
         ]
       ()
   in
-  let%bind () = Browse.url endpoint in
-  let%bind authorization_code =
-    Monitor.try_with_or_error (fun () ->
-      Async_interactive.ask_dispatch_gen "Authorization Code" ~f:(fun code ->
-        if String.is_empty code then Error "Empty code" else Ok code))
+  let%bind () =
+    Async_interactive.print_string
+      [%string
+        {|
+Opening authentication page using $BROWSER.
+
+If the authentication page is not automatically opened, you can also
+paste the following URL into a new browser tab:
+
+%{endpoint#Uri}
+|}]
+    |> Deferred.ok
   in
+  let%bind () = Browse.url endpoint in
+  let%bind authorization_code = authorization_code_deferred in
   let token_endpoint =
     Uri.make ~scheme:"https" ~host:"oauth2.googleapis.com" ~path:"/token" ()
   in
@@ -97,7 +146,7 @@ let obtain_access_token_and_save ~client_id ~client_secret =
           ; "code", [ authorization_code ]
           ; "code_verifier", [ code_verifier ]
           ; "grant_type", [ "authorization_code" ]
-          ; "redirect_uri", [ "urn:ietf:wg:oauth:2.0:oob" ]
+          ; "redirect_uri", [ redirect_uri ]
           ])
   in
   if response.status |> Cohttp.Code.code_of_status |> Cohttp.Code.is_success
