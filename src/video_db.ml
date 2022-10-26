@@ -3,6 +3,7 @@ open! Async
 open! Import
 module Caqti_type = Db_type
 open Caqti_type.Std
+open Caqti_request.Infix
 
 type t = Caqti_async.connection
 
@@ -25,10 +26,10 @@ let with_txn ((module Conn) : t) ~f =
 ;;
 
 module Migrate = struct
-  let get_user_version = Caqti_request.find unit int "PRAGMA user_version"
+  let get_user_version = (unit ->! int) "PRAGMA user_version"
 
   let set_user_version n =
-    Caqti_request.exec ~oneshot:true unit (sprintf "PRAGMA user_version = %d" n)
+    (unit ->. unit) ~oneshot:true (sprintf "PRAGMA user_version = %d" n)
   ;;
 
   let disable_foreign_keys = "PRAGMA foreign_keys = OFF"
@@ -175,11 +176,11 @@ CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
     let all = [ create_videos_index_on_title; create_channels_index_on_title ]
   end
 
-  let vacuum = Caqti_request.exec unit "VACUUM"
+  let vacuum = (unit ->. unit) "VACUUM"
 
   let migrations =
     [| V1.all; V2.all; V3.all |]
-    |> Array.map ~f:(List.map ~f:(Caqti_request.exec ~oneshot:true unit))
+    |> Array.map ~f:(List.map ~f:((unit ->. unit) ~oneshot:true))
   ;;
 
   let desired_user_version = Array.length migrations
@@ -246,13 +247,11 @@ CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
 end
 
 let exec_oneshot ((module Conn) : t) sql =
-  Conn.exec (Caqti_request.exec ~oneshot:true unit sql) () |> convert_error
+  Conn.exec ((unit ->. unit) ~oneshot:true sql) () |> convert_error
 ;;
 
 let find_and_check ((module Conn) : t) type_ test ?here ?message ?equal ~expect sql =
-  let%bind actual =
-    Conn.find (Caqti_request.find ~oneshot:true unit type_ sql) () |> convert_error
-  in
+  let%bind actual = Conn.find ((unit ->! type_) ~oneshot:true sql) () |> convert_error in
   test ?here ?message ?equal ~expect actual;
   return ()
 ;;
@@ -298,14 +297,12 @@ let with_file_and_txn dbpath ~f =
   Deferred.return result
 ;;
 
-let select_count_total_videos =
-  Caqti_request.find unit int {|
+let select_count_total_videos = (unit ->! int) {|
 SELECT COUNT(*) FROM videos
 |}
-;;
 
 let select_count_watched_videos =
-  Caqti_request.find unit int {|
+  (unit ->! int) {|
 SELECT COUNT(*) FROM videos
 WHERE watched
 |}
@@ -322,7 +319,7 @@ let video_stats ((module Conn) : t) =
 ;;
 
 let mark_watched =
-  Caqti_request.exec (tup2 bool video_id) {|
+  (tup2 bool video_id ->. unit) {|
 UPDATE videos SET watched = ?
 WHERE id = ?
 |}
@@ -344,7 +341,7 @@ DO UPDATE SET title = excluded.title
 |}
        else "")
   in
-  Caqti_request.exec (tup2 string string) sql
+  (tup2 string string ->. unit) sql
 ;;
 
 let add_channel_overwrite = add_channel ~overwrite:true
@@ -369,7 +366,7 @@ DO UPDATE SET title = excluded.title,
 |}
        else "")
   in
-  Caqti_request.exec (tup3 video_id string string) sql
+  (tup3 video_id string string ->. unit) sql
 ;;
 
 let add_video_overwrite = add_video ~overwrite:true
@@ -392,9 +389,7 @@ let add_video ((module Conn) : t) (video_info : Video_info.t) ~overwrite =
 ;;
 
 let select_video_by_id =
-  Caqti_request.find_opt
-    video_id
-    (tup2 video_info bool)
+  (video_id ->? tup2 video_info bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched
 FROM videos_all
@@ -433,9 +428,7 @@ let mark_watched ((module Conn) : t) video_id state =
 (* TODO: Optimize this query by only adding WHERE clauses for columns present in the
    filter. *)
 let get_random_video =
-  Caqti_request.find_opt
-    Filter.t
-    video_id
+  (Filter.t ->? video_id)
     {|
 SELECT video_id FROM videos_all
 WHERE ($1 IS NULL OR channel_id = $1)
@@ -455,9 +448,7 @@ let get_random_video ((module Conn) : t) filter =
 ;;
 
 let get_videos =
-  Caqti_request.collect
-    Filter.t
-    (tup2 video_info bool)
+  (Filter.t ->* tup2 video_info bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched FROM videos_all
 WHERE ($1 IS NULL OR channel_id = $1)
@@ -475,7 +466,7 @@ let get_videos ((module Conn) : t) filter =
     |> Deferred.Or_error.ok_exn)
 ;;
 
-let remove_video = Caqti_request.exec video_id {|
+let remove_video = (video_id ->. unit) {|
 DELETE FROM videos WHERE id = ?
 |}
 

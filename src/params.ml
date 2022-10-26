@@ -7,7 +7,7 @@ let dbpath =
   let open Command.Param in
   flag
     "-dbpath"
-    (optional_with_default default_db_path Filename.arg_type)
+    (optional_with_default default_db_path Filename_unix.arg_type)
     ~doc:
       "FILE path to database file (default is $XDG_DATA_HOME/watch-later/watch-later.db)"
 ;;

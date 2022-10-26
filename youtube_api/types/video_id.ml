@@ -1,4 +1,4 @@
-open! Core_kernel
+open! Core
 open! Import
 
 let validate id =
@@ -22,6 +22,7 @@ include
     (struct
       let module_name = "Watch_later.Video_id"
       let validate = validate
+      let include_default_validation = false
     end)
     ()
 

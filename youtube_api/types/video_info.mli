@@ -1,4 +1,4 @@
-open! Core_kernel
+open! Core
 open! Import
 
 (* TODO: Add video duration, thumbnail link, description? *)

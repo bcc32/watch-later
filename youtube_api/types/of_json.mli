@@ -2,7 +2,7 @@
 
 (* FIXME: Refactor this interface and expose an openable [O] module. *)
 
-open! Core_kernel
+open! Core
 open! Import
 
 type 'a t

@@ -2,7 +2,7 @@
 
     @see <https://developers.google.com/youtube/v3/docs/playlistItems> *)
 
-open! Core_kernel
+open! Core
 open! Import
 module Id : String_id.S
 

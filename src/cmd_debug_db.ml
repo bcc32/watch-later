@@ -30,7 +30,7 @@ module Query = struct
          (* Caqti doesn't support ['a Caqti_type.t]s that read unknown numbers of fields,
             so we just shell out to the sqlite3 command-line shell instead. *)
          never_returns
-           (Core.Unix.exec
+           (Core_unix.exec
               ~prog:"sqlite3"
               ~argv:
                 ([ "sqlite3"; "-batch"; "-bail"; "-init"; "/dev/null" ]

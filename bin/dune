@@ -1,7 +1,7 @@
 (executables
  (names main)
  (public_names wl)
- (libraries core async watch_later)
+ (libraries core core_unix.command_unix async watch_later)
  (preprocess
   (pps ppx_jane)))
 

@@ -4,99 +4,97 @@ Manage YouTube queue
 
 === subcommands and flags ===
 
-  add                             Add video(s) to queue
-  . [-- VIDEO]                    escape videos whose IDs may start with [-]
-  . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later/watch-later.db)
-  . [-log-level LEVEL]            The log level
-  . [-mark-watched (true|false)]  mark video as watched (default do nothing)
-  . [-overwrite]                  overwrite existing entries (default skip)
-                                  (alias: -f)
-  . [-playlist PLAYLIST]          specify videos in PLAYLIST rather than
-                                  individual command-line arguments
-  . [-remove-from-playlist]       if reading videos from a playlist, remove
-                                  videos from playlist when done
-  debug                           Debugging tools
-  . db                            Database debugging commands
-  . . path                        Print file path to database
-  . . . [-dbpath FILE]            path to database file (default is
-                                  $XDG_DATA_HOME/watch-later/watch-later.db)
-  . . query                       Run an arbitrary SQL query on stdin against
-                                  the database
-  . . . [-- ARG]                  command-line arguments to pass to sqlite3
-  . . . [-dbpath FILE]            path to database file (default is
-                                  $XDG_DATA_HOME/watch-later/watch-later.db)
-  . get-video                     Debug YouTube API calls
-  . . [-- VIDEO]                  escape videos whose IDs may start with [-]
-  . . [-json]                     Display raw JSON API response
-  . . [-log-level LEVEL]          The log level
-  . . [-part PART] ...            include PART in the JSON response (see
-                                  https://developers.google.com/youtube/v3/docs/videos/list).
-                                  Can be passed multiple times.
-  list                            List videos according to filter.
-  . [-- VIDEO]                    escape videos whose IDs may start with [-]
-  . [-channel-id ID]              channel ID
-  . [-channel-title TITLE]        channel TITLE
-  . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later/watch-later.db)
-  . [-id]                         If passed, print just the video ID rather than
-                                  all the video info
-  . [-video-id ID]                video ID
-  . [-video-title TITLE]          video TITLE
-  . [-watched BOOL]               Restrict to videos with watched status BOOL
-  mark-watched                    Mark video(s) as watched
-  . [-- VIDEO]                    escape videos whose IDs may start with [-]
-  . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later/watch-later.db)
-  . [-undo]                       mark as unwatched instead
-  oauth                           Manage OAuth 2.0 credentials for YouTube Data
-                                  API
-  . obtain                        Generate and save valid OAuth 2.0 credentials
-                                  for YouTube Data API
-  . . -client-id STRING           OAuth Client ID
-  . . -client-secret STRING       OAuth Client Secret
-  . refresh                       Obtain a fresh access token from the saved
-                                  refresh token
-  . . [-force]                    Refresh access token even if it doesn't appear
-                                  to have expired
-  playlist                        Commands for managing playlists
-  . append-videos                 Append video(s) to a playlist
-  . . [-- VIDEO]                  escape videos whose IDs may start with [-]
-  . . [-log-level LEVEL]          The log level
-  . dedup                         Remove duplicate videos in a playlist
-  . . [-log-level LEVEL]          The log level
-  . list                          List the IDs of the videos in a playlist
-  . . [-log-level LEVEL]          The log level
-  . remove-video                  Remove videos from a playlist
-  . . [-- VIDEO]                  escape videos whose IDs may start with [-]
-  . . [-log-level LEVEL]          The log level
-  remove                          Remove videos from queue
-  . [-- VIDEO]                    escape videos whose IDs may start with [-]
-  . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later/watch-later.db)
-  . [-ignore-missing]             Silence errors about removing videos not in
-                                  database
-                                  (alias: -f)
-  stats                           Show stats about the YouTube queue
-  . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later/watch-later.db)
-  watch                           Open a video in $BROWSER and mark it watched.
-  . [-- VIDEO]                    escape videos whose IDs may start with [-]
-  . [-channel-id ID]              channel ID
-  . [-channel-title TITLE]        channel TITLE
-  . [-dbpath FILE]                path to database file (default is
-                                  $XDG_DATA_HOME/watch-later/watch-later.db)
-  . [-mark-watched (true|false)]  mark video as watched (default true) (default:
-                                  true)
-  . [-video-id ID]                video ID
-  . [-video-title TITLE]          video TITLE
-  . [-watched BOOL]               Restrict to videos with watched status BOOL
-  version                         print version information
-  . [-build-info]                 print build info for this build
-  . [-version]                    print the version of this build
-  help                            explain a given subcommand (perhaps
-                                  recursively)
-  . [-expand-dots]                expand subcommands in recursive help
-  . [-flags]                      show flags as well in recursive help
-  . [-recursive]                  show subcommands of subcommands, etc.
+  add                        . Add video(s) to queue
+  . [-- VIDEO]               . escape videos whose IDs may start with [-]
+  . [-dbpath FILE]           . path to database file (default is
+                               $XDG_DATA_HOME/watch-later/watch-later.db)
+  . [-log-level LEVEL]       . The log level (can be: Debug, Error, Info)
+  . [-mark-watched (true|false)]
+                             . mark video as watched (default do nothing)
+  . [-overwrite], -f         . overwrite existing entries (default skip)
+  . [-playlist PLAYLIST]     . specify videos in PLAYLIST rather than individual
+                               command-line arguments
+  . [-remove-from-playlist]  . if reading videos from a playlist, remove videos
+                               from playlist when done
+  debug                      . Debugging tools
+  . db                       . Database debugging commands
+  . . path                   . Print file path to database
+  . . . [-dbpath FILE]       . path to database file (default is
+                               $XDG_DATA_HOME/watch-later/watch-later.db)
+  . . query                  . Run an arbitrary SQL query on stdin against the
+                               database
+  . . . [-- ARG]             . command-line arguments to pass to sqlite3
+  . . . [-dbpath FILE]       . path to database file (default is
+                               $XDG_DATA_HOME/watch-later/watch-later.db)
+  . get-video                . Debug YouTube API calls
+  . . [-- VIDEO]             . escape videos whose IDs may start with [-]
+  . . [-json]                . Display raw JSON API response
+  . . [-log-level LEVEL]     . The log level (can be: Debug, Error, Info)
+  . . [-part PART] ...       . include PART in the JSON response (see
+                               https://developers.google.com/youtube/v3/docs/videos/list).
+                               Can be passed multiple times.
+  list                       . List videos according to filter.
+  . [-- VIDEO]               . escape videos whose IDs may start with [-]
+  . [-channel-id ID]         . channel ID
+  . [-channel-title TITLE]   . channel TITLE
+  . [-dbpath FILE]           . path to database file (default is
+                               $XDG_DATA_HOME/watch-later/watch-later.db)
+  . [-id]                    . If passed, print just the video ID rather than
+                               all the video info
+  . [-video-id ID]           . video ID
+  . [-video-title TITLE]     . video TITLE
+  . [-watched BOOL]          . Restrict to videos with watched status BOOL
+  mark-watched               . Mark video(s) as watched
+  . [-- VIDEO]               . escape videos whose IDs may start with [-]
+  . [-dbpath FILE]           . path to database file (default is
+                               $XDG_DATA_HOME/watch-later/watch-later.db)
+  . [-undo]                  . mark as unwatched instead
+  oauth                      . Manage OAuth 2.0 credentials for YouTube Data API
+  . obtain                   . Generate and save valid OAuth 2.0 credentials for
+                               YouTube Data API
+  . . -client-id STRING      . OAuth Client ID
+  . . -client-secret STRING  . OAuth Client Secret
+  . refresh                  . Obtain a fresh access token from the saved
+                               refresh token
+  . . [-force]               . Refresh access token even if it doesn't appear to
+                               have expired
+  playlist                   . Commands for managing playlists
+  . append-videos            . Append video(s) to a playlist
+  . . [-- VIDEO]             . escape videos whose IDs may start with [-]
+  . . [-log-level LEVEL]     . The log level (can be: Debug, Error, Info)
+  . dedup                    . Remove duplicate videos in a playlist
+  . . [-log-level LEVEL]     . The log level (can be: Debug, Error, Info)
+  . list                     . List the IDs of the videos in a playlist
+  . . [-log-level LEVEL]     . The log level (can be: Debug, Error, Info)
+  . remove-video             . Remove videos from a playlist
+  . . [-- VIDEO]             . escape videos whose IDs may start with [-]
+  . . [-log-level LEVEL]     . The log level (can be: Debug, Error, Info)
+  remove                     . Remove videos from queue
+  . [-- VIDEO]               . escape videos whose IDs may start with [-]
+  . [-dbpath FILE]           . path to database file (default is
+                               $XDG_DATA_HOME/watch-later/watch-later.db)
+  . [-ignore-missing], -f    . Silence errors about removing videos not in
+                               database
+  stats                      . Show stats about the YouTube queue
+  . [-dbpath FILE]           . path to database file (default is
+                               $XDG_DATA_HOME/watch-later/watch-later.db)
+  watch                      . Open a video in $BROWSER and mark it watched.
+  . [-- VIDEO]               . escape videos whose IDs may start with [-]
+  . [-channel-id ID]         . channel ID
+  . [-channel-title TITLE]   . channel TITLE
+  . [-dbpath FILE]           . path to database file (default is
+                               $XDG_DATA_HOME/watch-later/watch-later.db)
+  . [-mark-watched (true|false)]
+                             . mark video as watched (default true) (default:
+                               true)
+  . [-video-id ID]           . video ID
+  . [-video-title TITLE]     . video TITLE
+  . [-watched BOOL]          . Restrict to videos with watched status BOOL
+  version                    . print version information
+  . [-build-info]            . print build info for this build
+  . [-version]               . print the version of this build
+  help                       . explain a given subcommand (perhaps recursively)
+  . [-expand-dots]           . expand subcommands in recursive help
+  . [-flags]                 . show flags as well in recursive help
+  . [-recursive]             . show subcommands of subcommands, etc.
 
