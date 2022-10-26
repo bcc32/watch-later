@@ -28,6 +28,7 @@ let http_call_internal t ?body method_ uri ~headers =
       Monitor.try_with_or_error (fun () ->
         Cohttp_async.Client.call ?body method_ uri ~headers)
     in
+    (* CR aaron: Also 503 *)
     if Poly.equal `Unauthorized response.status
     then (
       let tries_remaining = tries_remaining - 1 in
