@@ -170,13 +170,13 @@ let append_video_to_playlist t playlist_id video_id =
     ~method_:`POST
     ~params:[ "part", "snippet" ]
     ~body:
-      (`Assoc
+      (`Object
          [ "kind", `String "youtube#playlistItem"
          ; ( "snippet"
-           , `Assoc
+           , `Object
                [ "playlistId", `String (Playlist_id.to_string playlist_id)
                ; ( "resourceId"
-                 , `Assoc
+                 , `Object
                      [ "kind", `String "youtube#video"
                      ; "videoId", `String (Video_id.to_string video_id)
                      ] )

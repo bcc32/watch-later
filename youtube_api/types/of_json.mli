@@ -1,6 +1,8 @@
 (** Reader monad for JSON consumers. *)
 
 (* FIXME: Refactor this interface and expose an openable [O] module. *)
+(* TODO: Replace this module with https://github.com/janestreet/of_json once that is
+   stably released in 0.16. *)
 
 open! Core
 open! Import
@@ -17,8 +19,7 @@ module Let_syntax : sig
   val null : unit t
   val bool : bool t
   val string : string t
-  val int : int t
-  val float : float t
+  val number : float t
   val list : 'a t -> 'a list t
   val ( @. ) : string -> 'a t -> 'a t
   val ( @.? ) : string -> 'a t -> 'a option t
@@ -38,8 +39,7 @@ module Let_syntax : sig
       val null : unit t
       val bool : bool t
       val string : string t
-      val int : int t
-      val float : float t
+      val number : float t
       val list : 'a t -> 'a list t
       val ( @. ) : string -> 'a t -> 'a t
       val ( @.? ) : string -> 'a t -> 'a option t
@@ -53,8 +53,7 @@ end
 val null : unit t
 val bool : bool t
 val string : string t
-val int : int t
-val float : float t
+val number : float t
 val list : 'a t -> 'a list t
 
 (** Identity *)

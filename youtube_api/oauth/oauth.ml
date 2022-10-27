@@ -44,7 +44,7 @@ let of_json_save_to_disk
       (let%map_open.Of_json () = return ()
        and access_token = "access_token" @. string
        and refresh_token = "refresh_token" @. string
-       and expires_in = "expires_in" @. (int >>| Time_ns.Span.of_int_sec) in
+       and expires_in = "expires_in" @. (number >>| Time_ns.Span.of_sec) in
        access_token, refresh_token, Time_ns.add (Time_ns.now ()) expires_in)
     |> Deferred.return
   in
@@ -56,8 +56,7 @@ let of_json_save_to_disk
 ;;
 
 let refresh_contents
-      ({ client_id; client_secret; access_token = _; refresh_token; expiry = _ } as
-       contents)
+      ({ client_id; client_secret; access_token = _; refresh_token; expiry = _ } as contents)
   =
   let endpoint =
     Uri.make ~scheme:"https" ~host:"oauth2.googleapis.com" ~path:"/token" ()
@@ -82,7 +81,7 @@ let refresh_contents
       Of_json.run
         json
         (let%map_open.Of_json access_token = "access_token" @. string
-         and expires_in = "expires_in" @. int >>| Time_ns.Span.of_int_sec in
+         and expires_in = "expires_in" @. number >>| Time_ns.Span.of_sec in
          access_token, Time_ns.add (Time_ns.now ()) expires_in)
       |> Deferred.return
     in

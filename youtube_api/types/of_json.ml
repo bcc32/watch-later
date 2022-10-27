@@ -57,15 +57,14 @@ let assoc_exn pairs key ~if_none ~if_one =
 let raise_type_error ~expected ~got = raise (Type_error { expected; got })
 
 let expect_assoc_exn json =
-  let raise_type_error got = raise_type_error ~expected:"assoc" ~got in
+  let raise_type_error got = raise_type_error ~expected:"object" ~got in
   match json with
-  | `Bool _ -> raise_type_error "bool"
+  | `False | `True -> raise_type_error "bool"
   | `Null -> raise_type_error "null"
-  | `Assoc assoc -> assoc
-  | `List _ -> raise_type_error "list"
-  | `Float _ -> raise_type_error "float"
+  | `Object assoc -> assoc
+  | `Array _ -> raise_type_error "array"
+  | `Number _ -> raise_type_error "float"
   | `String _ -> raise_type_error "string"
-  | `Int _ -> raise_type_error "int"
 ;;
 
 let ( @. ) field parse json =
@@ -89,13 +88,12 @@ let ( @.? ) field parse json =
 let null json =
   let raise_type_error got = raise_type_error ~expected:"null" ~got in
   match json with
-  | `Bool _ -> raise_type_error "bool"
+  | `False | `True -> raise_type_error "bool"
   | `Null -> ()
-  | `Assoc _ -> raise_type_error "assoc"
-  | `List _ -> raise_type_error "list"
-  | `Float _ -> raise_type_error "float"
+  | `Object _ -> raise_type_error "object"
+  | `Array _ -> raise_type_error "array"
+  | `Number _ -> raise_type_error "float"
   | `String _ -> raise_type_error "string"
-  | `Int _ -> raise_type_error "int"
 ;;
 
 let null = with_empty_context null
@@ -103,13 +101,13 @@ let null = with_empty_context null
 let bool json =
   let raise_type_error got = raise_type_error ~expected:"bool" ~got in
   match json with
-  | `Bool bool -> bool
+  | `False -> false
+  | `True -> true
   | `Null -> raise_type_error "null"
-  | `Assoc _ -> raise_type_error "assoc"
-  | `List _ -> raise_type_error "list"
-  | `Float _ -> raise_type_error "float"
+  | `Object _ -> raise_type_error "object"
+  | `Array _ -> raise_type_error "array"
+  | `Number _ -> raise_type_error "float"
   | `String _ -> raise_type_error "string"
-  | `Int _ -> raise_type_error "int"
 ;;
 
 let bool = with_empty_context bool
@@ -117,55 +115,38 @@ let bool = with_empty_context bool
 let string json =
   let raise_type_error got = raise_type_error ~expected:"string" ~got in
   match json with
-  | `Bool _ -> raise_type_error "bool"
+  | `False | `True -> raise_type_error "bool"
   | `Null -> raise_type_error "null"
-  | `Assoc _ -> raise_type_error "assoc"
-  | `List _ -> raise_type_error "list"
-  | `Float _ -> raise_type_error "float"
+  | `Object _ -> raise_type_error "object"
+  | `Array _ -> raise_type_error "array"
+  | `Number _ -> raise_type_error "float"
   | `String string -> string
-  | `Int _ -> raise_type_error "int"
 ;;
 
 let string = with_empty_context string
 
-let int json =
-  let raise_type_error got = raise_type_error ~expected:"int" ~got in
+let number json =
+  let raise_type_error got = raise_type_error ~expected:"number" ~got in
   match json with
-  | `Bool _ -> raise_type_error "bool"
+  | `False | `True -> raise_type_error "bool"
   | `Null -> raise_type_error "null"
-  | `Assoc _ -> raise_type_error "assoc"
-  | `List _ -> raise_type_error "list"
-  | `Float _ -> raise_type_error "float"
+  | `Object _ -> raise_type_error "object"
+  | `Array _ -> raise_type_error "array"
+  | `Number number -> Float.of_string number
   | `String _ -> raise_type_error "string"
-  | `Int int -> int
 ;;
 
-let int = with_empty_context int
-
-let float json =
-  let raise_type_error got = raise_type_error ~expected:"float" ~got in
-  match json with
-  | `Bool _ -> raise_type_error "bool"
-  | `Null -> raise_type_error "null"
-  | `Assoc _ -> raise_type_error "assoc"
-  | `List _ -> raise_type_error "list"
-  | `Float float -> float
-  | `String _ -> raise_type_error "string"
-  | `Int _ -> raise_type_error "int"
-;;
-
-let float = with_empty_context float
+let number = with_empty_context number
 
 let expect_list_exn json =
-  let raise_type_error got = raise_type_error ~expected:"list" ~got in
+  let raise_type_error got = raise_type_error ~expected:"array" ~got in
   match json with
-  | `Bool _ -> raise_type_error "bool"
+  | `False | `True -> raise_type_error "bool"
   | `Null -> raise_type_error "null"
-  | `Assoc _ -> raise_type_error "assoc"
-  | `List values -> values
-  | `Float _ -> raise_type_error "float"
+  | `Object _ -> raise_type_error "object"
+  | `Array values -> values
+  | `Number _ -> raise_type_error "float"
   | `String _ -> raise_type_error "string"
-  | `Int _ -> raise_type_error "int"
 ;;
 
 let list parse json =
@@ -183,8 +164,7 @@ module Let_syntax = struct
   let null = null
   let bool = bool
   let string = string
-  let int = int
-  let float = float
+  let number = number
   let list = list
   let ( @. ) = ( @. )
   let ( @.? ) = ( @.? )
@@ -200,8 +180,7 @@ module Let_syntax = struct
       let null = null
       let bool = bool
       let string = string
-      let int = int
-      let float = float
+      let number = number
       let list = list
       let ( @. ) = ( @. )
       let ( @.? ) = ( @.? )

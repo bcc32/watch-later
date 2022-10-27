@@ -9,10 +9,11 @@
   core
   core_kernel.composition_infix
   cryptokit
+  jsonaf
   re
   uri
   watch_later_directories
   webbrowser
   youtube_api)
  (preprocess
-  (pps ppx_jane ppx_log)))
+  (pps ppx_jane ppx_jsonaf_conv ppx_log)))

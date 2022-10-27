@@ -1,15 +1,16 @@
 open! Core
 open! Import
-include Yojson.Basic
 
-let of_string s = from_string s
-let to_string s = to_string s
+type t = Jsonaf.t
+
+let of_string = Jsonaf.of_string
+let to_string = Jsonaf.to_string
 let sexp_of_t = to_string >> [%sexp_of: string]
 
 include Pretty_printer.Register_pp (struct
     type nonrec t = t
 
-    let pp = Yojson.Basic.pretty_print ~std:true
+    let pp = Jsonaf.pp
     let module_name = "Youtube_api_types.Json"
   end)
 
