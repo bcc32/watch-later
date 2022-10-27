@@ -256,6 +256,14 @@ let find_and_check ((module Conn) : t) type_ test ?here ?message ?equal ~expect 
   return ()
 ;;
 
+let register_regexp_user_function db =
+  Sqlite3.create_fun2 db "regexp" (fun needle haystack ->
+    let needle = Sqlite3.Data.to_string_coerce needle in
+    let haystack = Sqlite3.Data.to_string_coerce haystack in
+    let re = Re.Perl.compile_pat needle ~opts:[ `Caseless ] in
+    Sqlite3.Data.opt_bool (Some (Re.execp re haystack)))
+;;
+
 let setup_connection ((module Conn) as db : t) =
   (* Enable enforcement of foreign key constraints *)
   let%bind () = exec_oneshot db "PRAGMA foreign_keys = ON" in
@@ -270,6 +278,12 @@ let setup_connection ((module Conn) as db : t) =
       "PRAGMA journal_mode = WAL"
   in
   let%bind () = Migrate.ensure_up_to_date db ~retries:3 in
+  let%bind () =
+    match Conn.driver_connection with
+    | Some (Caqti_driver_sqlite3.Driver_connection db) ->
+      Or_error.try_with (fun () -> register_regexp_user_function db) |> Deferred.return
+    | Some _ | None -> raise_s [%message "Could not register regexp user function"]
+  in
   return ()
 ;;
 
@@ -421,10 +435,6 @@ let mark_watched ((module Conn) : t) video_id state =
       [%message "Unexpected change count" (video_id : Video_id.t) (changes : int)]
 ;;
 
-(* TODO: Once Caqti supports Sqlite user functions, replace globbing with a Re-based
-   regexp.
-
-   https://github.com/paurkedal/ocaml-caqti/issues/56 *)
 (* TODO: Optimize this query by only adding WHERE clauses for columns present in the
    filter. *)
 let get_random_video =
@@ -432,9 +442,9 @@ let get_random_video =
     {|
 SELECT video_id FROM videos_all
 WHERE ($1 IS NULL OR channel_id = $1)
-  AND ($2 IS NULL OR channel_title LIKE $2 ESCAPE '\')
+  AND ($2 IS NULL OR channel_title REGEXP $2)
   AND ($3 IS NULL OR video_id = $3)
-  AND ($4 IS NULL OR video_title LIKE $4 ESCAPE '\')
+  AND ($4 IS NULL OR video_title REGEXP $4)
   AND ($5 IS NULL OR watched IS TRUE = $5 IS TRUE)
 ORDER BY RANDOM()
 LIMIT 1
@@ -452,9 +462,9 @@ let get_videos =
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched FROM videos_all
 WHERE ($1 IS NULL OR channel_id = $1)
-  AND ($2 IS NULL OR channel_title LIKE $2 ESCAPE '\')
+  AND ($2 IS NULL OR channel_title REGEXP $2)
   AND ($3 IS NULL OR video_id = $3)
-  AND ($4 IS NULL OR video_title LIKE $4 ESCAPE '\')
+  AND ($4 IS NULL OR video_title REGEXP $4)
   AND ($5 IS NULL OR watched IS TRUE = $5 IS TRUE)
 |}
 ;;
