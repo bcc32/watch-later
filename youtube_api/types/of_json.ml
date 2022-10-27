@@ -56,19 +56,8 @@ let assoc_exn pairs key ~if_none ~if_one =
 
 let raise_type_error ~expected ~got = raise (Type_error { expected; got })
 
-let expect_assoc_exn json =
-  let raise_type_error got = raise_type_error ~expected:"object" ~got in
-  match json with
-  | `False | `True -> raise_type_error "bool"
-  | `Null -> raise_type_error "null"
-  | `Object assoc -> assoc
-  | `Array _ -> raise_type_error "array"
-  | `Number _ -> raise_type_error "float"
-  | `String _ -> raise_type_error "string"
-;;
-
 let ( @. ) field parse json =
-  let assoc = expect_assoc_exn json in
+  let assoc = Jsonaf.assoc_list_exn json in
   assoc_exn
     assoc
     field
@@ -77,7 +66,7 @@ let ( @. ) field parse json =
 ;;
 
 let ( @.? ) field parse json =
-  let assoc = expect_assoc_exn json in
+  let assoc = Jsonaf.assoc_list_exn json in
   assoc_exn
     assoc
     field
@@ -97,64 +86,10 @@ let null json =
 ;;
 
 let null = with_empty_context null
-
-let bool json =
-  let raise_type_error got = raise_type_error ~expected:"bool" ~got in
-  match json with
-  | `False -> false
-  | `True -> true
-  | `Null -> raise_type_error "null"
-  | `Object _ -> raise_type_error "object"
-  | `Array _ -> raise_type_error "array"
-  | `Number _ -> raise_type_error "float"
-  | `String _ -> raise_type_error "string"
-;;
-
-let bool = with_empty_context bool
-
-let string json =
-  let raise_type_error got = raise_type_error ~expected:"string" ~got in
-  match json with
-  | `False | `True -> raise_type_error "bool"
-  | `Null -> raise_type_error "null"
-  | `Object _ -> raise_type_error "object"
-  | `Array _ -> raise_type_error "array"
-  | `Number _ -> raise_type_error "float"
-  | `String string -> string
-;;
-
-let string = with_empty_context string
-
-let number json =
-  let raise_type_error got = raise_type_error ~expected:"number" ~got in
-  match json with
-  | `False | `True -> raise_type_error "bool"
-  | `Null -> raise_type_error "null"
-  | `Object _ -> raise_type_error "object"
-  | `Array _ -> raise_type_error "array"
-  | `Number number -> Float.of_string number
-  | `String _ -> raise_type_error "string"
-;;
-
-let number = with_empty_context number
-
-let expect_list_exn json =
-  let raise_type_error got = raise_type_error ~expected:"array" ~got in
-  match json with
-  | `False | `True -> raise_type_error "bool"
-  | `Null -> raise_type_error "null"
-  | `Object _ -> raise_type_error "object"
-  | `Array values -> values
-  | `Number _ -> raise_type_error "float"
-  | `String _ -> raise_type_error "string"
-;;
-
-let list parse json =
-  let values = expect_list_exn json in
-  List.map values ~f:parse
-;;
-
-let list parse = with_empty_context (list parse)
+let bool = with_empty_context Jsonaf.bool_exn
+let string = with_empty_context Jsonaf.string_exn
+let number = with_empty_context Jsonaf.float_exn
+let list parse = with_empty_context (Jsonaf.list_of_jsonaf parse)
 let json = Fn.id
 let lazy_ parse json = lazy (parse json)
 
