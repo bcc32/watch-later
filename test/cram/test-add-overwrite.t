@@ -36,9 +36,22 @@ has no effect.
      (video_id sjkrrmBnpGE) (video_title "REPLACE ME")))
    (watched false))
 
-Add an existing video to the database, re-fetching information from YouTube.
+Add an existing video to the database, re-fetching information from YouTube, and
+marking watched.
 
   $ wl add -overwrite sjkrrmBnpGE -mark true
+  $ wl list -video-id sjkrrmBnpGE
+  ((video_info
+    ((channel_id UC1dVfl5-I98WX3yCy8IJQMg)
+     (channel_title "Quiet Quest - Study Music") (video_id sjkrrmBnpGE)
+     (video_title
+      "Ambient Study Music To Concentrate - 4 Hours of Music for Studying, Concentration and Memory")))
+   (watched true))
+
+Add an existing video to the database, re-fetching information from YouTube,
+without marking.  The watched status does not change.
+
+  $ wl add -overwrite sjkrrmBnpGE
   $ wl list -video-id sjkrrmBnpGE
   ((video_info
     ((channel_id UC1dVfl5-I98WX3yCy8IJQMg)
