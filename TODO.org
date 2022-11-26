@@ -59,3 +59,17 @@ https://developers.google.com/youtube/v3/getting-started#etags
 https://developers.google.com/youtube/v3/getting-started#partial
 * TODO Retry on error 503
 [2022-07-24 Sun 18:35]
+* TODO Surface original exception from user-defined function
+[2022-11-25 Fri 22:20]
+
+The following error doesn't contain the underlying exception, AFAICT.
+
+#+begin_example
+  (monitor.ml.Error
+   "Response from <sqlite3:/home/aaron/.local/share/watch-later/watch-later.db?busy_timeout=10000> failed: OCaml callback raised an exception. Query: \"\\nSELECT channel_id, channel_title, video_id, video_title, watched FROM videos_all\\nWHERE (?1 IS NULL OR channel_id = ?1)\\n  AND (?2 IS NULL OR channel_title REGEXP ?2)\\n  AND (?3 IS NULL OR video_id = ?3)\\n  AND (?4 IS NULL OR video_title REGEXP ?4)\\n  AND (?5 IS NULL OR watched IS TRUE = ?5 IS TRUE)\\n\"."
+   ("Raised at Base__Error.raise in file \"src/error.ml\" (inlined), line 9, characters 14-30"
+    "Called from Base__Or_error.ok_exn in file \"src/or_error.ml\", line 92, characters 17-32"
+    "Called from Async_kernel__Deferred1.M.map.(fun) in file \"src/deferred1.ml\", line 17, characters 40-45"
+    "Called from Async_kernel__Job_queue.run_jobs in file \"src/job_queue.ml\", line 167, characters 6-47"
+    "Caught by monitor with_txn at file \"src/video_db.ml\", line 18, characters 76-76"))
+#+end_example
