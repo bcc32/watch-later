@@ -1,4 +1,4 @@
-{ buildFHSUserEnvBubblewrap, wl }:
+{ buildFHSUserEnvBubblewrap, installShellFiles, wl }:
 
 buildFHSUserEnvBubblewrap {
   name = "wl";
@@ -10,4 +10,9 @@ buildFHSUserEnvBubblewrap {
   targetPkgs = pkgs: with pkgs; [ fzf ];
 
   inherit (wl) passthru;
+
+  extraInstallCommands = ''
+    source ${installShellFiles}/nix-support/setup-hook
+    installShellCompletion ${wl}/share/bash-completion/completions/wl.bash
+  '';
 }
