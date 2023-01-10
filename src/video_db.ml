@@ -435,28 +435,6 @@ let mark_watched ((module Conn) : t) video_id state =
       [%message "Unexpected change count" (video_id : Video_id.t) (changes : int)]
 ;;
 
-(* TODO: Optimize this query by only adding WHERE clauses for columns present in the
-   filter. *)
-let get_random_video =
-  (Filter.t ->? video_id)
-    {|
-SELECT video_id FROM videos_all
-WHERE ($1 IS NULL OR channel_id = $1)
-  AND ($2 IS NULL OR channel_title REGEXP $2)
-  AND ($3 IS NULL OR video_id = $3)
-  AND ($4 IS NULL OR video_title REGEXP $4)
-  AND ($5 IS NULL OR watched IS TRUE = $5 IS TRUE)
-ORDER BY RANDOM()
-LIMIT 1
-|}
-;;
-
-let get_random_video ((module Conn) : t) filter =
-  match%bind Conn.find_opt get_random_video filter |> convert_error with
-  | Some video_id -> return video_id
-  | None -> Deferred.Or_error.error_s [%message "No unwatched videos matching filter"]
-;;
-
 let get_videos =
   (Filter.t ->* tup2 video_info bool)
     {|

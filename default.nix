@@ -1,6 +1,7 @@
 { lib, nix-gitignore, installShellFiles, buildDunePackage, async
 , async_interactive, async_ssl, caqti-async, caqti-driver-sqlite3, cohttp-async
-, core, cryptokit, directories, jsonaf, ppx_log, ppx_jsonaf_conv, shexp, uri, webbrowser}:
+, core, cryptokit, directories, fzf, jsonaf, ppx_log, ppx_jsonaf_conv, shexp
+, uri, webbrowser }:
 
 buildDunePackage rec {
   pname = "watch-later";
@@ -18,6 +19,7 @@ buildDunePackage rec {
     core
     cryptokit
     directories
+    fzf
     jsonaf
     ppx_jsonaf_conv
     ppx_log

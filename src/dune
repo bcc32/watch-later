@@ -9,6 +9,7 @@
   core
   core_kernel.composition_infix
   cryptokit
+  fzf
   jsonaf
   re
   uri

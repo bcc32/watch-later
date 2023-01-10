@@ -87,6 +87,7 @@ Manage YouTube queue
   . [-mark-watched (true|false)]
                              . mark video as watched (default true) (default:
                                true)
+  . [-random]                . pick a random filtered video instead of prompting
   . [-video-id ID]           . video ID
   . [-video-title TITLE]     . video TITLE
   . [-watched BOOL]          . Restrict to videos with watched status BOOL
