@@ -7,21 +7,23 @@ let browse_video video_id =
 ;;
 
 let pick (videos : (Video_info.t * bool) list) ~random =
-  if random || not !Async_interactive.interactive
-  then (
-    let video_info, _ = List.random_element_exn videos in
-    return [ video_info.video_id ])
-  else (
-    (* FIXME: Fzf hardcodes /usr/bin/fzf as the path.  NOOOO! *)
-    match%bind
-      Fzf.pick_one
-        (Assoc
-           (List.map videos ~f:(fun ((video_info, _) as x) ->
-              [%string "%{video_info.channel_title} - %{video_info.video_title}"], x)))
-    with
-    (* FIXME: None also happens if user cancels *)
-    | None -> Deferred.Or_error.error_string "No unwatched videos matching filter"
-    | Some (video_info, _) -> return [ video_info.video_id ])
+  match videos with
+  | [] -> Deferred.Or_error.error_string "No unwatched videos matching filter"
+  | _ :: _ as videos ->
+    if random || not !Async_interactive.interactive
+    then (
+      let video_info, _ = List.random_element_exn videos in
+      return [ video_info.video_id ])
+    else (
+      (* FIXME: Fzf hardcodes /usr/bin/fzf as the path.  NOOOO! *)
+      match%bind
+        Fzf.pick_one
+          (Assoc
+             (List.map videos ~f:(fun ((video_info, _) as x) ->
+                [%string "%{video_info.channel_title} - %{video_info.video_title}"], x)))
+      with
+      | None -> Deferred.Or_error.error_string "No video selected"
+      | Some (video_info, _) -> return [ video_info.video_id ])
 ;;
 
 let main ~dbpath ~mark_watched ~random ~(which_videos : Which_videos.t) =
