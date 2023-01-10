@@ -57,12 +57,11 @@ video.
     (let%map_open.Command () = return ()
      and dbpath = Params.dbpath
      and mark_watched =
-       flag_optional_with_default_doc
-         "-mark-watched"
-         bool
-         [%sexp_of: bool]
+       Enum.make_param_optional_with_default_doc
          ~default:true
-         ~doc:"(true|false) mark video as watched"
+         "-mark-watched"
+         ~doc:"mark video as watched"
+         (module Bool)
      and random =
        flag random_flag no_arg ~doc:" pick a random filtered video instead of prompting"
      and which_videos = Which_videos.param ~default:(Filter Filter.unwatched) in
