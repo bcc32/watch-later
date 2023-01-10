@@ -85,8 +85,7 @@ Manage YouTube queue
   . [-dbpath FILE]           . path to database file (default is
                                $XDG_DATA_HOME/watch-later/watch-later.db)
   . [-mark-watched (true|false)]
-                             . mark video as watched (default true) (default:
-                               true)
+                             . mark video as watched (default: true)
   . [-random]                . pick a random filtered video instead of prompting
   . [-video-id ID]           . video ID
   . [-video-title TITLE]     . video TITLE
