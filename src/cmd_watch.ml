@@ -19,6 +19,7 @@ let pick (videos : (Video_info.t * bool) list) ~random =
            (List.map videos ~f:(fun ((video_info, _) as x) ->
               [%string "%{video_info.channel_title} - %{video_info.video_title}"], x)))
     with
+    (* FIXME: None also happens if user cancels *)
     | None -> Deferred.Or_error.error_string "No unwatched videos matching filter"
     | Some (video_info, _) -> return [ video_info.video_id ])
 ;;
