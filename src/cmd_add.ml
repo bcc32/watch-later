@@ -77,7 +77,7 @@ let command =
        flag
          "-mark-watched"
          (optional bool)
-         ~doc:"(true|false) mark video as watched (default do nothing)"
+         ~doc:"(true|false) mark video as watched (default do neither)"
        >>| Option.map ~f:(function
          | true -> `Watched
          | false -> `Unwatched)

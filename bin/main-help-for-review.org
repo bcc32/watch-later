@@ -10,7 +10,7 @@ Manage YouTube queue
                                $XDG_DATA_HOME/watch-later/watch-later.db)
   . [-log-level LEVEL]       . The log level (can be: Debug, Error, Info)
   . [-mark-watched (true|false)]
-                             . mark video as watched (default do nothing)
+                             . mark video as watched (default do neither)
   . [-overwrite], -f         . overwrite existing entries (default skip)
   . [-playlist PLAYLIST]     . specify videos in PLAYLIST rather than individual
                                command-line arguments
