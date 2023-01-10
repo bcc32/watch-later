@@ -2,7 +2,7 @@
 
 buildFHSUserEnvBubblewrap {
   name = "wl";
-  runScript = "${wl}/bin/wl";
+  runScript = "exec -a \"$0\" ${wl}/bin/wl";
 
   # FIXME: This is a workaround for the fact that the Fzf library hardcodes the
   # path [/usr/bin/fzf].  This file can be removed (and fzf added as a build
