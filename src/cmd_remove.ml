@@ -12,8 +12,7 @@ let main ~dbpath ~ignore_missing ~video_ids =
         then return ()
         else
           Deferred.Or_error.error_s
-            [%message
-              "Attempted to remove video not in database" (video_id : Video_id.t)]))
+            [%message "Attempted to remove video not in database" (video_id : Video_id.t)]))
 ;;
 
 let command =

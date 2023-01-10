@@ -38,8 +38,7 @@ let main ~api ~dbpath ~mark_watched ~overwrite ~videos_or_playlist =
             else
               video_ids_to_lookup
               |> Pipe.filter_map' ~f:(fun video_id ->
-                if%map.Deferred
-                  Video_db.mem db video_id |> Deferred.Or_error.ok_exn
+                if%map.Deferred Video_db.mem db video_id |> Deferred.Or_error.ok_exn
                 then None
                 else Some video_id)
           in

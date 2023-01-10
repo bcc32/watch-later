@@ -16,8 +16,7 @@ let main ~dbpath ~id ~(which_videos : Which_videos.t) =
           match%bind Video_db.get db video_id with
           | Some info -> return info
           | None ->
-            Deferred.Or_error.error_s
-              [%message "Video not found" (video_id : Video_id.t)]
+            Deferred.Or_error.error_s [%message "Video not found" (video_id : Video_id.t)]
         in
         print info;
         return ())
