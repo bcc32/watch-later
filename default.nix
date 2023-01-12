@@ -1,7 +1,7 @@
-{ lib, nix-gitignore, installShellFiles, buildDunePackage, async
-, async_interactive, async_ssl, caqti-async, caqti-driver-sqlite3, cohttp-async
-, core, cryptokit, directories, fzf, jsonaf, ppx_log, ppx_jsonaf_conv, shexp
-, uri, webbrowser }:
+{ lib, buildDunePackage, nix-gitignore, installShellFiles, async
+, async_interactive, async_ssl, bash, caqti-async, caqti-driver-sqlite3
+, cohttp-async, core, cryptokit, directories, fzf, jsonaf, ppx_log, ocaml-fzf
+, ppx_jsonaf_conv, shexp, uri, webbrowser }:
 
 buildDunePackage rec {
   pname = "watch-later";
@@ -19,7 +19,11 @@ buildDunePackage rec {
     core
     cryptokit
     directories
-    fzf
+    (ocaml-fzf.overrideAttrs (oldAttrs: {
+      prePatch = ''
+        substituteInPlace src/fzf.ml --replace /usr/bin/fzf ${fzf}/bin/fzf
+      '';
+    }))
     jsonaf
     ppx_jsonaf_conv
     ppx_log
