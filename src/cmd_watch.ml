@@ -15,7 +15,6 @@ let pick (videos : (Video_info.t * bool) list) ~random =
       let video_info, _ = List.random_element_exn videos in
       return [ video_info.video_id ])
     else (
-      (* FIXME: Fzf hardcodes /usr/bin/fzf as the path.  NOOOO! *)
       match%bind
         Fzf.pick_one
           (Assoc

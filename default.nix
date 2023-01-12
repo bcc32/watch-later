@@ -19,6 +19,7 @@ buildDunePackage rec {
     core
     cryptokit
     directories
+    # FIXME: Remove patch once it is in nixpkgs.
     (ocaml-fzf.overrideAttrs (oldAttrs: {
       prePatch = ''
         substituteInPlace src/fzf.ml --replace /usr/bin/fzf ${fzf}/bin/fzf
