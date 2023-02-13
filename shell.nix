@@ -4,7 +4,6 @@ with pkgs;
 let
   pkg = ocamlPackages.callPackage ./. {
     inherit fzf;
-    ocaml-fzf = ocamlPackages.fzf;
   };
 in mkShell {
   inputsFrom = [ pkg ];

@@ -1,6 +1,6 @@
 { lib, buildDunePackage, nix-gitignore, installShellFiles, async
 , async_interactive, async_ssl, bash, caqti-async, caqti-driver-sqlite3
-, cohttp-async, core, cryptokit, directories, fzf, jsonaf, ppx_log, ocaml-fzf
+, cohttp-async, core, cryptokit, directories, fzf, jsonaf, ocamlPackages, ppx_log
 , ppx_jsonaf_conv, shexp, uri, webbrowser }:
 
 buildDunePackage rec {
@@ -20,7 +20,7 @@ buildDunePackage rec {
     cryptokit
     directories
     # FIXME: Remove patch once it is in nixpkgs.
-    (ocaml-fzf.overrideAttrs (oldAttrs: {
+    (ocamlPackages.fzf.overrideAttrs (oldAttrs: {
       prePatch = ''
         substituteInPlace src/fzf.ml --replace /usr/bin/fzf ${fzf}/bin/fzf
       '';
