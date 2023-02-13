@@ -6,7 +6,7 @@
 buildDunePackage rec {
   pname = "watch-later";
   version = "0.1.0";
-  useDune2 = true;
+  duneVersion = "3";
   src = nix-gitignore.gitignoreFilterSource lib.cleanSourceFilter [ ] ./.;
   checkInputs = [ shexp ];
   propagatedBuildInputs = [
