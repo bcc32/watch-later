@@ -1,10 +1,7 @@
 { pkgs ? import <nixpkgs> { } }:
 
 with pkgs;
-let
-  pkg = ocamlPackages.callPackage ./. {
-    inherit fzf;
-  };
+let pkg = ocamlPackages.callPackage ./. { };
 in mkShell {
   inputsFrom = [ pkg ];
   buildInputs = pkg.checkInputs ++ [
