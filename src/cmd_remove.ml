@@ -4,7 +4,7 @@ open! Import
 
 let main ~dbpath ~ignore_missing ~video_ids =
   Video_db.with_file_and_txn dbpath ~f:(fun db ->
-    Deferred.Or_error.List.iter video_ids ~f:(fun video_id ->
+    Deferred.Or_error.List.iter video_ids ~how:`Sequential ~f:(fun video_id ->
       match%bind Video_db.strict_remove db video_id with
       | `Ok -> return ()
       | `Missing ->

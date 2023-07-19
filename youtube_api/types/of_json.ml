@@ -89,7 +89,7 @@ let null = with_empty_context null
 let bool = with_empty_context Jsonaf.bool_exn
 let string = with_empty_context Jsonaf.string_exn
 let number = with_empty_context Jsonaf.float_exn
-let list parse = with_empty_context (Jsonaf.list_of_jsonaf parse)
+let list parse = with_empty_context (Jsonaf.Export.list_of_jsonaf parse)
 let json = Fn.id
 let lazy_ parse json = lazy (parse json)
 

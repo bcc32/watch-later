@@ -47,7 +47,7 @@ module Record = struct
     let encode encode_rest =
       encode (fun record -> Fieldslib.Field.get field record, encode_rest record)
     in
-    let caqti_type rest = caqti_type (tup2 type_ rest) in
+    let caqti_type rest = caqti_type (t2 type_ rest) in
     fst << unwrap, { unwrap = snd << unwrap; encode; caqti_type }
   ;;
 end

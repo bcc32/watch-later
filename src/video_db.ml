@@ -10,7 +10,9 @@ type t = Caqti_async.connection
 (* TODO: Sprinkling convert_error everywhere might not be necessary if we define an
    appropriate error monad with all of the possibilities. *)
 let convert_error =
-  Deferred.Result.map_error ~f:(fun e -> e |> Caqti_error.show |> Error.of_string)
+  Deferred.Result.map_error ~f:(function
+    | `Unsupported -> Error.of_string "Unsupported operation"
+    | #Caqti_error.t as e -> e |> Caqti_error.show |> Error.of_string)
 ;;
 
 let with_txn ((module Conn) : t) ~f =
@@ -83,7 +85,7 @@ CREATE TABLE videos_new (
        "c" value. There is still an ambiguity if two or more of the input rows have the
        same minimum or maximum value or if the query contains more than one min() and/or
        max() aggregate function. Only the built-in min() and max() functions work this
-       way.  *)
+       way. *)
     let populate_channels_table =
       {|
 INSERT INTO channels (id, title)
@@ -202,7 +204,7 @@ CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
                 (* [user_version] is equal to the next set of migration statements to apply *)
                 let stmts = migrations.(user_version) in
                 let%bind () =
-                  Deferred.Or_error.List.iter stmts ~f:(fun stmt ->
+                  Deferred.Or_error.List.iter stmts ~how:`Sequential ~f:(fun stmt ->
                     Conn.exec stmt () |> convert_error)
                 in
                 let%bind () =
@@ -333,7 +335,7 @@ let video_stats ((module Conn) : t) =
 ;;
 
 let mark_watched =
-  (tup2 bool video_id ->. unit) {|
+  (t2 bool video_id ->. unit) {|
 UPDATE videos SET watched = ?
 WHERE id = ?
 |}
@@ -355,7 +357,7 @@ DO UPDATE SET title = excluded.title
 |}
        else "")
   in
-  (tup2 string string ->. unit) sql
+  (t2 string string ->. unit) sql
 ;;
 
 let add_channel_overwrite = add_channel ~overwrite:true
@@ -380,7 +382,7 @@ DO UPDATE SET title = excluded.title,
 |}
        else "")
   in
-  (tup3 video_id string string ->. unit) sql
+  (t3 video_id string string ->. unit) sql
 ;;
 
 let add_video_overwrite = add_video ~overwrite:true
@@ -403,7 +405,7 @@ let add_video ((module Conn) : t) (video_info : Video_info.t) ~overwrite =
 ;;
 
 let select_video_by_id =
-  (video_id ->? tup2 video_info bool)
+  (video_id ->? t2 video_info bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched
 FROM videos_all
@@ -436,7 +438,7 @@ let mark_watched ((module Conn) : t) video_id state =
 ;;
 
 let get_videos =
-  (Filter.t ->* tup2 video_info bool)
+  (Filter.t ->* t2 video_info bool)
     {|
 SELECT channel_id, channel_title, video_id, video_title, watched FROM videos_all
 WHERE ($1 IS NULL OR channel_id = $1)

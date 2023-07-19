@@ -11,7 +11,7 @@ let main ~dbpath ~id ~(which_videos : Which_videos.t) =
   Video_db.with_file_and_txn dbpath ~f:(fun db ->
     match which_videos with
     | These ids ->
-      Deferred.Or_error.List.iter ids ~f:(fun video_id ->
+      Deferred.Or_error.List.iter ids ~how:`Sequential ~f:(fun video_id ->
         let%bind info =
           match%bind Video_db.get db video_id with
           | Some info -> return info

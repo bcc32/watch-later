@@ -11,7 +11,7 @@ module Append_videos = struct
        and playlist_id = anon ("PLAYLIST-ID" %: Playlist_id.Plain_or_in_url.arg_type)
        and videos = Params.nonempty_videos in
        fun api ->
-         Deferred.Or_error.List.iter videos ~f:(fun video_id ->
+         Deferred.Or_error.List.iter videos ~how:`Sequential ~f:(fun video_id ->
            Youtube_api.append_video_to_playlist api playlist_id video_id))
   ;;
 end
@@ -44,10 +44,13 @@ module Dedup = struct
                else Set.add seen_video_ids video_id, duplicates)
          in
          let%bind () =
-           Deferred.Or_error.List.iter duplicate_video_items ~f:(fun item ->
-             [%log.global.info
-               "Deleting duplicate playlist item" (item : Playlist_item.t)];
-             Youtube_api.delete_playlist_item api (Playlist_item.id item))
+           Deferred.Or_error.List.iter
+             duplicate_video_items
+             ~how:`Sequential
+             ~f:(fun item ->
+               [%log.global.info
+                 "Deleting duplicate playlist item" (item : Playlist_item.t)];
+               Youtube_api.delete_playlist_item api (Playlist_item.id item))
          in
          return ())
   ;;
@@ -82,7 +85,7 @@ module Remove_video = struct
            |> Pipe.to_list
            |> Deferred.map ~f:Or_error.combine_errors
          in
-         Deferred.Or_error.List.iter items ~f:(fun item ->
+         Deferred.Or_error.List.iter items ~how:`Sequential ~f:(fun item ->
            if Set.mem videos (Playlist_item.video_id item)
            then Youtube_api.delete_playlist_item api (Playlist_item.id item)
            else return ()))

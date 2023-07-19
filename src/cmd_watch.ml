@@ -34,7 +34,7 @@ let main ~dbpath ~mark_watched ~random ~(which_videos : Which_videos.t) =
         let%bind videos = Video_db.get_videos db filter |> Pipe.to_list |> Deferred.ok in
         pick videos ~random
     in
-    Deferred.Or_error.List.iter which_videos ~f:(fun video_id ->
+    Deferred.Or_error.List.iter which_videos ~how:`Sequential ~f:(fun video_id ->
       let%bind () = browse_video video_id in
       if mark_watched then Video_db.mark_watched db video_id `Watched else return ()))
 ;;

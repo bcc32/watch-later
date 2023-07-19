@@ -2,6 +2,8 @@ open! Base
 open Shexp_process
 open Shexp_process.Let_syntax
 
+let ( ^/ ) = Stdlib.Filename.concat
+
 let is_directory file =
   let%map stat = stat file in
   match stat.st_kind with
@@ -15,7 +17,7 @@ let list_migrations =
   >>= List.iter ~f:(fun dir ->
     if%bind is_directory dir
     then (
-      let file = Caml.Filename.concat dir "up.sql" in
+      let file = dir ^/ "up.sql" in
       if%bind file_exists file then printf "%s\n" file else return ())
     else return ())
 ;;

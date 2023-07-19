@@ -6,6 +6,6 @@ module D = Directories.Project_dirs (struct
     let application = "watch-later"
   end)
 
-let ( ^/ ) = Caml.Filename.concat
+let ( ^/ ) = Stdlib.Filename.concat
 let default_db_path = Option.value_exn D.data_dir ^/ "watch-later.db"
 let oauth_credentials_path = Option.value_exn D.config_dir ^/ "credentials"

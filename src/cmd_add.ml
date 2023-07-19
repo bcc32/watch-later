@@ -64,7 +64,7 @@ let main ~api ~dbpath ~mark_watched ~overwrite ~videos_or_playlist =
       in
       return playlist_items_to_delete)
   in
-  Deferred.Or_error.List.iter playlist_items_to_delete ~f:(fun item ->
+  Deferred.Or_error.List.iter playlist_items_to_delete ~how:`Sequential ~f:(fun item ->
     Youtube_api.delete_playlist_item api (Playlist_item.id item))
 ;;
 
