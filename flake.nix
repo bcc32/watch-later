@@ -22,8 +22,7 @@
           pname = "watch-later";
           version = "0.1.0";
           duneVersion = "3";
-          src =
-            nix-gitignore.gitignoreFilterSource lib.cleanSourceFilter [ ] ./.;
+          src = ./.;
           checkInputs = with ocamlPackages; [ shexp ];
           propagatedBuildInputs = with ocamlPackages; [
             async
