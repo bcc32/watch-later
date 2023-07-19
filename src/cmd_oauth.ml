@@ -69,27 +69,27 @@ let listen_for_authorization_code_response () =
         ~on_handler_error:`Raise
         Tcp.Where_to_listen.of_port_chosen_by_os
         (fun ~body:_ _addr request ->
-           let uri = Cohttp.Request.uri request in
-           let result =
-             match Uri.get_query_param uri "error" with
-             | Some error ->
-               Or_error.error_s [%message "Failed to get access token" (error : string)]
-             | None ->
-               (match Uri.get_query_param uri "code" with
-                | Some code -> Ok code
-                | None -> raise_s [%message "Response contained neither error nor code"])
-           in
-           Ivar.fill authorization_code result;
-           match result with
-           | Ok _ ->
-             Cohttp_async.Server.respond_string
-               "Successfully authorized.  You can now close this tab and return to the \
-                command line."
-           | Error error ->
-             Cohttp_async.Server.respond_string
-               ~status:`Unauthorized
-               (Error.to_string_hum
-                  (Error.tag ~tag:"Failed to authorize with YouTube API." error))))
+          let uri = Cohttp.Request.uri request in
+          let result =
+            match Uri.get_query_param uri "error" with
+            | Some error ->
+              Or_error.error_s [%message "Failed to get access token" (error : string)]
+            | None ->
+              (match Uri.get_query_param uri "code" with
+               | Some code -> Ok code
+               | None -> raise_s [%message "Response contained neither error nor code"])
+          in
+          Ivar.fill authorization_code result;
+          match result with
+          | Ok _ ->
+            Cohttp_async.Server.respond_string
+              "Successfully authorized.  You can now close this tab and return to the \
+               command line."
+          | Error error ->
+            Cohttp_async.Server.respond_string
+              ~status:`Unauthorized
+              (Error.to_string_hum
+                 (Error.tag ~tag:"Failed to authorize with YouTube API." error))))
   in
   let port = Cohttp_async.Server.listening_on server in
   port, Ivar.read authorization_code

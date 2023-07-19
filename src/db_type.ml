@@ -24,8 +24,8 @@ module Record = struct
     }
 
   let finish
-        (type a fields)
-        ((decode : fields -> a), ({ unwrap = _; encode; caqti_type } : (fields, unit, a) t))
+    (type a fields)
+    ((decode : fields -> a), ({ unwrap = _; encode; caqti_type } : (fields, unit, a) t))
     : a caqti_type
     =
     let encode = encode (Fn.const ()) in
@@ -38,10 +38,10 @@ module Record = struct
   ;;
 
   let step
-        (type fields fields_rest a this_field)
-        (type_ : this_field caqti_type)
-        (field : (a, this_field) Fieldslib.Field.t)
-        ({ unwrap; encode; caqti_type } : (fields, this_field * fields_rest, a) t)
+    (type fields fields_rest a this_field)
+    (type_ : this_field caqti_type)
+    (field : (a, this_field) Fieldslib.Field.t)
+    ({ unwrap; encode; caqti_type } : (fields, this_field * fields_rest, a) t)
     : (fields -> this_field) * (fields, fields_rest, a) t
     =
     let encode encode_rest =

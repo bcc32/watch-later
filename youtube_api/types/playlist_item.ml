@@ -22,7 +22,8 @@ let of_json =
   and video_info =
     lazy_
       ("snippet"
-       @. let%map channel_id = "videoOwnerChannelId" @. string
+       @.
+       let%map channel_id = "videoOwnerChannelId" @. string
        and channel_title = "videoOwnerChannelTitle" @. string
        and video_id = "resourceId" @. "videoId" @. Video_id.of_json
        and video_title = "title" @. string in

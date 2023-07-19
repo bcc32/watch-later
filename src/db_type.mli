@@ -19,19 +19,19 @@ module Record : sig
       Example:
 
       {[
-        type t = { foo : int; bar : string } [@@deriving fields]
+        type t =
+          { foo : int
+          ; bar : string
+          }
+        [@@deriving fields]
 
         let caqti_type : t Caqti_type.t =
           let open Caqti_type.Std in
           let f = Caqti_type.Record.step in
-          Fields.make_creator
-            Caqti_type.Record.init
-            ~foo:(f int)
-            ~bar:(f string)
+          Fields.make_creator Caqti_type.Record.init ~foo:(f int) ~bar:(f string)
           |> Caqti_type.Record.finish
         ;;
-      ]}
-  *)
+      ]} *)
 
   (** Difference list encoding of serialization functions for each field.
 

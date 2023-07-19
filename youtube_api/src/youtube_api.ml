@@ -37,7 +37,7 @@ let get_video_json_batch t (video_id_batch : Video_id_batch.t) ~parts =
     ((video_id_batch :> Video_id.t Queue.t)
      |> Queue.to_list
      |> Set.stable_dedup_list (module Video_id)
-     :> string list)
+      :> string list)
   in
   let%bind json =
     get
@@ -86,7 +86,8 @@ let get_video_info t video_ids =
               json
               (let%map_open.Of_json channel_id, channel_title, video_title =
                  "snippet"
-                 @. let%map_open.Of_json channel_id = "channelId" @. string
+                 @.
+                 let%map_open.Of_json channel_id = "channelId" @. string
                  and channel_title = "channelTitle" @. string
                  and video_title = "title" @. string in
                  channel_id, channel_title, video_title
@@ -171,17 +172,17 @@ let append_video_to_playlist t playlist_id video_id =
     ~params:[ "part", "snippet" ]
     ~body:
       (`Object
-         [ "kind", `String "youtube#playlistItem"
-         ; ( "snippet"
-           , `Object
-               [ "playlistId", `String (Playlist_id.to_string playlist_id)
-               ; ( "resourceId"
-                 , `Object
-                     [ "kind", `String "youtube#video"
-                     ; "videoId", `String (Video_id.to_string video_id)
-                     ] )
-               ] )
-         ])
+        [ "kind", `String "youtube#playlistItem"
+        ; ( "snippet"
+          , `Object
+              [ "playlistId", `String (Playlist_id.to_string playlist_id)
+              ; ( "resourceId"
+                , `Object
+                    [ "kind", `String "youtube#video"
+                    ; "videoId", `String (Video_id.to_string video_id)
+                    ] )
+              ] )
+        ])
     ~expect_status:`OK
   |> Deferred.Or_error.ignore_m
 ;;
