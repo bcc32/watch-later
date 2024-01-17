@@ -59,5 +59,10 @@
 
           meta = { homepage = "https://github.com/bcc32/watch-later"; };
         };
+
+        apps.default = {
+          type = "app";
+          program = "${packages.default}/bin/wl";
+        };
       });
 }
