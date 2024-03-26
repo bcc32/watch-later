@@ -13,7 +13,12 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ ocaml-overlays.overlays.default ];
+          overlays = [
+            ocaml-overlays.overlays.default
+            (self: super: {
+              ocamlPackages = super.ocaml-ng.ocamlPackages_4_14;
+            })
+          ];
         };
       in with pkgs; rec {
         devShells.default = mkShell {
