@@ -105,13 +105,17 @@ SELECT video_id, video_title, channel_id, watched
 |}
     ;;
 
-    let drop_old_videos_table = {|
+    let drop_old_videos_table =
+      {|
 DROP TABLE videos
 |}
+    ;;
 
-    let rename_new_videos_table = {|
+    let rename_new_videos_table =
+      {|
 ALTER TABLE videos_new RENAME TO videos
 |}
+    ;;
 
     let create_videos_index_on_channel_id =
       {|
@@ -313,12 +317,16 @@ let with_file_and_txn dbpath ~f =
   Deferred.return result
 ;;
 
-let select_count_total_videos = (unit ->! int) {|
+let select_count_total_videos =
+  (unit ->! int)
+    {|
 SELECT COUNT(*) FROM videos
 |}
+;;
 
 let select_count_watched_videos =
-  (unit ->! int) {|
+  (unit ->! int)
+    {|
 SELECT COUNT(*) FROM videos
 WHERE watched
 |}
@@ -335,7 +343,8 @@ let video_stats ((module Conn) : t) =
 ;;
 
 let mark_watched =
-  (t2 bool video_id ->. unit) {|
+  (t2 bool video_id ->. unit)
+    {|
 UPDATE videos SET watched = ?
 WHERE id = ?
 |}
@@ -351,7 +360,8 @@ VALUES (?, ?)
 |}
       (if overwrite then "" else "OR IGNORE")
       (if overwrite
-       then {|
+       then
+         {|
 ON CONFLICT (id)
 DO UPDATE SET title = excluded.title
 |}
@@ -456,9 +466,12 @@ let get_videos ((module Conn) : t) filter =
     |> Deferred.Or_error.ok_exn)
 ;;
 
-let remove_video = (video_id ->. unit) {|
+let remove_video =
+  (video_id ->. unit)
+    {|
 DELETE FROM videos WHERE id = ?
 |}
+;;
 
 let strict_remove ((module Conn) : t) video_id =
   let%map rows_affected =

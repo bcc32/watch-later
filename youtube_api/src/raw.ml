@@ -51,13 +51,13 @@ let http_call_internal t ?body method_ uri ~headers =
 let status_equal : Cohttp.Code.status_code Equal.t = Poly.equal
 
 let rec call
-  ?body
-  ?(should_retry = fun _ ~body:_ -> false)
-  t
-  endpoint
-  ~method_
-  ~params
-  ~expect_status
+          ?body
+          ?(should_retry = fun _ ~body:_ -> false)
+          t
+          endpoint
+          ~method_
+          ~params
+          ~expect_status
   =
   let uri =
     let path = "youtube/v3" ^/ endpoint in

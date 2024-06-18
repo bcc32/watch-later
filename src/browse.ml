@@ -15,6 +15,6 @@ let url url =
     ~info:
       (Info.of_lazy_t (lazy (Info.create_s [%message "Browse.url" (url : Uri_sexp.t)])))
     (fun () ->
-      In_thread.run (fun () -> Webbrowser.reload ?browser (Uri.to_string url))
-      |> Deferred.Result.map_error ~f:(fun (`Msg s) -> Error.of_string s))
+       In_thread.run (fun () -> Webbrowser.reload ?browser (Uri.to_string url))
+       |> Deferred.Result.map_error ~f:(fun (`Msg s) -> Error.of_string s))
 ;;

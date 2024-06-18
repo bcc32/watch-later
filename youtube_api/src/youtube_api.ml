@@ -172,17 +172,17 @@ let append_video_to_playlist t playlist_id video_id =
     ~params:[ "part", "snippet" ]
     ~body:
       (`Object
-        [ "kind", `String "youtube#playlistItem"
-        ; ( "snippet"
-          , `Object
-              [ "playlistId", `String (Playlist_id.to_string playlist_id)
-              ; ( "resourceId"
-                , `Object
-                    [ "kind", `String "youtube#video"
-                    ; "videoId", `String (Video_id.to_string video_id)
-                    ] )
-              ] )
-        ])
+          [ "kind", `String "youtube#playlistItem"
+          ; ( "snippet"
+            , `Object
+                [ "playlistId", `String (Playlist_id.to_string playlist_id)
+                ; ( "resourceId"
+                  , `Object
+                      [ "kind", `String "youtube#video"
+                      ; "videoId", `String (Video_id.to_string video_id)
+                      ] )
+                ] )
+          ])
     ~expect_status:`OK
   |> Deferred.Or_error.ignore_m
 ;;

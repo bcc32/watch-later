@@ -33,10 +33,10 @@ let save t =
 ;;
 
 let of_json_save_to_disk
-  ?(file = Watch_later_directories.oauth_credentials_path)
-  json
-  ~client_id
-  ~client_secret
+      ?(file = Watch_later_directories.oauth_credentials_path)
+      json
+      ~client_id
+      ~client_secret
   =
   let%bind access_token, refresh_token, expiry =
     Of_json.run
@@ -56,7 +56,8 @@ let of_json_save_to_disk
 ;;
 
 let refresh_contents
-  ({ client_id; client_secret; access_token = _; refresh_token; expiry = _ } as contents)
+      ({ client_id; client_secret; access_token = _; refresh_token; expiry = _ } as
+       contents)
   =
   let endpoint =
     Uri.make ~scheme:"https" ~host:"oauth2.googleapis.com" ~path:"/token" ()
