@@ -437,7 +437,9 @@ VALUES (?, ?, ?, ?, ?)
          {|
 ON CONFLICT (id)
 DO UPDATE SET title = excluded.title,
-              channel_id = excluded.channel_id
+              channel_id = excluded.channel_id,
+              published_at = excluded.published_at,
+              duration = excluded.duration
 |}
        else "")
   in
