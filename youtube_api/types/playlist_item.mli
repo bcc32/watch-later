@@ -14,4 +14,6 @@ include Of_jsonable.S with type t := t
 val id : t -> Id.t
 
 val video_id : t -> Video_id.t
+
+(** Does not include duration information. *)
 val video_info : t -> Video_info.t Or_error.t

@@ -146,7 +146,7 @@ let get_playlist_items t playlist_id =
         t
         "playlistItems"
         ~params:
-          ([ "part", "id,snippet"
+          ([ "part", "id,snippet,contentDetails"
            ; "playlistId", Playlist_id.to_string playlist_id
            ; "maxResults", Int.to_string max_batch_size
            ]

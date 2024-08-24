@@ -15,20 +15,25 @@ type t =
   }
 [@@deriving fields, sexp_of]
 
+(* https://developers.google.com/youtube/v3/docs/playlistItems#resource *)
 let of_json =
   let open Of_json.Let_syntax in
   let%map id = "id" @. string >>| Id.of_string
   and video_id = "snippet" @. "resourceId" @. "videoId" @. Video_id.of_json
   and video_info =
     lazy_
-      ("snippet"
-       @.
-       let%map channel_id = "videoOwnerChannelId" @. string
-       and channel_title = "videoOwnerChannelTitle" @. string
-       and video_id = "resourceId" @. "videoId" @. Video_id.of_json
-       and video_title = "title" @. string
+      (let%map channel_id, channel_title, video_id, video_title =
+         "snippet"
+         @.
+         let%map channel_id = "videoOwnerChannelId" @. string
+         and channel_title = "videoOwnerChannelTitle" @. string
+         and video_id = "resourceId" @. "videoId" @. Video_id.of_json
+         and video_title = "title" @. string in
+         channel_id, channel_title, video_id, video_title
        and published_at =
-         "contentDetails" @. string >>| Time_ns.of_string_with_utc_offset >>| Option.some
+         "contentDetails" @. "videoPublishedAt" @. string
+         >>| Time_ns.of_string_with_utc_offset
+         >>| Option.some
        in
        ({ channel_id
         ; channel_title
