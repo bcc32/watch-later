@@ -9,5 +9,6 @@ Add a new video to the database.
     ((channel_id UC1dVfl5-I98WX3yCy8IJQMg)
      (channel_title "Quiet Quest - Study Music") (video_id sjkrrmBnpGE)
      (video_title
-      "Ambient Study Music To Concentrate - 4 Hours of Music for Studying, Concentration and Memory")))
+      "Ambient Study Music To Concentrate - 4 Hours of Music for Studying, Concentration and Memory")
+     (published_at ("2019-11-25 10:00:09Z")) (duration (3h57m52s))))
    (watched false))

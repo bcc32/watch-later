@@ -13,17 +13,20 @@ Insert bogus information for a video.
   ((video_info
     ((channel_id UCSJ4gkVC6NrvII8umztf0Ow) (channel_title ChilledCow)
      (video_id -FlxM_0S2lA)
-     (video_title "Lofi hip hop mix - Beats to Relax/Study to [2018]")))
+     (video_title "Lofi hip hop mix - Beats to Relax/Study to [2018]")
+     (published_at ()) (duration ())))
    (watched true))
   ((video_info
     ((channel_id UCJ7W3mGBp1SCC-5Xsy4ufZQ)
      (channel_title "GEMN Chill Out & Lofi Music") (video_id qvUWA45GOMg)
      (video_title
-      "Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN")))
+      "Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN")
+     (published_at ()) (duration ())))
    (watched false))
   ((video_info
     ((channel_id UC1dVfl5-I98WX3yCy8IJQMg) (channel_title "REPLACE ME")
-     (video_id sjkrrmBnpGE) (video_title "REPLACE ME")))
+     (video_id sjkrrmBnpGE) (video_title "REPLACE ME") (published_at ())
+     (duration ())))
    (watched false))
 
 Add an existing video to the database, not overwriting any information.  `-mark`
@@ -33,7 +36,8 @@ has no effect.
   $ wl list -video-id sjkrrmBnpGE
   ((video_info
     ((channel_id UC1dVfl5-I98WX3yCy8IJQMg) (channel_title "REPLACE ME")
-     (video_id sjkrrmBnpGE) (video_title "REPLACE ME")))
+     (video_id sjkrrmBnpGE) (video_title "REPLACE ME") (published_at ())
+     (duration ())))
    (watched false))
 
 Add an existing video to the database, re-fetching information from YouTube, and
@@ -45,7 +49,8 @@ marking watched.
     ((channel_id UC1dVfl5-I98WX3yCy8IJQMg)
      (channel_title "Quiet Quest - Study Music") (video_id sjkrrmBnpGE)
      (video_title
-      "Ambient Study Music To Concentrate - 4 Hours of Music for Studying, Concentration and Memory")))
+      "Ambient Study Music To Concentrate - 4 Hours of Music for Studying, Concentration and Memory")
+     (published_at ()) (duration ())))
    (watched true))
 
 Add an existing video to the database, re-fetching information from YouTube,
@@ -57,5 +62,6 @@ without marking.  The watched status does not change.
     ((channel_id UC1dVfl5-I98WX3yCy8IJQMg)
      (channel_title "Quiet Quest - Study Music") (video_id sjkrrmBnpGE)
      (video_title
-      "Ambient Study Music To Concentrate - 4 Hours of Music for Studying, Concentration and Memory")))
+      "Ambient Study Music To Concentrate - 4 Hours of Music for Studying, Concentration and Memory")
+     (published_at ()) (duration ())))
    (watched true))

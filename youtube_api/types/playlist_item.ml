@@ -26,8 +26,18 @@ let of_json =
        let%map channel_id = "videoOwnerChannelId" @. string
        and channel_title = "videoOwnerChannelTitle" @. string
        and video_id = "resourceId" @. "videoId" @. Video_id.of_json
-       and video_title = "title" @. string in
-       ({ channel_id; channel_title; video_id; video_title } : Video_info.t))
+       and video_title = "title" @. string
+       and published_at =
+         "contentDetails" @. string >>| Time_ns.of_string_with_utc_offset >>| Option.some
+       in
+       ({ channel_id
+        ; channel_title
+        ; video_id
+        ; video_title
+        ; published_at
+        ; duration = None
+        }
+        : Video_info.t))
   in
   { id; video_id; video_info }
 ;;

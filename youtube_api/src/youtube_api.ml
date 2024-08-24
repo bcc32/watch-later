@@ -76,23 +76,66 @@ let get_video_json t video_ids ~parts =
     | Ok results -> results)
 ;;
 
+let duration_of_string =
+  let pattern =
+    let open Re in
+    (* year, month, and week specifiers not supported. *)
+    let int = rep1 digit in
+    compile
+      (seq
+         [ bos
+         ; str "P"
+         ; opt (seq [ group int; str "D" ])
+         ; str "T" (* assumed to be present *)
+         ; opt (seq [ group int; str "H" ])
+         ; opt (seq [ group int; str "M" ])
+         ; opt (seq [ group int; str "S" ])
+         ; eos
+         ])
+  in
+  fun string ->
+    let g = Re.exec pattern string in
+    let get n = Re.Group.get_opt g n |> Option.value_map ~f:Int.of_string ~default:0 in
+    let days = get 1 in
+    let hours = get 2 in
+    let minutes = get 3 in
+    let seconds = get 4 in
+    Time_ns.Span.of_int_sec (seconds + (60 * (minutes + (60 * (hours + (24 * days))))))
+;;
+
 let get_video_info t video_ids =
   video_ids
-  |> get_video_json t ~parts:[ "snippet" ]
+  |> get_video_json t ~parts:[ "snippet"; "contentDetails" ]
   |> Pipe.map
        ~f:
          (Or_error.bind ~f:(fun json ->
             Of_json.run
               json
-              (let%map_open.Of_json channel_id, channel_title, video_title =
+              (let%map_open.Of_json channel_id, channel_title, video_title, published_at =
                  "snippet"
                  @.
                  let%map_open.Of_json channel_id = "channelId" @. string
                  and channel_title = "channelTitle" @. string
-                 and video_title = "title" @. string in
-                 channel_id, channel_title, video_title
-               and video_id = "id" @. Video_id.of_json in
-               { Video_info.channel_id; channel_title; video_id; video_title })))
+                 and video_title = "title" @. string
+                 and published_at =
+                   "publishedAt" @. string
+                   >>| Time_ns.of_string_with_utc_offset
+                   >>| Option.some
+                 in
+                 channel_id, channel_title, video_title, published_at
+               and video_id = "id" @. Video_id.of_json
+               and duration =
+                 "contentDetails" @. "duration" @. string
+                 >>| duration_of_string
+                 >>| Option.some
+               in
+               { Video_info.channel_id
+               ; channel_title
+               ; video_id
+               ; video_title
+               ; published_at
+               ; duration
+               })))
 ;;
 
 (* TODO: Generalize pagination logic *)

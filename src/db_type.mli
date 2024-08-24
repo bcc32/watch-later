@@ -54,6 +54,8 @@ module Std : sig
     include Std
   end
 
+  val span_ns : Time_ns.Span.t t
+  val time_ns : Time_ns.t t
   val video_id : Video_id.t t
   val video_info : Video_info.t t
 end

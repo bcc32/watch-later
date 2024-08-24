@@ -53,6 +53,22 @@ module Record = struct
   ;;
 end
 
+let time_ns =
+  custom
+    string
+    ~encode:(Time_ns.to_string_iso8601_basic ~zone:Time_ns_unix.Zone.utc >> Result.return)
+    ~decode:(fun s ->
+      try Ok (Time_ns.of_string_with_utc_offset s) with
+      | _ -> Error (sprintf "Could not parse timestamp %S" s))
+;;
+
+let span_ns =
+  custom
+    int
+    ~encode:(Time_ns.Span.to_int_sec >> Result.return)
+    ~decode:(Time_ns.Span.of_int_sec >> Result.return)
+;;
+
 let video_info =
   Video_info.Fields.make_creator
     Record.init
@@ -60,12 +76,16 @@ let video_info =
     ~channel_title:(Record.step string)
     ~video_id:(Record.step video_id)
     ~video_title:(Record.step string)
+    ~published_at:(Record.step (option time_ns))
+    ~duration:(Record.step (option span_ns))
   |> Record.finish
 ;;
 
 module Std = struct
   include Std
 
+  let span_ns = span_ns
+  let time_ns = time_ns
   let video_id = video_id
   let video_info = video_info
 end

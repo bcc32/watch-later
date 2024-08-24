@@ -182,10 +182,59 @@ CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
     let all = [ create_videos_index_on_title; create_channels_index_on_title ]
   end
 
+  module V4 = struct
+    (* TODO: Use ppx_string_dedent for sql *)
+    let add_published_at_column_to_videos =
+      {|
+ALTER TABLE videos
+  ADD COLUMN published_at TEXT
+|}
+    ;;
+
+    let add_duration_column_to_videos =
+      {|
+ALTER TABLE videos
+  ADD COLUMN duration INTEGER
+|}
+    ;;
+
+    let drop_videos_all_view =
+      {|
+DROP VIEW videos_all
+|}
+    ;;
+
+    let update_videos_all_view =
+      {|
+CREATE VIEW videos_all (
+  video_id,
+  video_title,
+  channel_id,
+  channel_title,
+  published_at,
+  duration,
+  watched
+)
+  AS
+  SELECT videos.id, videos.title, channels.id, channels.title, videos.published_at, videos.duration, videos.watched
+    FROM videos JOIN channels ON videos.channel_id = channels.id
+|}
+    ;;
+
+    (* FIXME: do I need to update the sql files in the migrations/ directory too? *)
+    let all =
+      [ add_published_at_column_to_videos
+      ; add_duration_column_to_videos
+      ; drop_videos_all_view
+      ; update_videos_all_view
+      ]
+    ;;
+  end
+
   let vacuum = (unit ->. unit) "VACUUM"
 
   let migrations =
-    [| V1.all; V2.all; V3.all |]
+    [| V1.all; V2.all; V3.all; V4.all |]
     |> Array.map ~f:(List.map ~f:((unit ->. unit) ~oneshot:true))
   ;;
 
@@ -378,8 +427,8 @@ let add_video ~overwrite =
     sprintf
       {|
 INSERT %s INTO videos
-(id, title, channel_id)
-VALUES (?, ?, ?)
+(id, title, channel_id, published_at, duration)
+VALUES (?, ?, ?, ?, ?)
 %s
 |}
       (if overwrite then "" else "OR IGNORE")
@@ -392,7 +441,7 @@ DO UPDATE SET title = excluded.title,
 |}
        else "")
   in
-  (t3 video_id string string ->. unit) sql
+  (t5 video_id string string (option time_ns) (option span_ns) ->. unit) sql
 ;;
 
 let add_video_overwrite = add_video ~overwrite:true
@@ -408,7 +457,11 @@ let add_video ((module Conn) : t) (video_info : Video_info.t) ~overwrite =
   let%bind () =
     Conn.exec
       (if overwrite then add_video_overwrite else add_video_no_overwrite)
-      (video_info.video_id, video_info.video_title, video_info.channel_id)
+      ( video_info.video_id
+      , video_info.video_title
+      , video_info.channel_id
+      , video_info.published_at
+      , video_info.duration )
     |> convert_error
   in
   return ()
@@ -417,7 +470,7 @@ let add_video ((module Conn) : t) (video_info : Video_info.t) ~overwrite =
 let select_video_by_id =
   (video_id ->? t2 video_info bool)
     {|
-SELECT channel_id, channel_title, video_id, video_title, watched
+SELECT channel_id, channel_title, video_id, video_title, published_at, duration, watched
 FROM videos_all
 WHERE video_id = ?
 |}
@@ -450,7 +503,7 @@ let mark_watched ((module Conn) : t) video_id state =
 let get_videos =
   (Filter.t ->* t2 video_info bool)
     {|
-SELECT channel_id, channel_title, video_id, video_title, watched FROM videos_all
+SELECT channel_id, channel_title, video_id, video_title, published_at, duration, watched FROM videos_all
 WHERE ($1 IS NULL OR channel_id = $1)
   AND ($2 IS NULL OR channel_title REGEXP $2)
   AND ($3 IS NULL OR video_id = $3)
