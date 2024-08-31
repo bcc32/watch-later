@@ -76,11 +76,10 @@ Add existing video to the database via playlist.
      (published_at ("2015-04-11 08:19:03Z")) (duration (1m49s))))
    (watched false))
 
-# FIXME: this should not cause the duration to be cleared
   $ wl add -overwrite -playlist 'https://www.youtube.com/playlist?list=PLZHQObOWTQDOqzmnORfqizZK-TcBE09jR'
   $ wl list -video-id 84hEmGHw3J8
   ((video_info
     ((channel_id UCYO_jab_esuFRV4b17AJtAw) (channel_title 3Blue1Brown)
      (video_id 84hEmGHw3J8) (video_title "A Curious Pattern Indeed")
-     (published_at ("2015-04-11 08:19:03Z")) (duration ())))
+     (published_at ("2015-04-11 08:19:03Z")) (duration (1m49s))))
    (watched false))
