@@ -94,13 +94,15 @@ let duration_of_string =
          ])
   in
   fun string ->
-    let g = Re.exec pattern string in
-    let get n = Re.Group.get_opt g n |> Option.value_map ~f:Int.of_string ~default:0 in
-    let days = get 1 in
-    let hours = get 2 in
-    let minutes = get 3 in
-    let seconds = get 4 in
-    Time_ns.Span.of_int_sec (seconds + (60 * (minutes + (60 * (hours + (24 * days))))))
+    match Re.exec_opt pattern string with
+    | None -> raise_s [%message "Not a valid duration" string]
+    | Some g ->
+      let get n = Re.Group.get_opt g n |> Option.value_map ~f:Int.of_string ~default:0 in
+      let days = get 1 in
+      let hours = get 2 in
+      let minutes = get 3 in
+      let seconds = get 4 in
+      Time_ns.Span.of_int_sec (seconds + (60 * (minutes + (60 * (hours + (24 * days))))))
 ;;
 
 let get_video_info t video_ids =
