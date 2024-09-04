@@ -86,10 +86,13 @@ let duration_of_string =
          [ bos
          ; str "P"
          ; opt (seq [ group int; str "D" ])
-         ; str "T" (* assumed to be present *)
-         ; opt (seq [ group int; str "H" ])
-         ; opt (seq [ group int; str "M" ])
-         ; opt (seq [ group int; str "S" ])
+         ; opt
+             (seq
+                [ str "T"
+                ; opt (seq [ group int; str "H" ])
+                ; opt (seq [ group int; str "M" ])
+                ; opt (seq [ group int; str "S" ])
+                ])
          ; eos
          ])
   in
