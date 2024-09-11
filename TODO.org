@@ -76,7 +76,7 @@ The following error doesn't contain the underlying exception, AFAICT.
     "Called from Async_kernel__Job_queue.run_jobs in file \"src/job_queue.ml\", line 167, characters 6-47"
     "Caught by monitor with_txn at file \"src/video_db.ml\", line 18, characters 76-76"))
 #+end_example
-* TODO: wl list should show UTF-8 chars
+* TODO wl list should show UTF-8 chars
 * FIXED Error adding livestream to wl database
 CLOSED: [2024-09-03 Tue 23:59]
 :LOGBOOK:
