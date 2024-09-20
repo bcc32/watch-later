@@ -130,9 +130,9 @@ let get_video_info t video_ids =
                  channel_id, channel_title, video_title, published_at
                and video_id = "id" @. Video_id.of_json
                and duration =
-                 "contentDetails" @. "duration" @. string
-                 >>| duration_of_string
-                 >>| Option.some
+                 (* [duration] may be missing if the video is live or a premiere. *)
+                 "contentDetails" @. "duration" @.? string
+                 >>| Option.map ~f:duration_of_string
                in
                { Video_info.channel_id
                ; channel_title
