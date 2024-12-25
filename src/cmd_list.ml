@@ -2,10 +2,31 @@ open! Core
 open! Async
 open! Import
 
-let main ~dbpath ~id ~(which_videos : Which_videos.t) =
+let main ~dbpath ~id ~json ~(which_videos : Which_videos.t) =
   let print ((video_info : Video_info.t), watched) =
     if id
     then printf !"%{Video_id}\n" video_info.video_id
+    else if json
+    then
+      print_endline
+        (match video_info with
+         (* FIXME: derive *)
+         | { channel_id; channel_title; video_id; video_title; published_at; duration } ->
+           Json.to_string
+             (`Object
+                 [ "channel_id", `String channel_id
+                 ; "channel_title", `String channel_title
+                 ; "video_id", `String (Video_id.to_string video_id)
+                 ; "video_title", `String video_title
+                 ; ( "published_at"
+                   , Option.value_map published_at ~default:`Null ~f:(fun published_at ->
+                       `String
+                         (Time_ns.to_string_iso8601_basic published_at ~zone:Timezone.utc))
+                   )
+                 ; ( "duration"
+                   , Option.value_map duration ~default:`Null ~f:(fun duration ->
+                       `Number (Int.to_string (Time_ns.Span.to_int_sec duration))) )
+                 ]))
     else print_s [%message (video_info : Video_info.t) (watched : bool)]
   in
   Video_db.with_file_and_txn dbpath ~f:(fun db ->
@@ -40,9 +61,12 @@ let command =
          "-id"
          no_arg
          ~doc:" If passed, print just the video ID rather than all the video info"
+     and json =
+       flag "-json" no_arg ~doc:" If passed, print JSON objects instead of sexps"
      in
      fun () ->
-       (* FIXME: Move this to bin/main.ml.  Ditto for Async log output setup. *)
+       (* FIXME: This is no longer necessary, it is part of [Command.async_or_error] *)
        Writer.behave_nicely_in_pipeline ();
-       main ~dbpath ~id ~which_videos)
+       if id && json then raise_s [%message "-id and -json cannot be used together"];
+       main ~dbpath ~id ~json ~which_videos)
 ;;
