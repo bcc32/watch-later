@@ -24,7 +24,15 @@
 
 ;;; Code:
 
+(defvar embark-multitarget-actions)
+(defvar embark-transformer-alist)
+
+(require 'thunk)
+
 (defun wl--list-videos (&optional include-watched)
+  "Return list of unwatched videos as plists.
+
+If INCLUDE-WATCHED is non-nil, include watched videos also."
   (let (videos
         (json-object-type 'plist))
     (with-temp-buffer
@@ -42,6 +50,9 @@
     (nreverse videos)))
 
 (defun wl-video--completion-candidates (&optional include-watched)
+  "Return list of unwatched videos formatted for completion and searching.
+
+If INCLUDE-WATCHED is non-nil, include watched videos also."
   (let ((result (make-hash-table :test #'equal)))
     (dolist (v (wl--list-videos include-watched) result)
       (puthash
@@ -53,6 +64,9 @@
        result))))
 
 (defun wl-video-completion-table (&optional include-watched)
+  "Return completion table of unwatched videos.
+
+If INCLUDE-WATCHED is non-nil, include watched videos also."
   (let ((videos (thunk-delay (wl-video--completion-candidates include-watched))))
     (lambda (string pred action)
       (cond
@@ -63,12 +77,18 @@
        (t (complete-with-action action (thunk-force videos) string pred))))))
 
 (defun wl-read-video-id (&optional include-watched)
+  "Read unwatched video ID, with completion.
+
+If INCLUDE-WATCHED is non-nil, include watched videos also."
   (let* ((videos (wl-video-completion-table include-watched))
          (choice (completing-read "Video: " videos nil t)))
     (plist-get (funcall videos choice nil 'get-video) :video_id)))
 
 ;;;###autoload
 (defun wl-watch-video (video-ids)
+  "Watch the videos whose ids are VIDEO-IDS, a list of strings.
+
+Interactively, prompt for a video."
   (interactive (list (list (wl-read-video-id current-prefix-arg))))
   (let ((orig-process-environment process-environment))
     (with-current-buffer (generate-new-buffer " *wl watch*" t)
@@ -82,10 +102,14 @@
           (display-buffer (current-buffer))
           (error "Failed to watch videos: %s" video-ids))))))
 
-(add-to-list 'embark-multitarget-actions 'wl-watch-video)
+(with-eval-after-load 'embark
+  (add-to-list 'embark-multitarget-actions 'wl-watch-video))
 
 ;;;###autoload
 (defun wl-remove-video (video-ids)
+  "Remove the videos whose ids are VIDEO-IDS, a list of strings.
+
+Interactively, prompt for a video."
   (interactive (list (list (wl-read-video-id current-prefix-arg))))
   (let ((video-id-args (mapcan (lambda (id) (list "-anon" id)) video-ids)))
     (with-current-buffer (generate-new-buffer " *wl remove*" t)
@@ -95,15 +119,21 @@
           (display-buffer (current-buffer))
           (error "Failed to remove videos: %s" video-ids))))))
 
-(add-to-list 'embark-multitarget-actions 'wl-remove-video)
+(with-eval-after-load 'embark
+  (add-to-list 'embark-multitarget-actions 'wl-remove-video))
 
 (defun wl--video-embark-transformer (_type target)
+  "Return the video ID extracted from completion candidate TARGET.
+
+Appropriate for use as an embark target transformer.  See
+`embark-transformer-alist'."
   (cons 'wl-video
         (if (string-match (rx bos "[" (group (= 11 (any "-_" digit alpha))) "]") target)
             (match-string 1 target)
           (error "Target does not match: %S" target))))
 
-(add-to-list 'embark-transformer-alist '(wl-video . wl--video-embark-transformer))
+(with-eval-after-load 'embark
+  (add-to-list 'embark-transformer-alist '(wl-video . wl--video-embark-transformer)))
 ;; FIXME: this transformer doesn't apply to the default action in
 ;; embark-collect, the commands should instead apply the transformation to their
 ;; argument.
