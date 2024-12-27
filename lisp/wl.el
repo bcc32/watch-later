@@ -4,6 +4,9 @@
 
 ;; Author: Aaron L. Zeng <z@bcc32.com>
 ;; Keywords: convenience, tools
+;; Package-Requires: ((emacs "27.1"))
+;; URL: https://github.com/bcc32/watch-later
+;; Version: 0.1
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
