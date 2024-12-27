@@ -30,6 +30,7 @@
 (defvar embark-multitarget-actions)
 (defvar embark-transformer-alist)
 
+(require 'json)
 (require 'thunk)
 
 (defun wl--list-videos (&optional include-watched)
