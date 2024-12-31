@@ -142,5 +142,15 @@ Appropriate for use as an embark target transformer.  See
 ;; embark-collect, the commands should instead apply the transformation to their
 ;; argument.
 
+(with-eval-after-load 'embark
+  (defvar-keymap wl-embark-video-map
+    :doc "Keymap for Embark wl-video actions."
+    :parent embark-general-map
+    "RET" #'wl-watch-video
+    "d" #'wl-remove-video
+    "w" #'wl-watch-video)
+  (defalias 'wl-embark-video-map wl-embark-video-map)
+  (add-to-list 'embark-keymap-alist '(wl-video . wl-embark-video-map)))
+
 (provide 'wl)
 ;;; wl.el ends here
