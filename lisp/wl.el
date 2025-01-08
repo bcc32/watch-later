@@ -30,6 +30,7 @@
 (defvar embark-multitarget-actions)
 (defvar embark-transformer-alist)
 
+(require 'compat-30)
 (require 'json)
 (require 'thunk)
 
@@ -67,18 +68,28 @@ If INCLUDE-WATCHED is non-nil, include watched videos also."
        v
        result))))
 
+(defun wl-video--sort-completions (get-video videos)
+  "Sort completion candidate list VIDEOS.
+
+GET-VIDEO should be a function that accepts a video ID and
+returns the video's metadata."
+  (cl-sort videos
+           #'string<
+           :key (lambda (a) (plist-get (funcall get-video a) :published_at))))
+
 (defun wl-video-completion-table (&optional include-watched)
   "Return completion table of unwatched videos.
 
 If INCLUDE-WATCHED is non-nil, include watched videos also."
   (let ((videos (thunk-delay (wl-video--completion-candidates include-watched))))
-    (lambda (string pred action)
-      (cond
-       ((eq action 'metadata)
-        '(metadata (category . wl-video)))
-       ((eq action 'get-video)
-        (gethash string (thunk-force videos)))
-       (t (complete-with-action action (thunk-force videos) string pred))))))
+    (cl-flet ((get-video (video) (gethash video (thunk-force videos))))
+      (lambda (string pred action)
+        (cond
+         ((eq action 'metadata)
+          `(metadata (category . wl-video)
+                     (display-sort-function . ,(apply-partially #'wl-video--sort-completions #'get-video))))
+         ((eq action 'get-video) (get-video string))
+         (t (complete-with-action action (thunk-force videos) string pred)))))))
 
 (defun wl-read-video-id (&optional include-watched)
   "Read unwatched video ID, with completion.
