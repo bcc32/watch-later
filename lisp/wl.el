@@ -4,7 +4,7 @@
 
 ;; Author: Aaron L. Zeng <z@bcc32.com>
 ;; Keywords: convenience, tools
-;; Package-Requires: ((emacs "27.1"))
+;; Package-Requires: ((emacs "29.1") (compat "30"))
 ;; URL: https://github.com/bcc32/watch-later
 ;; Version: 0.1
 
@@ -68,14 +68,18 @@ If INCLUDE-WATCHED is non-nil, include watched videos also."
        v
        result))))
 
+(defvar wl-video-sort-key '(:published_at ""))
+
 (defun wl-video--sort-completions (get-video videos)
   "Sort completion candidate list VIDEOS.
 
 GET-VIDEO should be a function that accepts a video ID and
 returns the video's metadata."
-  (cl-sort videos
-           #'string<
-           :key (lambda (a) (plist-get (funcall get-video a) :published_at))))
+  (cl-sort videos #'value<
+           :key (lambda (a)
+                  (or (plist-get (funcall get-video a)
+                                 (car wl-video-sort-key))
+                      (cadr wl-video-sort-key)))))
 
 (defun wl-video-completion-table (&optional include-watched)
   "Return completion table of unwatched videos.
@@ -87,16 +91,47 @@ If INCLUDE-WATCHED is non-nil, include watched videos also."
         (cond
          ((eq action 'metadata)
           `(metadata (category . wl-video)
+                     ;; TODO: annotation function to display duration/published?
                      (display-sort-function . ,(apply-partially #'wl-video--sort-completions #'get-video))))
          ((eq action 'get-video) (get-video string))
          (t (complete-with-action action (thunk-force videos) string pred)))))))
+
+(defun wl-video--set-completion-sort-key (key)
+  "Set `wl-video-sort-key' to KEY.
+
+Also, redisplay vertico completion UI, if enabled."
+  (setq wl-video-sort-key key)
+  ;; cribbed from `forge-read-topic-lift-limit'
+  (when (and (bound-and-true-p vertico-mode)
+             (boundp 'vertico--input)
+             (fboundp 'vertico--exhibit))
+    (setq vertico--input t)
+    (vertico--exhibit)))
+
+;; TODO: also set up annotation function like this?
+(defun wl-video-set-completion-sort-by-published-at ()
+  (interactive)
+  (wl-video--set-completion-sort-key '(:published_at "")))
+
+(defun wl-video-set-completion-sort-by-duration ()
+  (interactive)
+  (wl-video--set-completion-sort-key '(:duration 0)))
+
+(defvar-keymap wl-read-video-map
+  "> d" #'wl-video-set-completion-sort-by-duration
+  "> p" #'wl-video-set-completion-sort-by-published-at)
 
 (defun wl-read-video-id (&optional include-watched)
   "Read unwatched video ID, with completion.
 
 If INCLUDE-WATCHED is non-nil, include watched videos also."
   (let* ((videos (wl-video-completion-table include-watched))
-         (choice (completing-read "Video: " videos nil t)))
+         (choice
+          (minibuffer-with-setup-hook
+              (lambda ()
+                (use-local-map (make-composed-keymap wl-read-video-map
+                                                     (current-local-map))))
+            (completing-read "Video: " videos nil t))))
     (plist-get (funcall videos choice nil 'get-video) :video_id)))
 
 ;;;###autoload
