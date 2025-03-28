@@ -30,7 +30,7 @@
 (defvar embark-multitarget-actions)
 (defvar embark-transformer-alist)
 
-(require 'compat-30)
+(require 'compat)
 (require 'json)
 (require 'thunk)
 
