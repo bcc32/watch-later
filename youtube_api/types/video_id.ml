@@ -28,13 +28,18 @@ include
 
 module Plain_or_in_url = struct
   let of_url uri =
-    match List.Assoc.find (Uri.query uri) "v" ~equal:String.equal with
-    | Some [ video_id ] -> of_string video_id
-    | Some list -> raise_s [%message "invalid v= query parameter" (list : string list)]
-    | None ->
-      if [%equal: string option] (Uri.host uri) (Some "youtu.be")
-      then of_string (Uri.path uri |> String.chop_prefix_exn ~prefix:"/")
-      else raise_s [%message "missing v= query parameter" ~url:(Uri.to_string uri)]
+    if [%equal: string option] (Uri.host uri) (Some "youtu.be")
+    then of_string (Uri.path uri |> String.chop_prefix_exn ~prefix:"/")
+    else (
+      match Uri.path uri |> String.chop_prefix ~prefix:"/shorts/" with
+      | Some short_id -> of_string short_id
+      | None ->
+        (match List.Assoc.find (Uri.query uri) "v" ~equal:String.equal with
+         | Some [ video_id ] -> of_string video_id
+         | Some list ->
+           raise_s [%message "invalid v= query parameter" (list : string list)]
+         | None ->
+           raise_s [%message "missing v= query parameter" ~url:(Uri.to_string uri)]))
   ;;
 
   let of_string string =

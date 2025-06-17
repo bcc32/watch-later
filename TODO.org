@@ -92,6 +92,9 @@ CLOCK: [2024-09-04 Wed 01:13]--[2024-09-04 Wed 01:17] =>  0:04
    (exn Not_found))
 #+end_example
 * TODO Improve sqlite usage based on these posts
+:LOGBOOK:
+CLOCK: [2025-02-08 Sat 15:17]--[2025-02-08 Sat 15:28] =>  0:11
+:END:
 [2024-10-13 Sun 12:57]
 
 - [ ] https://kerkour.com/sqlite-for-servers
