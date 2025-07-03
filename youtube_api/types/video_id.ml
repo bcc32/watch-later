@@ -44,7 +44,14 @@ module Plain_or_in_url = struct
 
   let of_string string =
     try string |> Uri.of_string |> of_url with
-    | _ -> of_string string
+    | exn1 ->
+      (try of_string string with
+       | exn2 ->
+         raise_s
+           [%message
+             "Could not parse video ID from URL or string"
+               ~as_url:(exn1 : exn)
+               ~as_string:(exn2 : exn)])
   ;;
 
   let arg_type = Command.Arg_type.create of_string
