@@ -6,7 +6,7 @@
 ;; Keywords: convenience, tools
 ;; Package-Requires: ((emacs "29.1") (compat "30"))
 ;; URL: https://github.com/bcc32/watch-later
-;; Version: 0.1
+;; Version: 0.2
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -81,6 +81,33 @@ returns the video's metadata."
                                  (car wl-video-sort-key))
                       (cadr wl-video-sort-key)))))
 
+;; TODO: Support toggling different annotations, perhaps via marginalia.
+(defun wl-video--affix-completion (get-video videos)
+  (mapcar (lambda (video)
+            (let* ((video-metadata (funcall get-video video))
+                   ;; TODO: would be nice if metadata included watched status so
+                   ;; it could be displayed like so:
+                   ;;
+                   ;; (prefix
+                   ;;  (concat (if (plist-get video-metadata :watched) "✓" " ") " "))
+                   (published-at
+                    (if-let* ((time-string (plist-get video-metadata :published_at)))
+                        (format-time-string "%F" (encode-time (parse-time-string time-string)))
+                      "<no date>"))
+                   (duration
+                    (if-let* ((duration-secs (plist-get video-metadata :duration)))
+                        (cond
+                         ((> duration-secs 3600) (format "%.1fh" (/ duration-secs 3600.0)))
+                         ((> duration-secs 60) (format "%dm" (/ duration-secs 60)))
+                         (t (format "%ds" duration-secs)))
+                      "<no duration>"))
+                   (prefix
+                    (propertize (format "%s %s " published-at duration)
+                                'face 'completions-annotations))
+                   (suffix ""))
+              (list video prefix suffix)))
+          videos))
+
 (defun wl-video-completion-table (&optional include-watched)
   "Return completion table of unwatched videos.
 
@@ -90,9 +117,14 @@ If INCLUDE-WATCHED is non-nil, include watched videos also."
       (lambda (string pred action)
         (cond
          ((eq action 'metadata)
+          ;; FIXME: probably the completion table should include just the IDs,
+          ;; and the title should be part of the annotation instead.
+          ;;
+          ;; That would probably allow a lot of the embark stuff to work
+          ;; out-of-the-box.
           `(metadata (category . wl-video)
-                     ;; TODO: annotation function to display duration/published?
-                     (display-sort-function . ,(apply-partially #'wl-video--sort-completions #'get-video))))
+                     (display-sort-function . ,(apply-partially #'wl-video--sort-completions #'get-video))
+                     (affixation-function . ,(apply-partially #'wl-video--affix-completion #'get-video))))
          ((eq action 'get-video) (get-video string))
          (t (complete-with-action action (thunk-force videos) string pred)))))))
 
