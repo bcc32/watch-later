@@ -41,6 +41,7 @@ Manage YouTube queue
                                $XDG_DATA_HOME/watch-later/watch-later.db)
   . [-id]                    . If passed, print just the video ID rather than
                                all the video info
+  . [-json]                  . If passed, print JSON objects instead of sexps
   . [-video-id ID]           . video ID
   . [-video-title TITLE]     . video TITLE
   . [-watched BOOL]          . Restrict to videos with watched status BOOL
