@@ -7,7 +7,7 @@ type contents =
   ; client_secret : string
   ; mutable access_token : string
   ; refresh_token : string
-  ; mutable expiry : Time_ns.t
+  ; mutable expiry : Time_ns.Alternate_sexp.t
   }
 [@@deriving sexp]
 
