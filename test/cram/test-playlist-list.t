@@ -1,6 +1,43 @@
   $ source ./setup.sh
 
-  $ wl playlist list 'https://www.youtube.com/playlist?list=PLZHQObOWTQDOqzmnORfqizZK-TcBE09jR'
-  84hEmGHw3J8
-  K8P8uFahAgc
-  -9OUyo8NFZg
+  $ wl playlist list 'https://www.youtube.com/playlist?list=PLE18841CABEA24090'
+  -J_xL4IGhJA
+  V_7mmwpgJHU
+  eJeMOEiHv8c
+  DrFkf-T-6Co
+  PEwZL3H2oKg
+  bV87UzKMRtE
+  _fXQ1SwKjDg
+  OscT4N2qq7o
+  dO1aqPBJCPg
+  yedzRWhi-9E
+  JkGKLILLy0I
+  qp05AtXbOP0
+  aAlR3cezPJg
+  QVEOq5k6Xi0
+  rCqMiPk1BJE
+  GReBwkGFZcs
+  cIc8ZBMcqAc
+  Z8-qWEEwTCk
+  TqO6V3qR9Ws
+  AbK4bZhUk48
+  2Op3QLzMgSY
+  dlbMuv-jix8
+  erHp3r6PbJk
+  ymsbTVLbyN4
+  2QgZVYI3tDs
+  X21cKVtGvYk
+  amf5lTZ0UTc
+  h6Z7vx9iUB8
+  jl8EHP1WrWY
+  SsBxcpkyMMw
+  a2Qt9uxhNSM
+  DCub3iqteuI
+  0m6hoOelZH8
+  t5EI5fXX8K0
+  cyVXjnFL2Ps
+  R3uRidfSpc4
+  jPDAPmx4pXE
+  SLcZXbyGC3E
+  kNmiTTKiYd4
+  2s2_FAf-yQs

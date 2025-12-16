@@ -76,7 +76,7 @@ Add existing video to the database via playlist.
      (published_at ("2015-04-11 08:19:03Z")) (duration (1m49s))))
    (watched false))
 
-  $ wl add -overwrite -playlist 'https://www.youtube.com/playlist?list=PLZHQObOWTQDOqzmnORfqizZK-TcBE09jR'
+  $ wl add -overwrite -playlist 'https://www.youtube.com/playlist?list=PLE18841CABEA24090'
   $ wl list -video-id 84hEmGHw3J8
   ((video_info
     ((channel_id UCYO_jab_esuFRV4b17AJtAw) (channel_title 3Blue1Brown)
