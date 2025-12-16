@@ -3,7 +3,7 @@
 
   inputs = {
     # TODO: switch back to upstream nixpkgs after this is merged.
-    nixpkgs.url = "github:NixOS/nixpkgs/2674bcad3d550a6d914c0c9524460f192a7060e1";
+    nixpkgs.url = "github:NixOS/nixpkgs/427dae5a60de77a3d03f5252e22baf9899aea298";
     flake-utils.url = "github:numtide/flake-utils";
     ocaml-overlays.url = "github:nix-ocaml/nix-overlays";
     ocaml-overlays.inputs.nixpkgs.follows = "nixpkgs";
