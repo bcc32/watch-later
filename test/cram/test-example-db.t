@@ -1,7 +1,7 @@
   $ source ./setup.sh
 
   $ wl debug db path
-  XDG_DATA_DIR/watch-later/watch-later.db
+  XDG_DATA_HOME/watch-later/watch-later.db
 
   $ wl list
   ((video_info
@@ -39,6 +39,8 @@
   INSERT INTO sqlite_stat1 VALUES('videos','index_videos_on_title','1 1');
   INSERT INTO sqlite_stat1 VALUES('videos','index_videos_on_channel_id','1 1');
   INSERT INTO sqlite_stat1 VALUES('videos','sqlite_autoindex_videos_1','1 1');
+  INSERT INTO sqlite_stat1 VALUES('channels','index_channels_on_title','2 1');
+  INSERT INTO sqlite_stat1 VALUES('channels','sqlite_autoindex_channels_1','2 1');
   CREATE VIEW videos_all (
     video_id,
     video_title,

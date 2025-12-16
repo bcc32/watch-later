@@ -36,7 +36,7 @@ let get_video_json_batch t (video_id_batch : Video_id_batch.t) ~parts =
   let video_ids =
     ((video_id_batch :> Video_id.t Queue.t)
      |> Queue.to_list
-     |> Set.stable_dedup_list (module Video_id)
+     |> List.stable_dedup ~compare:Video_id.compare
       :> string list)
   in
   let%bind json =

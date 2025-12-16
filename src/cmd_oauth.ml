@@ -79,7 +79,7 @@ let listen_for_authorization_code_response () =
                 | Some code -> Ok code
                 | None -> raise_s [%message "Response contained neither error nor code"])
            in
-           Ivar.fill authorization_code result;
+           Ivar.fill_exn authorization_code result;
            match result with
            | Ok _ ->
              Cohttp_async.Server.respond_string
@@ -91,6 +91,7 @@ let listen_for_authorization_code_response () =
                (Error.to_string_hum
                   (Error.tag ~tag:"Failed to authorize with YouTube API." error))))
   in
+  (* TODO: Shut down server once authorization code is determined. *)
   let port = Cohttp_async.Server.listening_on server in
   port, Ivar.read authorization_code
 ;;

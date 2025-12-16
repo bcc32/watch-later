@@ -2,29 +2,38 @@
   description = "Utility for managing a queue of YouTube content";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs";
+    # TODO: switch back to upstream nixpkgs after this is merged.
+    nixpkgs.url = "github:NixOS/nixpkgs/2674bcad3d550a6d914c0c9524460f192a7060e1";
     flake-utils.url = "github:numtide/flake-utils";
     ocaml-overlays.url = "github:nix-ocaml/nix-overlays";
     ocaml-overlays.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, flake-utils, nixpkgs, ocaml-overlays }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      flake-utils,
+      nixpkgs,
+      ocaml-overlays,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
             ocaml-overlays.overlays.default
-            (self: super: {
-              ocamlPackages = super.ocaml-ng.ocamlPackages_4_14;
-            })
           ];
         };
-      in with pkgs; rec {
+      in
+      with pkgs;
+      rec {
         devShells.default = mkShell {
           inputsFrom = [ packages.default ];
-          buildInputs = packages.default.checkInputs
-            ++ lib.optional stdenv.isLinux inotify-tools ++ [
+          buildInputs =
+            packages.default.checkInputs
+            ++ lib.optional stdenv.isLinux inotify-tools
+            ++ [
               ocamlPackages.merlin
               ocamlformat
               ocamlPackages.ocp-indent
@@ -62,12 +71,15 @@
             installShellCompletion share/completions/wl.bash
           '';
 
-          meta = { homepage = "https://github.com/bcc32/watch-later"; };
+          meta = {
+            homepage = "https://github.com/bcc32/watch-later";
+          };
         };
 
         apps.default = {
           type = "app";
           program = "${packages.default}/bin/wl";
         };
-      });
+      }
+    );
 }

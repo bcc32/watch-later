@@ -290,7 +290,9 @@ CREATE VIEW videos_all (
       else (
         (* We don't really care if [increase_version] fails with, say, SQLITE_BUSY, only
            that the schema was migrated. *)
-        match%bind.Deferred increase_version db with
+        match%bind.Deferred
+          increase_version db
+        with
         | Ok () -> ensure_up_to_date db ~retries
         | Error err ->
           [%log.global.error

@@ -35,7 +35,6 @@ Specify video to watch by filter.
 Failure to browse doesn't mark a video as watched.
 
   $ BROWSER=false wl watch
-  run ['false' 'https://youtu.be/qvUWA45GOMg']: exited with 1
   browser reload: run ['false' 'https://youtu.be/qvUWA45GOMg']: exited with 1
   [1]
 
