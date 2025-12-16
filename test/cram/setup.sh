@@ -6,16 +6,16 @@ export BROWSER=echo
 export BUILD_PATH_PREFIX_MAP="HOME=$HOME:XDG_DATA_DIR=$XDG_DATA_DIR:$BUILD_PATH_PREFIX_MAP"
 
 reset_db() {
-    mkdir -p "$XDG_DATA_DIR/watch-later/"
-    install -m644 ./example-db "$XDG_DATA_DIR/watch-later/watch-later.db"
+  mkdir -p "$XDG_DATA_DIR/watch-later/"
+  install -m644 ./example-db "$XDG_DATA_DIR/watch-later/watch-later.db"
 }
 reset_db
 
 dbpath() {
-    wl debug db path
+  wl debug db path
 }
 
 sqlite3() {
-    # Run sqlite3 with no init file
-    command sqlite3 -init /dev/null "$@"
+  # Run sqlite3 with no init file
+  command sqlite3 -init /dev/null "$@"
 }
