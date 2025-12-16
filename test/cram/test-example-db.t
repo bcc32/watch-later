@@ -39,19 +39,6 @@
   INSERT INTO sqlite_stat1 VALUES('videos','index_videos_on_title','1 1');
   INSERT INTO sqlite_stat1 VALUES('videos','index_videos_on_channel_id','1 1');
   INSERT INTO sqlite_stat1 VALUES('videos','sqlite_autoindex_videos_1','1 1');
-  CREATE INDEX index_videos_on_channel_id ON videos (channel_id)
-  ;
-  CREATE INDEX index_videos_on_title ON videos (title COLLATE NOCASE)
-  ;
-  CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
-  ;
-  CREATE TRIGGER trigger_delete_unused_channel
-    AFTER DELETE ON videos
-    FOR EACH ROW
-      WHEN NOT EXISTS (SELECT 1 FROM videos WHERE channel_id = old.channel_id)
-      BEGIN
-        DELETE FROM channels WHERE id = old.channel_id;
-      END;
   CREATE VIEW videos_all (
     video_id,
     video_title,
@@ -64,4 +51,17 @@
     AS
     SELECT videos.id, videos.title, channels.id, channels.title, videos.published_at, videos.duration, videos.watched
       FROM videos JOIN channels ON videos.channel_id = channels.id;
+  CREATE TRIGGER trigger_delete_unused_channel
+    AFTER DELETE ON videos
+    FOR EACH ROW
+      WHEN NOT EXISTS (SELECT 1 FROM videos WHERE channel_id = old.channel_id)
+      BEGIN
+        DELETE FROM channels WHERE id = old.channel_id;
+      END;
+  CREATE INDEX index_videos_on_channel_id ON videos (channel_id)
+  ;
+  CREATE INDEX index_videos_on_title ON videos (title COLLATE NOCASE)
+  ;
+  CREATE INDEX index_channels_on_title ON channels (title COLLATE NOCASE)
+  ;
   COMMIT;
