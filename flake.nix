@@ -2,8 +2,7 @@
   description = "Utility for managing a queue of YouTube content";
 
   inputs = {
-    # TODO: switch back to upstream nixpkgs after this is merged.
-    nixpkgs.url = "github:NixOS/nixpkgs/427dae5a60de77a3d03f5252e22baf9899aea298";
+    nixpkgs.url = "github:NixOS/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
     ocaml-overlays.url = "github:nix-ocaml/nix-overlays";
     ocaml-overlays.inputs.nixpkgs.follows = "nixpkgs";
