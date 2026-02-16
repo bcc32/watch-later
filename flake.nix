@@ -24,6 +24,7 @@
             ocaml-overlays.overlays.default
           ];
         };
+        ocamlPackages = pkgs.ocaml-ng.ocamlPackages_5_4;
       in
       with pkgs;
       rec {
