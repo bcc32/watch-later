@@ -35,7 +35,7 @@
             ++ lib.optional stdenv.isLinux inotify-tools
             ++ [
               ocamlPackages.merlin
-              ocamlformat
+              ocamlPackages.ocamlformat
               ocamlPackages.ocp-indent
               ocamlPackages.utop
             ];

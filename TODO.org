@@ -102,3 +102,9 @@ CLOCK: [2025-02-08 Sat 15:17]--[2025-02-08 Sat 15:28] =>  0:11
 - [ ] https://fractaledmind.com/2024/04/15/sqlite-on-rails-the-how-and-why-of-optimal-performance/
 * TODO "save" should be a different column than "!watched"
 [2026-02-23 Mon 19:49]
+* DONE Why does my direnv depend on ocaml-5.2.1 when I've upgraded to 5.4.0?
+CLOSED: [2026-03-10 Tue 23:59]
+:LOGBOOK:
+CLOCK: [2026-03-11 Wed 00:06]--[2026-03-11 Wed 00:10] =>  0:04
+:END:
+[2026-03-11 Wed 00:02]
