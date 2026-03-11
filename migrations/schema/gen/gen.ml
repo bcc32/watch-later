@@ -24,10 +24,5 @@ let list_migrations =
 
 let cat file = stdin_from file read_all >>= print
 let print_schema = print ".schema\n"
-
-let sqlite =
-  with_temp_file ~prefix:"empty-sqlite-init-file" ~suffix:"" (fun init_file ->
-    run "sqlite3" [ "-init"; init_file; "-batch"; "-bail" ])
-;;
-
+let sqlite = run "sqlite3" [ "-init"; "/dev/null"; "-batch"; "-bail" ]
 let () = eval (list_migrations |- iter_lines cat >> print_schema |- sqlite)
