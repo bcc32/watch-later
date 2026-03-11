@@ -472,16 +472,20 @@ let add_video ((module Conn) : t) (video_info : Video_info.t) ~overwrite =
 ;;
 
 let select_video_by_id =
-  (video_id ->? t2 video_info bool)
+  (video_id ->? t3 video_info bool bool)
     {|
-SELECT channel_id, channel_title, video_id, video_title, published_at, duration, watched
+SELECT channel_id, channel_title, video_id, video_title, published_at, duration, watched, saved
 FROM videos_all
 WHERE video_id = ?
 |}
 ;;
 
 let get ((module Conn) : t) video_id =
-  Conn.find_opt select_video_by_id video_id |> convert_error
+  Conn.find_opt select_video_by_id video_id
+  |> convert_error
+  |> Deferred.Or_error.map
+       ~f:
+         (Option.map ~f:(fun (video_info, watched, saved) -> video_info, ~watched, ~saved))
 ;;
 
 let mem t video_id = get t video_id >>| Option.is_some
@@ -505,9 +509,9 @@ let mark_watched ((module Conn) : t) video_id state =
 ;;
 
 let get_videos =
-  (Filter.t ->* t2 video_info bool)
+  (Filter.t ->* t3 video_info bool bool)
     {|
-SELECT channel_id, channel_title, video_id, video_title, published_at, duration, watched FROM videos_all
+SELECT channel_id, channel_title, video_id, video_title, published_at, duration, watched, saved FROM videos_all
 WHERE ($1 IS NULL OR channel_id = $1)
   AND ($2 IS NULL OR channel_title REGEXP $2)
   AND ($3 IS NULL OR video_id = $3)
@@ -518,7 +522,11 @@ WHERE ($1 IS NULL OR channel_id = $1)
 
 let get_videos ((module Conn) : t) filter =
   Pipe.create_reader ~close_on_exception:false (fun writer ->
-    Conn.iter_s get_videos (fun elt -> Pipe.write writer elt |> Deferred.ok) filter
+    Conn.iter_s
+      get_videos
+      (fun (video_info, watched, saved) ->
+         Pipe.write writer (video_info, ~watched, ~saved) |> Deferred.ok)
+      filter
     |> convert_error
     |> Deferred.Or_error.ok_exn)
 ;;

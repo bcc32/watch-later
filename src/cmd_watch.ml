@@ -6,23 +6,23 @@ let browse_video video_id =
   Browse.url (Uri.of_string (sprintf !"https://youtu.be/%{Video_id}" video_id))
 ;;
 
-let pick (videos : (Video_info.t * bool) list) ~random =
+let pick (videos : (Video_info.t * watched:bool * saved:bool) list) ~random =
   match videos with
   | [] -> Deferred.Or_error.error_string "No unwatched videos matching filter"
   | _ :: _ as videos ->
     if random || not !Async_interactive.interactive
     then (
-      let video_info, _ = List.random_element_exn videos in
+      let video_info, .. = List.random_element_exn videos in
       return [ video_info.video_id ])
     else (
       match%bind
         Fzf.pick_one
           (Assoc
-             (List.map videos ~f:(fun ((video_info, _) as x) ->
+             (List.map videos ~f:(fun ((video_info, ..) as x) ->
                 [%string "%{video_info.channel_title} - %{video_info.video_title}"], x)))
       with
       | None -> Deferred.Or_error.error_string "No video selected"
-      | Some (video_info, _) -> return [ video_info.video_id ])
+      | Some (video_info, ..) -> return [ video_info.video_id ])
 ;;
 
 let main ~dbpath ~mark_watched ~random ~(which_videos : Which_videos.t) =

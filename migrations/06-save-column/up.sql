@@ -1,0 +1,10 @@
+BEGIN;
+
+DROP VIEW videos_all;
+
+ALTER TABLE videos
+  ADD COLUMN saved INTEGER NOT NULL DEFAULT 0;
+
+PRAGMA user_version = 6;
+
+COMMIT;

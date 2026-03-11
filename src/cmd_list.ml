@@ -3,7 +3,7 @@ open! Async
 open! Import
 
 let main ~dbpath ~id ~json ~(which_videos : Which_videos.t) =
-  let print ((video_info : Video_info.t), watched) =
+  let print ((video_info : Video_info.t), ~watched, ~saved) =
     if id
     then printf !"%{Video_id}\n" video_info.video_id
     else if json
@@ -27,7 +27,7 @@ let main ~dbpath ~id ~json ~(which_videos : Which_videos.t) =
                    , Option.value_map duration ~default:`Null ~f:(fun duration ->
                        `Number (Int.to_string (Time_ns.Span.to_int_sec duration))) )
                  ]))
-    else print_s [%message (video_info : Video_info.t) (watched : bool)]
+    else print_s [%message (video_info : Video_info.t) (watched : bool) (saved : bool)]
   in
   Video_db.with_file_and_txn dbpath ~f:(fun db ->
     match which_videos with
