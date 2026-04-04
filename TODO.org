@@ -102,6 +102,7 @@ CLOCK: [2025-02-08 Sat 15:17]--[2025-02-08 Sat 15:28] =>  0:11
 - [ ] https://fractaledmind.com/2024/04/15/sqlite-on-rails-the-how-and-why-of-optimal-performance/
 * TODO "save" should be a different column than "!watched"
 :LOGBOOK:
+CLOCK: [2026-04-03 Fri 21:26]--[2026-04-03 Fri 22:18] =>  0:52
 CLOCK: [2026-03-11 Wed 00:10]--[2026-03-11 Wed 00:22] =>  0:12
 CLOCK: [2026-03-10 Tue 23:56]--[2026-03-11 Wed 00:06] =>  0:10
 :END:

@@ -21,7 +21,7 @@ Specify video to watch by ID.
      (video_title
       "Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN")
      (published_at ()) (duration ())))
-   (watched false))
+   (watched false) (saved false))
   $ reset_db
 
 Specify video to watch by filter.
@@ -45,4 +45,4 @@ Failure to browse doesn't mark a video as watched.
      (video_title
       "Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN")
      (published_at ()) (duration ())))
-   (watched false))
+   (watched false) (saved false))

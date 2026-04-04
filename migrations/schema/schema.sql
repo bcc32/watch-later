@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS "videos" (
   title      TEXT NOT NULL,
   channel_id TEXT NOT NULL REFERENCES channels ON DELETE CASCADE,
   watched    INTEGER NOT NULL DEFAULT 0
-, published_at TEXT, duration INTEGER, save INTEGER NOT NULL DEFAULT 0);
+, published_at TEXT, duration INTEGER, saved INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX index_videos_on_channel_id ON videos (channel_id);
 CREATE TRIGGER trigger_delete_unused_channel
   AFTER DELETE ON videos

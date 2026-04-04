@@ -231,10 +231,23 @@ CREATE VIEW videos_all (
     ;;
   end
 
+  module V5 = struct
+    let drop_videos_all_view = V4.drop_videos_all_view
+
+    let add_saved_column =
+      {|
+ALTER TABLE videos
+  ADD COLUMN saved INTEGER NOT NULL DEFAULT 0
+|}
+    ;;
+
+    let all = [ drop_videos_all_view; add_saved_column ]
+  end
+
   let vacuum = (unit ->. unit) "VACUUM"
 
   let migrations =
-    [| V1.all; V2.all; V3.all; V4.all |]
+    [| V1.all; V2.all; V3.all; V4.all; V5.all |]
     |> Array.map ~f:(List.map ~f:((unit ->. unit) ~oneshot:true))
   ;;
 
@@ -474,9 +487,11 @@ let add_video ((module Conn) : t) (video_info : Video_info.t) ~overwrite =
 let select_video_by_id =
   (video_id ->? t3 video_info bool bool)
     {|
-SELECT channel_id, channel_title, video_id, video_title, published_at, duration, watched, saved
-FROM videos_all
-WHERE video_id = ?
+SELECT channels.id, channels.title, videos.id, videos.title, videos.published_at, videos.duration, videos.watched, videos.saved
+FROM videos
+  JOIN channels
+    ON videos.channel_id = channels.id
+WHERE videos.id = ?
 |}
 ;;
 
@@ -511,7 +526,17 @@ let mark_watched ((module Conn) : t) video_id state =
 let get_videos =
   (Filter.t ->* t3 video_info bool bool)
     {|
-SELECT channel_id, channel_title, video_id, video_title, published_at, duration, watched, saved FROM videos_all
+SELECT channels.id AS channel_id
+     , channels.title AS channel_title
+     , videos.id AS video_id
+     , videos.title AS video_title
+     , published_at
+     , duration
+     , watched
+     , saved
+FROM videos
+  JOIN channels
+    ON videos.channel_id = channels.id
 WHERE ($1 IS NULL OR channel_id = $1)
   AND ($2 IS NULL OR channel_title REGEXP $2)
   AND ($3 IS NULL OR video_id = $3)

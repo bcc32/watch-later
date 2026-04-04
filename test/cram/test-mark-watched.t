@@ -9,7 +9,7 @@ Mark a video as watched.
      (video_title
       "Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN")
      (published_at ()) (duration ())))
-   (watched false))
+   (watched false) (saved false))
   $ wl mark-watched qvUWA45GOMg
   $ wl list -video-id qvUWA45GOMg
   ((video_info
@@ -18,7 +18,7 @@ Mark a video as watched.
      (video_title
       "Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN")
      (published_at ()) (duration ())))
-   (watched true))
+   (watched true) (saved false))
 
 Unmark a video as watched.
 
@@ -29,7 +29,7 @@ Unmark a video as watched.
      (video_title
       "Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN")
      (published_at ()) (duration ())))
-   (watched true))
+   (watched true) (saved false))
   $ wl mark-watched -u qvUWA45GOMg
   $ wl list -video-id qvUWA45GOMg
   ((video_info
@@ -38,4 +38,4 @@ Unmark a video as watched.
      (video_title
       "Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN")
      (published_at ()) (duration ())))
-   (watched false))
+   (watched false) (saved false))

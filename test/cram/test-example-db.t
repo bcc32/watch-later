@@ -9,14 +9,14 @@
      (video_id -FlxM_0S2lA)
      (video_title "Lofi hip hop mix - Beats to Relax/Study to [2018]")
      (published_at ()) (duration ())))
-   (watched true))
+   (watched true) (saved false))
   ((video_info
     ((channel_id UCJ7W3mGBp1SCC-5Xsy4ufZQ)
      (channel_title "GEMN Chill Out & Lofi Music") (video_id qvUWA45GOMg)
      (video_title
       "Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN")
      (published_at ()) (duration ())))
-   (watched false))
+   (watched false) (saved false))
 
   $ sqlite3 "$(dbpath)" .dump
   PRAGMA foreign_keys=OFF;
@@ -32,27 +32,15 @@
     title      TEXT NOT NULL,
     channel_id TEXT NOT NULL REFERENCES channels ON DELETE CASCADE,
     watched    INTEGER NOT NULL DEFAULT 0
-  , published_at TEXT, duration INTEGER);
-  INSERT INTO videos VALUES('-FlxM_0S2lA','Lofi hip hop mix - Beats to Relax/Study to [2018]','UCSJ4gkVC6NrvII8umztf0Ow',1,NULL,NULL);
-  INSERT INTO videos VALUES('qvUWA45GOMg','Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN','UCJ7W3mGBp1SCC-5Xsy4ufZQ',0,NULL,NULL);
+  , published_at TEXT, duration INTEGER, saved INTEGER NOT NULL DEFAULT 0);
+  INSERT INTO videos VALUES('-FlxM_0S2lA','Lofi hip hop mix - Beats to Relax/Study to [2018]','UCSJ4gkVC6NrvII8umztf0Ow',1,NULL,NULL,0);
+  INSERT INTO videos VALUES('qvUWA45GOMg','Chill Lo-fi Hip-Hop Beats FREE | Lofi Hip Hop Chillhop Music Mix | GEMN','UCJ7W3mGBp1SCC-5Xsy4ufZQ',0,NULL,NULL,0);
   ANALYZE sqlite_schema;
   INSERT INTO sqlite_stat1 VALUES('videos','index_videos_on_title','1 1');
   INSERT INTO sqlite_stat1 VALUES('videos','index_videos_on_channel_id','1 1');
   INSERT INTO sqlite_stat1 VALUES('videos','sqlite_autoindex_videos_1','1 1');
   INSERT INTO sqlite_stat1 VALUES('channels','index_channels_on_title','2 1');
   INSERT INTO sqlite_stat1 VALUES('channels','sqlite_autoindex_channels_1','2 1');
-  CREATE VIEW videos_all (
-    video_id,
-    video_title,
-    channel_id,
-    channel_title,
-    published_at,
-    duration,
-    watched
-  )
-    AS
-    SELECT videos.id, videos.title, channels.id, channels.title, videos.published_at, videos.duration, videos.watched
-      FROM videos JOIN channels ON videos.channel_id = channels.id;
   CREATE TRIGGER trigger_delete_unused_channel
     AFTER DELETE ON videos
     FOR EACH ROW
