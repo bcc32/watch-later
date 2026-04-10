@@ -563,6 +563,7 @@ WHERE ($1 IS NULL OR channel_id = $1)
   AND ($3 IS NULL OR video_id = $3)
   AND ($4 IS NULL OR video_title REGEXP $4)
   AND ($5 IS NULL OR watched IS TRUE = $5 IS TRUE)
+  AND ($6 IS NULL OR saved IS TRUE = $6 IS TRUE)
 |}
 ;;
 

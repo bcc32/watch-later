@@ -10,6 +10,7 @@ type t =
   ; video_id : Video_id.t option
   ; video_title : string option
   ; watched : bool option
+  ; saved : bool option
   }
 [@@deriving fields]
 
@@ -21,6 +22,7 @@ let is_empty =
     ~video_id:is_none
     ~video_title:is_none
     ~watched:is_none
+    ~saved:is_none
 ;;
 
 let empty =
@@ -29,6 +31,7 @@ let empty =
   ; video_id = None
   ; video_title = None
   ; watched = None
+  ; saved = None
   }
 ;;
 
@@ -38,6 +41,7 @@ let unwatched =
   ; video_id = None
   ; video_title = None
   ; watched = Some false
+  ; saved = None
   }
 ;;
 
@@ -53,8 +57,10 @@ let param =
       "-watched"
       (optional bool)
       ~doc:"BOOL Restrict to videos with watched status BOOL"
+  and saved =
+    flag "-saved" (optional bool) ~doc:"BOOL Restrict to videos with saved status BOOL"
   in
-  { channel_id; channel_title; video_id; video_title; watched }
+  { channel_id; channel_title; video_id; video_title; watched; saved }
 ;;
 
 let t : t Caqti_type.t =
@@ -66,5 +72,6 @@ let t : t Caqti_type.t =
     ~video_id:(f (option Caqti_type.Std.video_id))
     ~video_title:(f (option string))
     ~watched:(f (option bool))
+    ~saved:(f (option bool))
   |> Caqti_type.Record.finish
 ;;
