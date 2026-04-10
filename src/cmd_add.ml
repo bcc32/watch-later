@@ -3,17 +3,22 @@ open! Async
 open! Import
 
 (* FIXME: This function is now quite convoluted.  Try to simplify. *)
-let main ~api ~dbpath ~mark_watched ~overwrite ~videos_or_playlist =
+let main ~api ~dbpath ~mark_watched ~mark_saved ~overwrite ~videos_or_playlist =
   let%bind playlist_items_to_delete =
     Video_db.with_file_and_txn dbpath ~f:(fun db ->
-      let process_video_info =
-        match mark_watched with
-        | None -> fun video_info -> Video_db.add_video db video_info ~overwrite
-        | Some state ->
-          fun video_info ->
-            let%bind () = Video_db.add_video db video_info ~overwrite in
-            let%bind () = Video_db.mark_watched db video_info.video_id state in
-            return ()
+      let process_video_info video_info =
+        let%bind () = Video_db.add_video db video_info ~overwrite in
+        let%bind () =
+          match mark_watched with
+          | None -> return ()
+          | Some state -> Video_db.mark_watched db video_info.video_id state
+        in
+        let%bind () =
+          match mark_saved with
+          | None -> return ()
+          | Some state -> Video_db.mark_saved db video_info.video_id state
+        in
+        return ()
       in
       let process_video_infos video_infos =
         match%map.Deferred
@@ -81,6 +86,11 @@ let command =
        >>| Option.map ~f:(function
          | true -> `Watched
          | false -> `Unwatched)
+     and mark_saved =
+       flag
+         "-mark-saved"
+         (optional bool)
+         ~doc:"(true|false) mark video as saved (default do neither)"
      and overwrite =
        flag
          "-overwrite"
@@ -88,5 +98,5 @@ let command =
          ~doc:" overwrite existing entries (default skip)"
          ~aliases:[ "-f" ]
      and videos_or_playlist = Params.nonempty_videos_or_playlist in
-     fun api -> main ~api ~dbpath ~mark_watched ~overwrite ~videos_or_playlist)
+     fun api -> main ~api ~dbpath ~mark_watched ~mark_saved ~overwrite ~videos_or_playlist)
 ;;

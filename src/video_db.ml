@@ -414,6 +414,14 @@ WHERE id = ?
 |}
 ;;
 
+let mark_saved =
+  (t2 bool video_id ->. unit)
+    {|
+UPDATE videos SET saved = ?
+WHERE id = ?
+|}
+;;
+
 let add_channel ~overwrite =
   let sql =
     sprintf
@@ -517,6 +525,19 @@ let mark_watched ((module Conn) : t) video_id state =
   | 0 ->
     Deferred.Or_error.error_s
       [%message "No rows were changed" (video_id : Video_id.t) (watched : bool)]
+  | 1 -> return ()
+  | changes ->
+    Deferred.Or_error.error_s
+      [%message "Unexpected change count" (video_id : Video_id.t) (changes : int)]
+;;
+
+let mark_saved ((module Conn) : t) video_id saved =
+  match%bind
+    Conn.exec_with_affected_count mark_saved (saved, video_id) |> convert_error
+  with
+  | 0 ->
+    Deferred.Or_error.error_s
+      [%message "No rows were changed" (video_id : Video_id.t) (saved : bool)]
   | 1 -> return ()
   | changes ->
     Deferred.Or_error.error_s

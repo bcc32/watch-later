@@ -25,6 +25,8 @@ val mark_watched
   -> [ `Watched | `Unwatched ]
   -> unit Or_error.t Deferred.t
 
+val mark_saved : t -> Video_id.t -> bool -> unit Or_error.t Deferred.t
+
 (** Returns tuples of [video_info, watched, saved] *)
 val get_videos : t -> Filter.t -> (Video_info.t * watched:bool * saved:bool) Pipe.Reader.t
 
