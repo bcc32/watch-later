@@ -100,6 +100,8 @@ CLOCK: [2025-02-08 Sat 15:17]--[2025-02-08 Sat 15:28] =>  0:11
 - [ ] https://kerkour.com/sqlite-for-servers
 - [ ] https://use.expensify.com/blog/scaling-sqlite-to-4m-qps-on-a-single-server
 - [ ] https://fractaledmind.com/2024/04/15/sqlite-on-rails-the-how-and-why-of-optimal-performance/
+- [ ] https://mort.coffee/home/sqlite-editions/
+  - ~PRAGMA synchronous = NORMAL~
 * TODO "save" should be a different column than "!watched"
 :LOGBOOK:
 CLOCK: [2026-04-03 Fri 21:26]--[2026-04-03 Fri 22:18] =>  0:52
