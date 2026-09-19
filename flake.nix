@@ -31,7 +31,7 @@
           inputsFrom = [ packages.default ];
           buildInputs =
             packages.default.checkInputs
-            ++ lib.optional stdenv.isLinux inotify-tools
+            ++ lib.optional stdenv.hostPlatform.isLinux inotify-tools
             ++ [
               ocamlPackages.merlin
               ocamlPackages.ocamlformat
