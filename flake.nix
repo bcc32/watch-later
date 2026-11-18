@@ -46,7 +46,10 @@
           version = "0.1.0";
           duneVersion = "3";
           src = ./.;
-          checkInputs = with ocamlPackages; [ shexp ];
+          checkInputs = with ocamlPackages; [
+            shexp
+            pkgs.sqlite
+          ];
           propagatedBuildInputs = with ocamlPackages; [
             async
             async_interactive
