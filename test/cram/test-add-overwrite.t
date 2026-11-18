@@ -6,7 +6,7 @@ Insert bogus information for a video.
   > INSERT INTO channels (id, title) VALUES
   >   ('UC1dVfl5-I98WX3yCy8IJQMg', 'REPLACE ME');
   > INSERT INTO videos (id, title, channel_id, watched) VALUES
-  >   ('sjkrrmBnpGE', 'REPLACE ME', 'UC1dVfl5-I98WX3yCy8IJQMg', 0);
+  >   ('9xwazD5SyVg', 'REPLACE ME', 'UC1dVfl5-I98WX3yCy8IJQMg', 0);
   > SQL
 
   $ wl list
@@ -25,45 +25,43 @@ Insert bogus information for a video.
    (watched false) (saved false))
   ((video_info
     ((channel_id UC1dVfl5-I98WX3yCy8IJQMg) (channel_title "REPLACE ME")
-     (video_id sjkrrmBnpGE) (video_title "REPLACE ME") (published_at ())
+     (video_id 9xwazD5SyVg) (video_title "REPLACE ME") (published_at ())
      (duration ())))
    (watched false) (saved false))
 
-Add an existing video to the database, not overwriting any information.  `-mark`
-has no effect.
+Add an existing video to the database, not overwriting any information.
+`-mark-watched` has no effect.
 
-  $ wl add sjkrrmBnpGE -mark true
-  $ wl list -video-id sjkrrmBnpGE
+  $ wl add 9xwazD5SyVg -mark-watched true
+  $ wl list -video-id 9xwazD5SyVg
   ((video_info
     ((channel_id UC1dVfl5-I98WX3yCy8IJQMg) (channel_title "REPLACE ME")
-     (video_id sjkrrmBnpGE) (video_title "REPLACE ME") (published_at ())
+     (video_id 9xwazD5SyVg) (video_title "REPLACE ME") (published_at ())
      (duration ())))
    (watched false) (saved false))
 
 Add an existing video to the database, re-fetching information from YouTube, and
 marking watched.
 
-  $ wl add -overwrite sjkrrmBnpGE -mark true
-  $ wl list -video-id sjkrrmBnpGE
+  $ wl add -overwrite 9xwazD5SyVg -mark-watched true
+  $ wl list -video-id 9xwazD5SyVg
   ((video_info
-    ((channel_id UC1dVfl5-I98WX3yCy8IJQMg)
-     (channel_title "Quiet Quest - Study Music") (video_id sjkrrmBnpGE)
-     (video_title
-      "Ambient Study Music To Concentrate - 4 Hours of Music for Studying, Concentration and Memory")
-     (published_at ("2019-11-25 10:00:09Z")) (duration (3h57m52s))))
+    ((channel_id UCOR9CnVWpl0hc8AIcD86zJQ)
+     (channel_title "Maximilian Mustermann") (video_id 9xwazD5SyVg)
+     (video_title "Dummy Video For YouTube API Test")
+     (published_at ("2016-04-18 12:00:44Z")) (duration (6s))))
    (watched true) (saved false))
 
 Add an existing video to the database, re-fetching information from YouTube,
 without marking.  The watched status does not change.
 
-  $ wl add -overwrite sjkrrmBnpGE
-  $ wl list -video-id sjkrrmBnpGE
+  $ wl add -overwrite 9xwazD5SyVg
+  $ wl list -video-id 9xwazD5SyVg
   ((video_info
-    ((channel_id UC1dVfl5-I98WX3yCy8IJQMg)
-     (channel_title "Quiet Quest - Study Music") (video_id sjkrrmBnpGE)
-     (video_title
-      "Ambient Study Music To Concentrate - 4 Hours of Music for Studying, Concentration and Memory")
-     (published_at ("2019-11-25 10:00:09Z")) (duration (3h57m52s))))
+    ((channel_id UCOR9CnVWpl0hc8AIcD86zJQ)
+     (channel_title "Maximilian Mustermann") (video_id 9xwazD5SyVg)
+     (video_title "Dummy Video For YouTube API Test")
+     (published_at ("2016-04-18 12:00:44Z")) (duration (6s))))
    (watched true) (saved false))
 
 Add existing video to the database via playlist.
