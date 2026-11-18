@@ -2,7 +2,7 @@ CREATE TABLE channels (
   id    TEXT PRIMARY KEY,
   title TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS "videos" (
+CREATE TABLE "videos" (
   id         TEXT PRIMARY KEY,
   title      TEXT NOT NULL,
   channel_id TEXT NOT NULL REFERENCES channels ON DELETE CASCADE,
