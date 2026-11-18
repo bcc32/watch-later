@@ -4,6 +4,9 @@ open! Import
 
 type t
 
+(** Prefer {!with_file_and_txn}. *)
+val with_file : string -> f:(t -> 'a Or_error.t Deferred.t) -> 'a Or_error.t Deferred.t
+
 val with_file_and_txn
   :  string
   -> f:(t -> 'a Or_error.t Deferred.t)

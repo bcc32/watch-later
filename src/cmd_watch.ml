@@ -26,7 +26,9 @@ let pick (videos : (Video_info.t * watched:bool * saved:bool) list) ~random =
 ;;
 
 let main ~dbpath ~mark_watched ~random ~(which_videos : Which_videos.t) =
-  Video_db.with_file_and_txn dbpath ~f:(fun db ->
+  (* No transaction here is fine. The user may take some time to interactively pick a
+     video, and it's no big deal if the database is modified in the interim. *)
+  Video_db.with_file dbpath ~f:(fun db ->
     let%bind which_videos =
       match which_videos with
       | These ids -> return ids

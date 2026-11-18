@@ -357,7 +357,7 @@ let setup_connection ((module Conn) as db : t) =
   return ()
 ;;
 
-let with_file_and_txn dbpath ~f =
+let with_file dbpath ~f =
   (* TODO: Once available, use [File_path] library. *)
   let%bind () =
     Monitor.try_with_or_error ~here:[%here] (fun () ->
@@ -373,12 +373,18 @@ let with_file_and_txn dbpath ~f =
   let%bind db = Caqti_async.connect uri |> convert_error in
   let%bind () = setup_connection db in
   let (module Conn) = db in
-  let%bind.Deferred result = with_txn (module Conn) ~f:(fun () -> f db) in
+  let%bind.Deferred result = f db in
   let%bind () =
     if Result.is_ok result then exec_oneshot db "PRAGMA optimize" else return ()
   in
   let%bind () = Conn.disconnect () |> Deferred.ok in
   Deferred.return result
+;;
+
+let with_file_and_txn dbpath ~f =
+  with_file dbpath ~f:(fun db ->
+    let (module Conn) = db in
+    with_txn (module Conn) ~f:(fun () -> f db))
 ;;
 
 let select_count_total_videos =
