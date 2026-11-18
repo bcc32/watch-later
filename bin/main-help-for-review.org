@@ -9,6 +9,8 @@ Manage YouTube queue
   . [-dbpath FILE]           . path to database file (default is
                                $XDG_DATA_HOME/watch-later/watch-later.db)
   . [-log-level LEVEL]       . The log level (can be: Debug, Error, Info)
+  . [-mark-saved (true|false)]
+                             . mark video as saved (default do neither)
   . [-mark-watched (true|false)]
                              . mark video as watched (default do neither)
   . [-overwrite], -f         . overwrite existing entries (default skip)
@@ -42,6 +44,7 @@ Manage YouTube queue
   . [-id]                    . If passed, print just the video ID rather than
                                all the video info
   . [-json]                  . If passed, print JSON objects instead of sexps
+  . [-saved BOOL]            . Restrict to videos with saved status BOOL
   . [-video-id ID]           . video ID
   . [-video-title TITLE]     . video TITLE
   . [-watched BOOL]          . Restrict to videos with watched status BOOL
@@ -88,6 +91,7 @@ Manage YouTube queue
   . [-mark-watched _]        . mark video as watched (default: true) (can be:
                                false, true)
   . [-random]                . pick a random filtered video instead of prompting
+  . [-saved BOOL]            . Restrict to videos with saved status BOOL
   . [-video-id ID]           . video ID
   . [-video-title TITLE]     . video TITLE
   . [-watched BOOL]          . Restrict to videos with watched status BOOL
