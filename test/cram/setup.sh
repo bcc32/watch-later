@@ -23,7 +23,10 @@ sqlite3() {
 }
 
 # Copy real credentials file into sandbox
-if [ -f "$outer_home/.config/watch-later/credentials" ]; then
+if [ -r "$outer_home/.config/watch-later/credentials" ]; then
   mkdir -p "$XDG_CONFIG_HOME/watch-later"
   cp "$outer_home/.config/watch-later/credentials" "$XDG_CONFIG_HOME/watch-later/credentials"
+else
+  echo >&2 "Could not read '$outer_home/.config/watch-later/credentials'"
+  exit 1
 fi
